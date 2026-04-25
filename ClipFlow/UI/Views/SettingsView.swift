@@ -19,51 +19,9 @@ struct SettingsView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     header
 
-                    glassSection(title: "Geral", subtitle: "Comportamento e aparência do app") {
-                        VStack(alignment: .leading, spacing: 10) {
-                            Picker("Limite do Histórico", selection: $settings.historyLimit) {
-                                Text("100").tag(100)
-                                Text("500").tag(500)
-                                Text("1000").tag(1000)
-                            }
+                    topSections
 
-                            Picker("Aparência", selection: $settings.appearance) {
-                                ForEach(AppAppearance.allCases) { appearance in
-                                    Text(appearance.title).tag(appearance)
-                                }
-                            }
-
-                            Toggle("Pausar monitoramento", isOn: $settings.pauseMonitoring)
-
-                            Toggle("Criptografia local (AES-GCM)", isOn: $settings.enableEncryption)
-                        }
-                    }
-
-                    glassSection(title: "Inicialização", subtitle: "Abertura automática com o macOS") {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Toggle("Iniciar com o macOS", isOn: Binding(
-                                get: { settings.launchAtLogin },
-                                set: { newValue in
-                                    do {
-                                        try launchManager.setEnabled(newValue)
-                                        settings.launchAtLogin = launchManager.isEnabled
-                                        launchAtLoginError = nil
-                                    } catch {
-                                        settings.launchAtLogin = launchManager.isEnabled
-                                        launchAtLoginError = error.localizedDescription
-                                    }
-                                }
-                            ))
-
-                            if let launchAtLoginError {
-                                Text(launchAtLoginError)
-                                    .font(.caption)
-                                    .foregroundStyle(.red)
-                            }
-                        }
-                    }
-
-                    glassSection(title: "Atalho Global", subtitle: "Abertura rápida do painel") {
+                    glassSection(title: "Atalho Global", subtitle: "Abertura rápida do painel", fillsWidth: true) {
                         VStack(alignment: .leading, spacing: 12) {
                             HStack {
                                 VStack(alignment: .leading, spacing: 4) {
@@ -103,7 +61,7 @@ struct SettingsView: View {
                         }
                     }
 
-                    glassSection(title: "Apps Ignorados", subtitle: "Proteção para apps sensíveis") {
+                    glassSection(title: "Apps Ignorados", subtitle: "Proteção para apps sensíveis", fillsWidth: true) {
                         VStack(alignment: .leading, spacing: 10) {
                             Text("Um bundle id por linha. Ex.: com.1password.1password")
                                 .font(.caption)
@@ -125,15 +83,16 @@ struct SettingsView: View {
                         }
                     }
 
-                    glassSection(title: "Permissões", subtitle: "Necessárias para hotkeys e colagem automática") {
+                    glassSection(title: "Permissões", subtitle: "Necessárias para hotkeys e colagem automática", fillsWidth: true) {
                         PermissionsView(permissionsManager: permissionsManager)
                             .frame(height: 280)
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(18)
             }
         }
-        .frame(width: 620, height: 820)
+        .frame(minWidth: 760, minHeight: 820)
         .onAppear {
             ignoredAppsText = settings.ignoredBundleIDs.joined(separator: "\n")
             settings.launchAtLogin = launchManager.isEnabled
@@ -181,7 +140,77 @@ struct SettingsView: View {
         .padding(.horizontal, 2)
     }
 
-    private func glassSection<Content: View>(title: String, subtitle: String, @ViewBuilder content: () -> Content) -> some View {
+    private var topSections: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .top, spacing: 16) {
+                generalSection
+                    .frame(minWidth: 360, maxWidth: .infinity, alignment: .leading)
+
+                startupSection
+                    .frame(minWidth: 280, maxWidth: .infinity, alignment: .leading)
+            }
+
+            VStack(alignment: .leading, spacing: 16) {
+                generalSection
+                startupSection
+            }
+        }
+    }
+
+    private var generalSection: some View {
+        glassSection(title: "Geral", subtitle: "Comportamento e aparência do app", fillsWidth: true) {
+            VStack(alignment: .leading, spacing: 10) {
+                Picker("Limite do Histórico", selection: $settings.historyLimit) {
+                    Text("100").tag(100)
+                    Text("500").tag(500)
+                    Text("1000").tag(1000)
+                }
+
+                Picker("Aparência", selection: $settings.appearance) {
+                    ForEach(AppAppearance.allCases) { appearance in
+                        Text(appearance.title).tag(appearance)
+                    }
+                }
+
+                Toggle("Pausar monitoramento", isOn: $settings.pauseMonitoring)
+
+                Toggle("Criptografia local (AES-GCM)", isOn: $settings.enableEncryption)
+            }
+        }
+    }
+
+    private var startupSection: some View {
+        glassSection(title: "Inicialização", subtitle: "Abertura automática com o macOS", fillsWidth: true) {
+            VStack(alignment: .leading, spacing: 8) {
+                Toggle("Iniciar com o macOS", isOn: Binding(
+                    get: { settings.launchAtLogin },
+                    set: { newValue in
+                        do {
+                            try launchManager.setEnabled(newValue)
+                            settings.launchAtLogin = launchManager.isEnabled
+                            launchAtLoginError = nil
+                        } catch {
+                            settings.launchAtLogin = launchManager.isEnabled
+                            launchAtLoginError = error.localizedDescription
+                        }
+                    }
+                ))
+
+                if let launchAtLoginError {
+                    Text(launchAtLoginError)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
+            }
+        }
+    }
+
+    private func glassSection<Content: View>(
+        title: String,
+        subtitle: String,
+        fillsWidth: Bool = false,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(title)
                 .font(.system(size: 16, weight: .semibold, design: .rounded))
@@ -193,6 +222,7 @@ struct SettingsView: View {
 
             content()
         }
+        .frame(maxWidth: fillsWidth ? .infinity : nil, alignment: .leading)
         .padding(14)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)

@@ -167,6 +167,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 case .dark:
                     NSApp.appearance = NSAppearance(named: .darkAqua)
                 }
+                self.menuBarController?.refreshAppearance()
             }
             .store(in: &cancellables)
     }

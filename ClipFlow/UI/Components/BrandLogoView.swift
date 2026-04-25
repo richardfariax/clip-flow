@@ -2,12 +2,14 @@ import AppKit
 import SwiftUI
 
 struct BrandLogoView: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     var size: CGFloat
     var cornerRadius: CGFloat
 
     var body: some View {
         Group {
-            if let image = NSImage(named: "ClipFlowLogo") {
+            if let image = NSImage(named: logoAssetName) {
                 Image(nsImage: image)
                     .resizable()
                     .scaledToFit()
@@ -48,5 +50,9 @@ struct BrandLogoView: View {
                 .strokeBorder(Color.white.opacity(0.22), lineWidth: 0.8)
         )
         .shadow(color: .black.opacity(0.18), radius: 8, x: 0, y: 4)
+    }
+
+    private var logoAssetName: String {
+        colorScheme == .dark ? "ClipFlowLogoDark" : "ClipFlowLogoLight"
     }
 }

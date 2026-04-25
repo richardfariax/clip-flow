@@ -181,6 +181,7 @@ struct ClipboardPanelView: View {
                     emptyState
                 }
             }
+            .padding(.horizontal, 6)
             .padding(.vertical, 6)
         }
     }

@@ -36,19 +36,31 @@ final class MenuBarController: NSObject {
         pauseItem.state = isPausedProvider() ? .on : .off
     }
 
+    func refreshAppearance() {
+        applyStatusItemIcon()
+    }
+
     private func configureStatusItem() {
+        applyStatusItemIcon()
+        statusItem.button?.imagePosition = .imageOnly
+        statusItem.menu = menu
+    }
+
+    private func applyStatusItemIcon() {
         if let button = statusItem.button {
-            let menuBarLogo = NSImage(named: "ClipFlowLogo")
-            if let menuBarLogo {
+            if let menuBarLogo = NSImage(named: menuBarLogoAssetName(for: button.effectiveAppearance)) {
                 menuBarLogo.size = NSSize(width: 18, height: 18)
                 menuBarLogo.isTemplate = false
                 button.image = menuBarLogo
             } else {
                 button.image = NSImage(systemSymbolName: "clipboard", accessibilityDescription: "ClipFlow")
             }
-            button.imagePosition = .imageOnly
         }
-        statusItem.menu = menu
+    }
+
+    private func menuBarLogoAssetName(for appearance: NSAppearance) -> String {
+        let best = appearance.bestMatch(from: [.darkAqua, .aqua])
+        return best == .darkAqua ? "ClipFlowLogoDark" : "ClipFlowLogoLight"
     }
 
     private func configureMenu() {

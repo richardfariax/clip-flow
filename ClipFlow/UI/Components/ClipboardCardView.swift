@@ -36,6 +36,7 @@ struct ClipboardCardView: View {
                 }
                 .buttonStyle(.plain)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(15)
             .background(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
@@ -53,13 +54,14 @@ struct ClipboardCardView: View {
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .strokeBorder(borderColor, lineWidth: isSelected ? 1.3 : 1.0)
+                            .strokeBorder(borderColor, lineWidth: isSelected ? 1.6 : 1.0)
                     )
                     .shadow(color: Color.black.opacity(isHovering ? 0.22 : 0.12), radius: isHovering ? 14 : 8, x: 0, y: 8)
             )
         }
         .buttonStyle(.plain)
-        .scaleEffect((isHovering || isSelected) ? 1.01 : 1.0)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .scaleEffect(isHovering ? 1.005 : 1.0)
         .animation(.spring(response: 0.22, dampingFraction: 0.86), value: isHovering)
         .animation(.spring(response: 0.20, dampingFraction: 0.84), value: isSelected)
         .onHover { hovering in
@@ -72,7 +74,7 @@ struct ClipboardCardView: View {
 
     private var borderColor: Color {
         if isSelected {
-            return Color.accentColor.opacity(0.82)
+            return Color.accentColor.opacity(0.95)
         }
         return Color.white.opacity(isHovering ? 0.30 : 0.15)
     }
