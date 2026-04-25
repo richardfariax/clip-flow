@@ -14,7 +14,7 @@
 </p>
 
 <p align="center">
-  <a href="../../releases/latest"><img alt="Download" src="https://img.shields.io/badge/Download-macOS%20DMG-0A84FF?style=for-the-badge"></a>
+  <a href="https://github.com/richardfariax/clip-flow/releases/latest"><img alt="Download" src="https://img.shields.io/badge/Download-macOS%20DMG-0A84FF?style=for-the-badge"></a>
   <img alt="Platform" src="https://img.shields.io/badge/platform-macOS%2014%2B-1f2937?style=for-the-badge">
   <img alt="Built with" src="https://img.shields.io/badge/SwiftUI%20%2B%20AppKit-Native-111827?style=for-the-badge">
 </p>
@@ -33,7 +33,26 @@ ClipFlow gives you a `Windows + V` style clipboard history experience on macOS, 
 - Launch at Login support
 
 ## Install (for end users)
-1. Open [latest release](../../releases/latest).
+### Homebrew (recommended)
+```bash
+brew install --cask richardfariax/clip-flow/clipflow
+```
+
+Equivalent manual tap + install:
+
+```bash
+brew tap richardfariax/clip-flow https://github.com/richardfariax/clip-flow
+brew install --cask clipflow
+```
+
+Or run:
+
+```bash
+./Scripts/install_via_brew.sh
+```
+
+### DMG (manual)
+1. Open [latest release](https://github.com/richardfariax/clip-flow/releases/latest).
 2. Download `ClipFlow.dmg`.
 3. Drag `ClipFlow.app` to `/Applications`.
 4. Open ClipFlow and grant requested permissions.
@@ -55,6 +74,7 @@ GitHub Release automation:
 - Workflow: `.github/workflows/release-assets.yml`
 - Trigger: publish a Release
 - Uploads: `.dmg`, `.zip`, and `.sha256` files automatically
+- Homebrew cask file in this repo: `Casks/clipflow.rb`
 
 ## Privacy
 ClipFlow stores data locally on your Mac.
