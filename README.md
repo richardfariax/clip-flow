@@ -33,19 +33,34 @@ ClipFlow gives you a `Windows + V` style clipboard history experience on macOS, 
 - Launch at Login support
 
 ## Install (for end users)
-### Homebrew (recommended)
+### One-line install (no sudo, no tap)
 ```bash
-brew install --cask richardfariax/clip-flow/clipflow
+curl -fsSL https://raw.githubusercontent.com/richardfariax/clip-flow/main/Scripts/install.sh | bash
 ```
 
-Equivalent manual tap + install:
+This installs `ClipFlow.app` to `~/Applications` to avoid admin password prompts.
+
+### Homebrew short command
+One-time setup:
 
 ```bash
 brew tap richardfariax/clip-flow https://github.com/richardfariax/clip-flow
-brew install --cask clipflow
 ```
 
-Or run:
+Then install with the short command:
+
+```bash
+brew install --cask --appdir="$HOME/Applications" clipflow
+```
+
+### Homebrew (direct cask URL, no tap)
+
+```bash
+brew install --cask --appdir="$HOME/Applications" \
+  https://raw.githubusercontent.com/richardfariax/clip-flow/main/Casks/clipflow.rb
+```
+
+Or run locally:
 
 ```bash
 ./Scripts/install_via_brew.sh
@@ -57,10 +72,16 @@ Or run:
 3. Drag `ClipFlow.app` to `/Applications`.
 4. Open ClipFlow and grant requested permissions.
 
+Notes:
+- If you install to `/Applications`, macOS may request admin password.
+- If you install to `~/Applications`, admin password is usually not required.
+
 ## Permissions
 ClipFlow may request:
 - Accessibility: required for automatic paste simulation (`Cmd + V`)
 - Input Monitoring: improves reliability for global hotkeys
+
+These permission dialogs are controlled by macOS security and cannot be bypassed by the installer.
 
 ## For maintainers
 Build artifacts locally:
