@@ -37,6 +37,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         configurePanel()
         configureMenuBar()
         configureHotkey()
+        configureApplicationActivationTracking()
         bindSettings()
 
         monitorService?.start()
@@ -51,6 +52,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         hotkeyManager.unregister()
         monitorService?.stop()
         NotificationCenter.default.removeObserver(self)
+        NSWorkspace.shared.notificationCenter.removeObserver(self)
     }
 
     private func configurePersistence() -> Bool {
@@ -169,6 +171,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .store(in: &cancellables)
     }
 
+    private func configureApplicationActivationTracking() {
+        NSWorkspace.shared.notificationCenter.addObserver(
+            self,
+            selector: #selector(handleDidActivateApplication(_:)),
+            name: NSWorkspace.didActivateApplicationNotification,
+            object: nil
+        )
+        captureFrontmostExternalApplication()
+    }
+
     @objc private func handleHotkeyPress() {
         if panelController?.isVisible == true {
             panelController?.close()
@@ -184,6 +196,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let frontmost = NSWorkspace.shared.frontmostApplication else { return }
         guard frontmost.bundleIdentifier != Bundle.main.bundleIdentifier else { return }
         lastExternalApplication = frontmost
+    }
+
+    @objc private func handleDidActivateApplication(_ notification: Notification) {
+        guard let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else {
+            return
+        }
+        guard app.bundleIdentifier != Bundle.main.bundleIdentifier else { return }
+        lastExternalApplication = app
     }
 
     private func openSettingsWindow() {

@@ -14,6 +14,7 @@
 		610A20812ED336C08D1361D7 /* MenuBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84EBF289F3415C8261A3EDF0 /* MenuBarController.swift */; };
 		618E7E44471E799B542ECC14 /* VisualEffectBlur.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52AE6F0279D382AA3FAF24FF /* VisualEffectBlur.swift */; };
 		6B7C5FBA5B9764073E282FD7 /* NotificationNames.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA1E8764EA0AFA05812D6B69 /* NotificationNames.swift */; };
+		752C1FD4FCCA412B0D21BFDD /* BrandLogoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12FF65EDC63FD6159919728A /* BrandLogoView.swift */; };
 		7A6FFF53B7ECE30CADBE7727 /* ClipboardContentClassifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5919201EAF9BA97D6BA90BC4 /* ClipboardContentClassifier.swift */; };
 		7BFA9BE66C101557405B7674 /* PermissionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4F410C746C751DE4CDA5A6E /* PermissionsView.swift */; };
 		8833C074EF8DBA038ED1C901 /* ClipboardTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13B04ECA29B204A863C8DAF4 /* ClipboardTypes.swift */; };
@@ -46,6 +47,7 @@
 
 /* Begin PBXFileReference section */
 		0787EF158E8204251B95C8BB /* ClipboardPanelController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardPanelController.swift; sourceTree = "<group>"; };
+		12FF65EDC63FD6159919728A /* BrandLogoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrandLogoView.swift; sourceTree = "<group>"; };
 		13B04ECA29B204A863C8DAF4 /* ClipboardTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardTypes.swift; sourceTree = "<group>"; };
 		33E5EEDA6E627A96A84C1DF1 /* ClipboardPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardPanelView.swift; sourceTree = "<group>"; };
 		3E05A95FCBA4678B58E3BEE5 /* PasteService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasteService.swift; sourceTree = "<group>"; };
@@ -127,6 +129,7 @@
 		6EA3314556D0550FC42D4DD5 /* Components */ = {
 			isa = PBXGroup;
 			children = (
+				12FF65EDC63FD6159919728A /* BrandLogoView.swift */,
 				8A4C8566F8D1077C219FD8B3 /* ClipboardCardView.swift */,
 				52AE6F0279D382AA3FAF24FF /* VisualEffectBlur.swift */,
 			);
@@ -258,8 +261,6 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
-				TargetAttributes = {
-				};
 			};
 			buildConfigurationList = 8B39C76DC1FC9BCA019A5862 /* Build configuration list for PBXProject "ClipFlow" */;
 			developmentRegion = en;
@@ -288,6 +289,7 @@
 			files = (
 				A676EEDD45AFBD34937484B4 /* AppDelegate.swift in Sources */,
 				C40894AEEAEF63A41EB3E8A3 /* AppSettings.swift in Sources */,
+				752C1FD4FCCA412B0D21BFDD /* BrandLogoView.swift in Sources */,
 				FDA4C4F3404E357912A7BD3A /* ClipFlowApp.swift in Sources */,
 				2E14F68FE257D81A298796E1 /* ClipboardCardView.swift in Sources */,
 				7A6FFF53B7ECE30CADBE7727 /* ClipboardContentClassifier.swift in Sources */,
@@ -336,13 +338,20 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = 8HP86L33K6;
+				INFOPLIST_KEY_CFBundleDisplayName = ClipFlow;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.richardfarias.clipflow;
 				PRODUCT_NAME = ClipFlow;
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = macosx;
 			};
 			name = Debug;
@@ -439,11 +448,15 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				COMBINE_HIDPI_IMAGES = YES;
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = 8HP86L33K6;
+				INFOPLIST_KEY_CFBundleDisplayName = ClipFlow;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.richardfarias.clipflow;
 				PRODUCT_NAME = ClipFlow;
 				SDKROOT = macosx;
 			};

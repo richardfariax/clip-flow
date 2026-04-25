@@ -7,15 +7,14 @@ struct ClipboardPanelView: View {
 
     var body: some View {
         ZStack {
-            VisualEffectBlur(material: .hudWindow, blendingMode: .behindWindow)
-                .ignoresSafeArea()
+            panelBackground
 
-            VStack(spacing: 12) {
+            VStack(spacing: 14) {
                 header
                 searchField
                 content
             }
-            .padding(16)
+            .padding(18)
         }
         .frame(width: 560, height: 700)
         .animation(.easeInOut(duration: 0.16), value: viewModel.searchText)
@@ -25,60 +24,129 @@ struct ClipboardPanelView: View {
         }
     }
 
+    private var panelBackground: some View {
+        ZStack {
+            VisualEffectBlur(material: .hudWindow, blendingMode: .behindWindow)
+                .ignoresSafeArea()
+
+            LinearGradient(
+                colors: [
+                    Color.white.opacity(0.15),
+                    Color.white.opacity(0.02),
+                    Color.black.opacity(0.10)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+
+            RadialGradient(
+                colors: [
+                    Color(red: 0.44, green: 0.54, blue: 0.92).opacity(0.20),
+                    Color.clear
+                ],
+                center: .bottomLeading,
+                startRadius: 20,
+                endRadius: 520
+            )
+            .ignoresSafeArea()
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.20), lineWidth: 1.0)
+        )
+    }
+
     private var header: some View {
         HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 10) {
-                    Image("ClipFlowLogo")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 28, height: 28)
-                        .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+            HStack(spacing: 10) {
+                BrandLogoView(size: 28, cornerRadius: 7)
 
+                VStack(alignment: .leading, spacing: 2) {
                     Text("ClipFlow")
                         .font(.system(size: 24, weight: .bold, design: .rounded))
+                    Text("\(settings.hotkeyDisplay) para abrir. Enter para colar.")
+                        .font(.system(size: 12, weight: .regular, design: .rounded))
+                        .foregroundStyle(.secondary)
                 }
-                Text("\(settings.hotkeyDisplay) para abrir. Enter para colar.")
+            }
+
+            Spacer(minLength: 16)
+
+            HStack(spacing: 8) {
+                Text("\(viewModel.items.count)")
                     .font(.system(size: 12, weight: .regular, design: .rounded))
                     .foregroundStyle(.secondary)
-            }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Capsule().fill(Color.white.opacity(0.10)))
 
-            Spacer()
+                Button("Limpar Tudo") {
+                    viewModel.clearAll()
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(
+                    RoundedRectangle(cornerRadius: 11, style: .continuous)
+                        .fill(Color.white.opacity(0.10))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 11, style: .continuous)
+                                .strokeBorder(Color.white.opacity(0.18), lineWidth: 1.0)
+                        )
+                )
 
-            Button("Limpar Tudo") {
-                viewModel.clearAll()
+                Button {
+                    closePanel()
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 12, weight: .semibold))
+                        .frame(width: 28, height: 28)
+                }
+                .buttonStyle(.plain)
+                .background(
+                    Circle()
+                        .fill(Color.white.opacity(0.10))
+                        .overlay(Circle().strokeBorder(Color.white.opacity(0.20), lineWidth: 1.0))
+                )
             }
-            .buttonStyle(.bordered)
-
-            Button {
-                closePanel()
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 13, weight: .bold))
-                    .padding(6)
-            }
-            .buttonStyle(.plain)
-            .background(.ultraThinMaterial, in: Circle())
         }
     }
 
     private var searchField: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 10) {
             Image(systemName: "magnifyingglass")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.secondary.opacity(0.95))
 
             TextField("Buscar por conteúdo ou app", text: $viewModel.searchText)
                 .textFieldStyle(.plain)
-                .font(.system(size: 14, weight: .medium, design: .rounded))
+                .font(.system(size: 15, weight: .medium, design: .rounded))
+
+            Spacer(minLength: 0)
+
+            Text("↑ ↓")
+                .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 7)
+                .padding(.vertical, 4)
+                .background(Capsule().fill(Color.white.opacity(0.09)))
+
+            Text("↩")
+                .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 7)
+                .padding(.vertical, 4)
+                .background(Capsule().fill(Color.white.opacity(0.09)))
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 11)
         .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.white.opacity(0.10))
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.white.opacity(0.11))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .strokeBorder(Color.white.opacity(0.2), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.22), lineWidth: 1)
                 )
         )
     }
@@ -113,7 +181,7 @@ struct ClipboardPanelView: View {
                     emptyState
                 }
             }
-            .padding(.vertical, 4)
+            .padding(.vertical, 6)
         }
     }
 

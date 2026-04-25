@@ -13,57 +13,49 @@ struct ClipboardCardView: View {
 
     var body: some View {
         Button(action: onPaste) {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(spacing: 8) {
-                    Image(systemName: leadingIconName)
-                        .font(.system(size: 12, weight: .semibold))
-
-                    Text(titleText)
-                        .font(.system(size: 13, weight: .semibold))
-                        .lineLimit(1)
-
-                    Spacer()
-
-                    if item.isEncrypted {
-                        Image(systemName: "lock.fill")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundStyle(.secondary)
-                    }
-
-                    Text(item.createdAt.formatted(date: .abbreviated, time: .shortened))
-                        .font(.system(size: 11, weight: .regular))
-                        .foregroundStyle(.secondary)
-                }
+            VStack(alignment: .leading, spacing: 12) {
+                header
 
                 contentView
                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                HStack(spacing: 10) {
-                    actionPill(title: item.isFavorite ? "Favorito" : "Favoritar", icon: item.isFavorite ? "star.fill" : "star") {
+                HStack(spacing: 8) {
+                    actionPill(title: item.isFavorite ? "Favorito" : "Favoritar", icon: item.isFavorite ? "star.fill" : "star", isCritical: false) {
                         onToggleFavorite()
                     }
 
-                    actionPill(title: item.isPinned ? "Fixado" : "Fixar", icon: item.isPinned ? "pin.fill" : "pin") {
+                    actionPill(title: item.isPinned ? "Fixado" : "Fixar", icon: item.isPinned ? "pin.fill" : "pin", isCritical: false) {
                         onTogglePin()
                     }
 
-                    Spacer()
+                    Spacer(minLength: 0)
 
-                    actionPill(title: "Excluir", icon: "trash") {
+                    actionPill(title: "Excluir", icon: "trash", isCritical: true) {
                         onDelete()
                     }
                 }
                 .buttonStyle(.plain)
             }
-            .padding(14)
+            .padding(15)
             .background(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(.ultraThinMaterial)
+                    .fill(Color.white.opacity(isSelected ? 0.16 : 0.11))
+                    .overlay(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(0.16),
+                                Color.white.opacity(0.05),
+                                Color.clear
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
                     .overlay(
                         RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .strokeBorder(borderColor, lineWidth: isSelected ? 1.4 : 1.0)
+                            .strokeBorder(borderColor, lineWidth: isSelected ? 1.3 : 1.0)
                     )
-                    .shadow(color: Color.black.opacity(isHovering ? 0.25 : 0.15), radius: isHovering ? 14 : 8, x: 0, y: 6)
+                    .shadow(color: Color.black.opacity(isHovering ? 0.22 : 0.12), radius: isHovering ? 14 : 8, x: 0, y: 8)
             )
         }
         .buttonStyle(.plain)
@@ -80,9 +72,36 @@ struct ClipboardCardView: View {
 
     private var borderColor: Color {
         if isSelected {
-            return Color.accentColor.opacity(0.75)
+            return Color.accentColor.opacity(0.82)
         }
-        return Color.white.opacity(isHovering ? 0.35 : 0.18)
+        return Color.white.opacity(isHovering ? 0.30 : 0.15)
+    }
+
+    private var header: some View {
+        HStack(spacing: 8) {
+            Image(systemName: leadingIconName)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(.secondary)
+                .frame(width: 18)
+
+            Text(titleText)
+                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                .lineLimit(1)
+
+            Spacer(minLength: 8)
+
+            if item.isEncrypted {
+                Image(systemName: "lock.fill")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.secondary)
+            }
+
+            Text(item.createdAt.formatted(date: .abbreviated, time: .shortened))
+                .font(.system(size: 11, weight: .medium, design: .rounded))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
     }
 
     private var leadingIconName: String {
@@ -137,15 +156,16 @@ struct ClipboardCardView: View {
         }
     }
 
-    private func actionPill(title: String, icon: String, action: @escaping () -> Void) -> some View {
+    private func actionPill(title: String, icon: String, isCritical: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Label(title, systemImage: icon)
                 .font(.system(size: 11, weight: .medium))
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
+                .foregroundStyle(isCritical ? Color.red.opacity(0.92) : Color.primary)
                 .background(
                     Capsule(style: .continuous)
-                        .fill(Color.white.opacity(0.14))
+                        .fill(isCritical ? Color.red.opacity(0.11) : Color.white.opacity(0.14))
                 )
         }
         .buttonStyle(.plain)

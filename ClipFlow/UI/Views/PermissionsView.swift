@@ -4,10 +4,7 @@ struct PermissionsView: View {
     @ObservedObject var permissionsManager: PermissionsManager
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            Text("Permissões")
-                .font(.title2.bold())
-
+        VStack(alignment: .leading, spacing: 12) {
             Text("ClipFlow precisa de Accessibility para colar automaticamente e Input Monitoring para capturar atalhos globais com máxima confiabilidade.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
@@ -26,11 +23,11 @@ struct PermissionsView: View {
                 openAction: permissionsManager.openInputMonitoringSettings
             )
 
-            Spacer()
+            Text("Depois de conceder, volte ao app para atualizar o status.")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
         }
-        .padding(24)
-        .frame(width: 520, height: 300)
-        .background(VisualEffectBlur(material: .underWindowBackground, blendingMode: .withinWindow))
+        .padding(2)
         .onAppear {
             permissionsManager.refresh()
         }
@@ -42,10 +39,10 @@ struct PermissionsView: View {
         requestAction: @escaping () -> Void,
         openAction: @escaping () -> Void
     ) -> some View {
-        HStack {
+        HStack(alignment: .center) {
             VStack(alignment: .leading, spacing: 3) {
                 Text(title)
-                    .font(.headline)
+                    .font(.system(size: 14, weight: .semibold, design: .rounded))
                 Text(granted ? "Concedida" : "Não concedida")
                     .font(.caption)
                     .foregroundStyle(granted ? .green : .orange)
@@ -57,13 +54,22 @@ struct PermissionsView: View {
                 requestAction()
             }
             .buttonStyle(.borderedProminent)
+            .controlSize(.small)
 
             Button("Abrir Ajustes") {
                 openAction()
             }
             .buttonStyle(.bordered)
+            .controlSize(.small)
         }
-        .padding(12)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .padding(10)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.white.opacity(0.07))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.12), lineWidth: 1.0)
+                )
+        )
     }
 }
