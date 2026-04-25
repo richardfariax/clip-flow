@@ -53,3 +53,6 @@ Artifacts are generated in `build/`.
 1. Upload `build/ClipFlow.dmg` (or `build/ClipFlow.zip`) to GitHub Releases.
 2. Share checksum file (`.sha256`) with the release.
 3. User installs by dragging `ClipFlow.app` to `/Applications`.
+
+## Credits
+- Richard Farias: https://www.linkedin.com/in/richardfariasss/

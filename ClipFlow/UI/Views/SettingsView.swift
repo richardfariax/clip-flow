@@ -11,6 +11,11 @@ struct SettingsView: View {
     @State private var launchAtLoginError: String?
     @State private var selectedHotkeyPresetID: String = HotkeyPreset.customID
 
+    private let labelColumnWidth: CGFloat = 220
+    private let defaultControlWidth: CGFloat = 250
+
+    private let creditsURL = URL(string: "https://www.linkedin.com/in/richardfariasss/")!
+
     var body: some View {
         ZStack {
             backgroundLayer
@@ -20,97 +25,16 @@ struct SettingsView: View {
                     header
 
                     generalSection
-
-                    glassSection(
-                        title: t("Atalho Global", "Global Hotkey"),
-                        subtitle: t("Abertura rápida do painel", "Quick panel access"),
-                        fillsWidth: true
-                    ) {
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(t("Atalho atual", "Current hotkey"))
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                    Text(settings.hotkeyDisplay)
-                                        .font(.system(size: 14, weight: .medium, design: .rounded))
-                                }
-
-                                Spacer()
-
-                                Button(t("Reaplicar Atalho", "Reapply Hotkey")) {
-                                    onRebindHotkey()
-                                }
-                            }
-
-                            Picker(t("Preset de Atalho", "Hotkey Preset"), selection: $selectedHotkeyPresetID) {
-                                ForEach(HotkeyPreset.all) { preset in
-                                    Text(preset.title(for: settings.language)).tag(preset.id)
-                                }
-                                Text(t("Personalizado", "Custom")).tag(HotkeyPreset.customID)
-                            }
-                            .onChange(of: selectedHotkeyPresetID, initial: false) { _, newValue in
-                                guard let selectedPreset = HotkeyPreset.all.first(where: { $0.id == newValue }) else {
-                                    return
-                                }
-
-                                settings.hotkeyCode = selectedPreset.keyCode
-                                settings.hotkeyModifiers = selectedPreset.modifiers
-                                onRebindHotkey()
-                            }
-
-                            Text(t(
-                                "Se o valor atual não bater com um preset, ele aparece como Personalizado.",
-                                "If the current value does not match a preset, it appears as Custom."
-                            ))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        }
-                    }
-
-                    glassSection(
-                        title: t("Apps Ignorados", "Ignored Apps"),
-                        subtitle: t("Proteção para apps sensíveis", "Protection for sensitive apps"),
-                        fillsWidth: true
-                    ) {
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text(t(
-                                "Um bundle id por linha. Ex.: com.1password.1password",
-                                "One bundle id per line. Ex: com.1password.1password"
-                            ))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-
-                            TextEditor(text: $ignoredAppsText)
-                                .font(.system(size: 12, weight: .regular, design: .monospaced))
-                                .frame(height: 120)
-                                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-
-                            Button(t("Salvar Lista", "Save List")) {
-                                settings.ignoredBundleIDs = ignoredAppsText
-                                    .split(separator: "\n")
-                                    .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
-                                    .filter { !$0.isEmpty }
-                                ignoredAppsText = settings.ignoredBundleIDs.joined(separator: "\n")
-                            }
-                            .buttonStyle(.borderedProminent)
-                        }
-                    }
-
-                    glassSection(
-                        title: t("Permissões", "Permissions"),
-                        subtitle: t("Necessárias para hotkeys e colagem automática", "Required for hotkeys and automatic paste"),
-                        fillsWidth: true
-                    ) {
-                        PermissionsView(permissionsManager: permissionsManager, settings: settings)
-                            .frame(height: 280)
-                    }
+                    hotkeySection
+                    ignoredAppsSection
+                    permissionsSection
+                    creditsSection
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(18)
             }
         }
-        .frame(minWidth: 760, minHeight: 820)
+        .frame(minWidth: 760, minHeight: 860)
         .onAppear {
             ignoredAppsText = settings.ignoredBundleIDs.joined(separator: "\n")
             settings.launchAtLogin = launchManager.isEnabled
@@ -150,9 +74,16 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text("ClipFlow")
                     .font(.system(size: 23, weight: .bold, design: .rounded))
-                Text(t("Preferências", "Preferences"))
-                    .font(.system(size: 13, weight: .medium, design: .rounded))
-                    .foregroundStyle(.secondary)
+
+                HStack(spacing: 8) {
+                    Text(t("Preferências", "Preferences"))
+                        .font(.system(size: 13, weight: .medium, design: .rounded))
+                        .foregroundStyle(.secondary)
+
+                    Link("Richard Farias", destination: creditsURL)
+                        .font(.system(size: 12, weight: .medium, design: .rounded))
+                        .foregroundStyle(.blue.opacity(0.95))
+                }
             }
         }
         .padding(.horizontal, 2)
@@ -164,54 +95,168 @@ struct SettingsView: View {
             subtitle: t("Configurações principais do app", "Main app behavior settings"),
             fillsWidth: true
         ) {
-            VStack(alignment: .leading, spacing: 10) {
-                settingsRow(title: t("Limite do Histórico", "History Limit")) {
+            VStack(alignment: .leading, spacing: 12) {
+                alignedConfigRow(title: t("Limite do Histórico", "History Limit")) {
                     Picker("", selection: $settings.historyLimit) {
                         Text("100").tag(100)
                         Text("500").tag(500)
                         Text("1000").tag(1000)
                     }
                     .labelsHidden()
-                    .frame(width: 170)
                 }
 
-                settingsRow(title: t("Idioma", "Language")) {
+                alignedConfigRow(title: t("Idioma", "Language")) {
                     Picker("", selection: $settings.language) {
                         ForEach(AppLanguage.allCases) { language in
                             Text(language.title).tag(language)
                         }
                     }
                     .labelsHidden()
-                    .frame(width: 190)
                 }
 
-                settingsRow(title: t("Aparência", "Appearance")) {
+                alignedConfigRow(title: t("Aparência", "Appearance")) {
                     Picker("", selection: $settings.appearance) {
                         ForEach(AppAppearance.allCases) { appearance in
                             Text(appearance.title(for: settings.language)).tag(appearance)
                         }
                     }
                     .labelsHidden()
-                    .frame(width: 170)
                 }
 
-                settingsRow(title: t("Iniciar com o macOS", "Launch at Login")) {
+                alignedConfigRow(title: t("Iniciar com o macOS", "Launch at Login")) {
                     Toggle("", isOn: launchAtLoginBinding)
                         .labelsHidden()
                 }
 
                 if let launchAtLoginError {
-                    Text(launchAtLoginError)
-                        .font(.caption)
-                        .foregroundStyle(.red)
+                    alignedConfigNote(launchAtLoginError, color: .red)
                 }
 
                 Divider()
                     .overlay(Color.white.opacity(0.12))
 
-                Toggle(t("Pausar monitoramento", "Pause monitoring"), isOn: $settings.pauseMonitoring)
+                alignedConfigRow(title: t("Pausar monitoramento", "Pause monitoring")) {
+                    Toggle("", isOn: $settings.pauseMonitoring)
+                        .labelsHidden()
+                }
 
-                Toggle(t("Criptografia local (AES-GCM)", "Local encryption (AES-GCM)"), isOn: $settings.enableEncryption)
+                alignedConfigRow(title: t("Criptografia local (AES-GCM)", "Local encryption (AES-GCM)")) {
+                    Toggle("", isOn: $settings.enableEncryption)
+                        .labelsHidden()
+                }
+            }
+        }
+    }
+
+    private var hotkeySection: some View {
+        glassSection(
+            title: t("Atalho Global", "Global Hotkey"),
+            subtitle: t("Abertura rápida do painel", "Quick panel access"),
+            fillsWidth: true
+        ) {
+            VStack(alignment: .leading, spacing: 12) {
+                alignedConfigRow(title: t("Atalho atual", "Current hotkey"), controlWidth: 320) {
+                    Text(settings.hotkeyDisplay)
+                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                }
+
+                alignedConfigRow(title: t("Preset de Atalho", "Hotkey Preset"), controlWidth: 320) {
+                    Picker("", selection: $selectedHotkeyPresetID) {
+                        ForEach(HotkeyPreset.all) { preset in
+                            Text(preset.title(for: settings.language)).tag(preset.id)
+                        }
+                        Text(t("Personalizado", "Custom")).tag(HotkeyPreset.customID)
+                    }
+                    .labelsHidden()
+                }
+                .onChange(of: selectedHotkeyPresetID, initial: false) { _, newValue in
+                    guard let selectedPreset = HotkeyPreset.all.first(where: { $0.id == newValue }) else {
+                        return
+                    }
+
+                    settings.hotkeyCode = selectedPreset.keyCode
+                    settings.hotkeyModifiers = selectedPreset.modifiers
+                    onRebindHotkey()
+                }
+
+                alignedConfigRow(title: t("Reaplicar atalho", "Reapply hotkey"), controlWidth: 320) {
+                    Button(t("Reaplicar Atalho", "Reapply Hotkey")) {
+                        onRebindHotkey()
+                    }
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                }
+
+                alignedConfigNote(
+                    t(
+                        "Se o valor atual não bater com um preset, ele aparece como Personalizado.",
+                        "If the current value does not match a preset, it appears as Custom."
+                    )
+                )
+            }
+        }
+    }
+
+    private var ignoredAppsSection: some View {
+        glassSection(
+            title: t("Apps Ignorados", "Ignored Apps"),
+            subtitle: t("Proteção para apps sensíveis", "Protection for sensitive apps"),
+            fillsWidth: true
+        ) {
+            VStack(alignment: .leading, spacing: 10) {
+                alignedConfigRow(
+                    title: t("Bundle IDs ignorados", "Ignored bundle IDs"),
+                    controlWidth: 430
+                ) {
+                    TextEditor(text: $ignoredAppsText)
+                        .font(.system(size: 12, weight: .regular, design: .monospaced))
+                        .frame(height: 132)
+                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                }
+
+                alignedConfigNote(
+                    t(
+                        "Um bundle id por linha. Ex.: com.1password.1password",
+                        "One bundle id per line. Ex: com.1password.1password"
+                    )
+                )
+
+                alignedConfigRow(title: t("Salvar alterações", "Save changes"), controlWidth: 430) {
+                    Button(t("Salvar Lista", "Save List")) {
+                        settings.ignoredBundleIDs = ignoredAppsText
+                            .split(separator: "\n")
+                            .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
+                            .filter { !$0.isEmpty }
+                        ignoredAppsText = settings.ignoredBundleIDs.joined(separator: "\n")
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+        }
+    }
+
+    private var permissionsSection: some View {
+        glassSection(
+            title: t("Permissões", "Permissions"),
+            subtitle: t("Necessárias para hotkeys e colagem automática", "Required for hotkeys and automatic paste"),
+            fillsWidth: true
+        ) {
+            PermissionsView(permissionsManager: permissionsManager, settings: settings)
+                .frame(height: 280)
+        }
+    }
+
+    private var creditsSection: some View {
+        glassSection(
+            title: t("Créditos", "Credits"),
+            subtitle: t("Autoria e perfil profissional", "Author and professional profile"),
+            fillsWidth: true
+        ) {
+            alignedConfigRow(title: t("Criado por", "Created by"), controlWidth: 360) {
+                Link("Richard Farias", destination: creditsURL)
+                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    .frame(maxWidth: .infinity, alignment: .trailing)
             }
         }
     }
@@ -261,13 +306,33 @@ struct SettingsView: View {
         )
     }
 
-    private func settingsRow<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
-        HStack(spacing: 10) {
+    private func alignedConfigRow<Control: View>(
+        title: String,
+        controlWidth: CGFloat? = nil,
+        @ViewBuilder control: () -> Control
+    ) -> some View {
+        HStack(spacing: 12) {
             Text(title)
                 .font(.system(size: 14, weight: .semibold, design: .rounded))
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(width: labelColumnWidth, alignment: .leading)
 
-            content()
+            Spacer(minLength: 0)
+
+            control()
+                .frame(width: controlWidth ?? defaultControlWidth, alignment: .trailing)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func alignedConfigNote(_ text: String, color: Color = .secondary) -> some View {
+        HStack(spacing: 12) {
+            Spacer()
+                .frame(width: labelColumnWidth)
+
+            Text(text)
+                .font(.caption)
+                .foregroundStyle(color)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 

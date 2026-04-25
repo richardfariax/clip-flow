@@ -1,0 +1,23 @@
+{
+  "/Users/richard/Documents/GitHub/Pessoal/hotkey-macos/ClipFlow/App/ClipFlowApp.swift" : {
+    "const-values" : "/Users/richard/Documents/GitHub/Pessoal/hotkey-macos/build/DerivedData/Build/Intermediates.noindex/ClipFlow.build/Debug/ClipFlow.build/Objects-normal/arm64/ClipFlowApp.swiftconstvalues",
+    "dependencies" : "/Users/richard/Documents/GitHub/Pessoal/hotkey-macos/build/DerivedData/Build/Intermediates.noindex/ClipFlow.build/Debug/ClipFlow.build/Objects-normal/arm64/ClipFlowApp.d",
+    "diagnostics" : "/Users/richard/Documents/GitHub/Pessoal/hotkey-macos/build/DerivedData/Build/Intermediates.noindex/ClipFlow.build/Debug/ClipFlow.build/Objects-normal/arm64/ClipFlowApp.dia",
+    "object" : "/Users/richard/Documents/GitHub/Pessoal/hotkey-macos/build/DerivedData/Build/Intermediates.noindex/ClipFlow.build/Debug/ClipFlow.build/Objects-normal/arm64/ClipFlowApp.o",
+    "swift-dependencies" : "/Users/richard/Documents/GitHub/Pessoal/hotkey-macos/build/DerivedData/Build/Intermediates.noindex/ClipFlow.build/Debug/ClipFlow.build/Objects-normal/arm64/ClipFlowApp.swiftdeps"
+  },
+  "/Users/richard/Documents/GitHub/Pessoal/hotkey-macos/ClipFlow/Core/Utilities/ClipboardContentClassifier.swift" : {
+    "const-values" : "/Users/richard/Documents/GitHub/Pessoal/hotkey-macos/build/DerivedData/Build/Intermediates.noindex/ClipFlow.build/Debug/ClipFlow.build/Objects-normal/arm64/ClipboardContentClassifier.swiftconstvalues",
+    "dependencies" : "/Users/richard/Documents/GitHub/Pessoal/hotkey-macos/build/DerivedData/Build/Intermediates.noindex/ClipFlow.build/Debug/ClipFlow.build/Objects-normal/arm64/ClipboardContentClassifier.d",
+    "diagnostics" : "/Users/richard/Documents/GitHub/Pessoal/hotkey-macos/build/DerivedData/Build/Intermediates.noindex/ClipFlow.build/Debug/ClipFlow.build/Objects-normal/arm64/ClipboardContentClassifier.dia",
+    "object" : "/Users/richard/Documents/GitHub/Pessoal/hotkey-macos/build/DerivedData/Build/Intermediates.noindex/ClipFlow.build/Debug/ClipFlow.build/Objects-normal/arm64/ClipboardContentClassifier.o",
+    "swift-dependencies" : "/Users/richard/Documents/GitHub/Pessoal/hotkey-macos/build/DerivedData/Build/Intermediates.noindex/ClipFlow.build/Debug/ClipFlow.build/Objects-normal/arm64/ClipboardContentClassifier.swiftdeps"
+  },
+  "/Users/richard/Documents/GitHub/Pessoal/hotkey-macos/ClipFlow/UI/Components/ClipboardCardView.swift" : {
+    "const-values" : "/Users/richard/Documents/GitHub/Pessoal/hotkey-macos/build/DerivedData/Build/Intermediates.noindex/ClipFlow.build/Debug/ClipFlow.build/Objects-normal/arm64/ClipboardCardView.swiftconstvalues",
+    "dependencies" : "/Users/richard/Documents/GitHub/Pessoal/hotkey-macos/build/DerivedData/Build/Intermediates.noindex/ClipFlow.build/Debug/ClipFlow.build/Objects-normal/arm64/ClipboardCardView.d",
+    "diagnostics" : "/Users/richard/Documents/GitHub/Pessoal/hotkey-macos/build/DerivedData/Build/Intermediates.noindex/ClipFlow.build/Debug/ClipFlow.build/Objects-normal/arm64/ClipboardCardView.dia",
+    "object" : "/Users/richard/Documents/GitHub/Pessoal/hotkey-macos/build/DerivedData/Build/Intermediates.noindex/ClipFlow.build/Debug/ClipFlow.build/Objects-normal/arm64/ClipboardCardView.o",
+    "swift-dependencies" : "/Users/richard/Documents/GitHub/Pessoal/hotkey-macos/build/DerivedData/Build/Intermediates.noindex/ClipFlow.build/Debug/ClipFlow.build/Objects-normal/arm64/ClipboardCardView.swiftdeps"
+  }
+}

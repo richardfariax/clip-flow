@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>colors</key>
+	<array/>
+	<key>images</key>
+	<array>
+		<dict>
+			<key>catalogPath</key>
+			<string>/Users/richard/Documents/GitHub/Pessoal/hotkey-macos/ClipFlow/Resources/Assets.xcassets</string>
+			<key>objcSymbol</key>
+			<string>ACImageNameClipFlowLogo</string>
+			<key>relativePath</key>
+			<string>./ClipFlowLogo.imageset</string>
+			<key>swiftSymbol</key>
+			<string>clipFlowLogo</string>
+		</dict>
+		<dict>
+			<key>catalogPath</key>
+			<string>/Users/richard/Documents/GitHub/Pessoal/hotkey-macos/ClipFlow/Resources/Assets.xcassets</string>
+			<key>objcSymbol</key>
+			<string>ACImageNameClipFlowLogoDark</string>
+			<key>relativePath</key>
+			<string>./ClipFlowLogoDark.imageset</string>
+			<key>swiftSymbol</key>
+			<string>clipFlowLogoDark</string>
+		</dict>
+		<dict>
+			<key>catalogPath</key>
+			<string>/Users/richard/Documents/GitHub/Pessoal/hotkey-macos/ClipFlow/Resources/Assets.xcassets</string>
+			<key>objcSymbol</key>
+			<string>ACImageNameClipFlowLogoLight</string>
+			<key>relativePath</key>
+			<string>./ClipFlowLogoLight.imageset</string>
+			<key>swiftSymbol</key>
+			<string>clipFlowLogoLight</string>
+		</dict>
+	</array>
+	<key>symbols</key>
+	<array/>
+</dict>
+</plist>
