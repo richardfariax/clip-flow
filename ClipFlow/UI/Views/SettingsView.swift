@@ -28,7 +28,6 @@ struct SettingsView: View {
                     hotkeySection
                     ignoredAppsSection
                     permissionsSection
-                    creditsSection
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(18)
@@ -69,22 +68,31 @@ struct SettingsView: View {
 
     private var header: some View {
         HStack(spacing: 12) {
-            BrandLogoView(size: 32, cornerRadius: 8)
+            HStack(spacing: 12) {
+                BrandLogoView(size: 32, cornerRadius: 8)
 
-            VStack(alignment: .leading, spacing: 1) {
-                Text("ClipFlow")
-                    .font(.system(size: 23, weight: .bold, design: .rounded))
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("ClipFlow")
+                        .font(.system(size: 23, weight: .bold, design: .rounded))
 
-                HStack(spacing: 8) {
                     Text(t("Preferências", "Preferences"))
                         .font(.system(size: 13, weight: .medium, design: .rounded))
                         .foregroundStyle(.secondary)
-
-                    Link("Richard Farias", destination: creditsURL)
-                        .font(.system(size: 12, weight: .medium, design: .rounded))
-                        .foregroundStyle(.blue.opacity(0.95))
                 }
             }
+
+            Spacer()
+
+            VStack(alignment: .trailing, spacing: 2) {
+                Text(t("Desenvolvido por", "Built by"))
+                    .font(.system(size: 11, weight: .medium, design: .rounded))
+                    .foregroundStyle(.secondary)
+
+                Link("Richard Farias", destination: creditsURL)
+                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.blue.opacity(0.95))
+            }
+            .multilineTextAlignment(.trailing)
         }
         .padding(.horizontal, 2)
     }
@@ -244,20 +252,6 @@ struct SettingsView: View {
         ) {
             PermissionsView(permissionsManager: permissionsManager, settings: settings)
                 .frame(height: 280)
-        }
-    }
-
-    private var creditsSection: some View {
-        glassSection(
-            title: t("Créditos", "Credits"),
-            subtitle: t("Autoria e perfil profissional", "Author and professional profile"),
-            fillsWidth: true
-        ) {
-            alignedConfigRow(title: t("Criado por", "Created by"), controlWidth: 360) {
-                Link("Richard Farias", destination: creditsURL)
-                    .font(.system(size: 14, weight: .semibold, design: .rounded))
-                    .frame(maxWidth: .infinity, alignment: .trailing)
-            }
         }
     }
 
