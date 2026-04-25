@@ -11,6 +11,12 @@ Publicar o `ClipFlow.app` para instalação manual, sem mecanismo de atualizaç�
 ./Scripts/release.sh
 ```
 
+Para gerar instalador `.dmg`:
+
+```bash
+./Scripts/release_dmg.sh
+```
+
 Opcional: se quiser apontar workspace/projeto explicitamente:
 
 ```bash
@@ -21,13 +27,15 @@ XCODE_PROJECT="ClipFlow.xcodeproj" SCHEME="ClipFlow" ./Scripts/release.sh
 
 3. (Recomendado) Notarize e faça staple usando o guia em `Docs/NOTARIZATION.md`.
 4. Suba no GitHub Releases:
-   - `build/ClipFlow.zip` (ou `build/ClipFlow-notarized.zip`)
-   - `build/ClipFlow.zip.sha256` (checksum)
+  - `build/ClipFlow.zip` (ou `build/ClipFlow-notarized.zip`)
+  - `build/ClipFlow.zip.sha256` (checksum)
+  - `build/ClipFlow.dmg`
+  - `build/ClipFlow.dmg.sha256`
 5. Crie release notes com versão e mudanças.
 
 ## Passo a passo de instalação para usuário final
-1. Baixar o `.zip` na página de Releases do GitHub.
-2. Descompactar.
+1. Baixar o `.dmg` na página de Releases do GitHub (ou `.zip` como alternativa).
+2. Montar o `.dmg` (ou descompactar o `.zip`).
 3. Arrastar `ClipFlow.app` para `/Applications`.
 4. Abrir o app.
 5. Se o macOS bloquear na primeira execução:

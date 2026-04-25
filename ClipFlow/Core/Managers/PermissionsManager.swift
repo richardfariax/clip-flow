@@ -52,7 +52,11 @@ final class PermissionsManager: ObservableObject {
         // `Privacy_ListenEvent` e o identificador estável para Input Monitoring.
         openSettings(urls: [
             "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_ListenEvent",
+            "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_InputMonitoring",
+            "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_Keyboard",
             "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent",
+            "x-apple.systempreferences:com.apple.preference.security?Privacy_InputMonitoring",
+            "x-apple.systempreferences:com.apple.preference.security?Privacy_Keyboard",
             "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension"
         ])
         scheduleRefreshes()

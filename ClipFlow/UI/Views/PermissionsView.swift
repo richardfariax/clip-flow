@@ -2,12 +2,19 @@ import SwiftUI
 
 struct PermissionsView: View {
     @ObservedObject var permissionsManager: PermissionsManager
+    @State private var refreshTimer = Timer.publish(every: 2.0, on: .main, in: .common).autoconnect()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("ClipFlow precisa de Accessibility para colar automaticamente e Input Monitoring para capturar atalhos globais com máxima confiabilidade.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
+
+            if isRunningFromDerivedData {
+                Text("Você está rodando via Xcode/DerivedData. Para permissões estáveis de Accessibility/Input Monitoring, use o app instalado em /Applications (.dmg).")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+            }
 
             permissionRow(
                 title: "Accessibility",
@@ -26,9 +33,21 @@ struct PermissionsView: View {
             Text("Depois de conceder, volte ao app para atualizar o status.")
                 .font(.caption)
                 .foregroundStyle(.tertiary)
+
+            Button("Reverificar Agora") {
+                permissionsManager.refresh()
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
         }
         .padding(2)
         .onAppear {
+            permissionsManager.refresh()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            permissionsManager.refresh()
+        }
+        .onReceive(refreshTimer) { _ in
             permissionsManager.refresh()
         }
     }
@@ -55,6 +74,7 @@ struct PermissionsView: View {
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.small)
+            .disabled(granted)
 
             Button("Abrir Ajustes") {
                 openAction()
@@ -71,5 +91,9 @@ struct PermissionsView: View {
                         .strokeBorder(Color.white.opacity(0.12), lineWidth: 1.0)
                 )
         )
+    }
+
+    private var isRunningFromDerivedData: Bool {
+        Bundle.main.bundlePath.contains("DerivedData")
     }
 }

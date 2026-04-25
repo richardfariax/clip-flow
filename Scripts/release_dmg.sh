@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCHEME="${SCHEME:-ClipFlow}"
+CONFIGURATION="${CONFIGURATION:-Release}"
+BUILD_DIR="${BUILD_DIR:-build}"
+ARCHIVE_PATH="${BUILD_DIR}/${SCHEME}.xcarchive"
+APP_PATH="${ARCHIVE_PATH}/Products/Applications/${SCHEME}.app"
+DMG_STAGING_DIR="${BUILD_DIR}/dmg-staging"
+DMG_PATH="${BUILD_DIR}/${SCHEME}.dmg"
+SHA_PATH="${BUILD_DIR}/${SCHEME}.dmg.sha256"
+
+mkdir -p "${BUILD_DIR}"
+rm -rf "${ARCHIVE_PATH}" "${DMG_STAGING_DIR}" "${DMG_PATH}" "${SHA_PATH}"
+
+build_cmd=(
+  xcodebuild
+  -workspace "ClipFlow.xcworkspace"
+  -scheme "${SCHEME}"
+  -configuration "${CONFIGURATION}"
+  -archivePath "${ARCHIVE_PATH}"
+  archive
+)
+
+"${build_cmd[@]}"
+
+if [[ ! -d "${APP_PATH}" ]]; then
+  echo "Erro: app não encontrado em ${APP_PATH}" >&2
+  exit 1
+fi
+
+mkdir -p "${DMG_STAGING_DIR}"
+cp -R "${APP_PATH}" "${DMG_STAGING_DIR}/"
+ln -s /Applications "${DMG_STAGING_DIR}/Applications"
+
+hdiutil create \
+  -volname "${SCHEME}" \
+  -srcfolder "${DMG_STAGING_DIR}" \
+  -ov \
+  -format UDZO \
+  "${DMG_PATH}"
+
+shasum -a 256 "${DMG_PATH}" > "${SHA_PATH}"
+
+rm -rf "${DMG_STAGING_DIR}"
+
+echo "DMG gerado: ${DMG_PATH}"
+echo "Checksum SHA256: ${SHA_PATH}"
