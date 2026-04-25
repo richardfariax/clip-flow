@@ -10,57 +10,36 @@ struct ClipboardCardView: View {
     let onDelete: () -> Void
 
     @State private var isHovering = false
+    private let cardCornerRadius: CGFloat = 14
 
     var body: some View {
-        Button(action: onPaste) {
-            VStack(alignment: .leading, spacing: 12) {
-                header
+        VStack(alignment: .leading, spacing: 12) {
+            header
 
-                contentView
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            contentView
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-                HStack(spacing: 8) {
-                    actionPill(title: item.isFavorite ? "Favorito" : "Favoritar", icon: item.isFavorite ? "star.fill" : "star", isCritical: false) {
-                        onToggleFavorite()
-                    }
-
-                    actionPill(title: item.isPinned ? "Fixado" : "Fixar", icon: item.isPinned ? "pin.fill" : "pin", isCritical: false) {
-                        onTogglePin()
-                    }
-
-                    Spacer(minLength: 0)
-
-                    actionPill(title: "Excluir", icon: "trash", isCritical: true) {
-                        onDelete()
-                    }
+            HStack(spacing: 8) {
+                actionPill(title: item.isFavorite ? "Favorito" : "Favoritar", icon: item.isFavorite ? "star.fill" : "star", isCritical: false) {
+                    onToggleFavorite()
                 }
-                .buttonStyle(.plain)
+
+                actionPill(title: item.isPinned ? "Fixado" : "Fixar", icon: item.isPinned ? "pin.fill" : "pin", isCritical: false) {
+                    onTogglePin()
+                }
+
+                Spacer(minLength: 0)
+
+                actionPill(title: "Excluir", icon: "trash", isCritical: true) {
+                    onDelete()
+                }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(15)
-            .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(Color.white.opacity(isSelected ? 0.16 : 0.11))
-                    .overlay(
-                        LinearGradient(
-                            colors: [
-                                Color.white.opacity(0.16),
-                                Color.white.opacity(0.05),
-                                Color.clear
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .strokeBorder(borderColor, lineWidth: isSelected ? 1.6 : 1.0)
-                    )
-                    .shadow(color: Color.black.opacity(isHovering ? 0.22 : 0.12), radius: isHovering ? 14 : 8, x: 0, y: 8)
-            )
         }
-        .buttonStyle(.plain)
+        .padding(15)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .background(cardBackground)
+        .contentShape(RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous))
+        .onTapGesture(perform: onPaste)
         .scaleEffect(isHovering ? 1.005 : 1.0)
         .animation(.spring(response: 0.22, dampingFraction: 0.86), value: isHovering)
         .animation(.spring(response: 0.20, dampingFraction: 0.84), value: isSelected)
@@ -70,6 +49,27 @@ struct ClipboardCardView: View {
                 onSelect()
             }
         }
+    }
+
+    private var cardBackground: some View {
+        RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous)
+            .fill(Color.white.opacity(isSelected ? 0.16 : 0.11))
+            .overlay(
+                LinearGradient(
+                    colors: [
+                        Color.white.opacity(0.16),
+                        Color.white.opacity(0.05),
+                        Color.clear
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous)
+                    .strokeBorder(borderColor, lineWidth: isSelected ? 1.6 : 1.0)
+            )
+            .shadow(color: Color.black.opacity(isHovering ? 0.22 : 0.12), radius: isHovering ? 14 : 8, x: 0, y: 8)
     }
 
     private var borderColor: Color {
