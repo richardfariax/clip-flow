@@ -12,7 +12,7 @@
 			<string>arm64</string>
 		</array>
 		<key>CFBundleIdentifier</key>
-		<string>com.example.clipflow</string>
+		<string>com.richadfarias.clipflow</string>
 		<key>CFBundleShortVersionString</key>
 		<string>1.0.0</string>
 		<key>CFBundleVersion</key>
@@ -25,7 +25,7 @@
 	<key>ArchiveVersion</key>
 	<integer>2</integer>
 	<key>CreationDate</key>
-	<date>2026-04-25T04:05:16Z</date>
+	<date>2026-04-25T04:22:19Z</date>
 	<key>Name</key>
 	<string>ClipFlow</string>
 	<key>SchemeName</key>

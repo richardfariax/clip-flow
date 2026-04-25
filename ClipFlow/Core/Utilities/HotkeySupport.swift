@@ -3,22 +3,38 @@ import Foundation
 
 struct HotkeyPreset: Identifiable, Hashable {
     let id: String
-    let title: String
     let keyCode: UInt32
     let modifiers: UInt32
 
     static let customID = "custom"
 
     static let all: [HotkeyPreset] = [
-        HotkeyPreset(id: "opt_v", title: "Option + V (Padrão)", keyCode: UInt32(kVK_ANSI_V), modifiers: UInt32(optionKey)),
-        HotkeyPreset(id: "cmd_shift_v", title: "Command + Shift + V", keyCode: UInt32(kVK_ANSI_V), modifiers: UInt32(cmdKey | shiftKey)),
-        HotkeyPreset(id: "ctrl_opt_v", title: "Control + Option + V", keyCode: UInt32(kVK_ANSI_V), modifiers: UInt32(controlKey | optionKey)),
-        HotkeyPreset(id: "cmd_opt_v", title: "Command + Option + V", keyCode: UInt32(kVK_ANSI_V), modifiers: UInt32(cmdKey | optionKey)),
-        HotkeyPreset(id: "opt_space", title: "Option + Space", keyCode: UInt32(kVK_Space), modifiers: UInt32(optionKey))
+        HotkeyPreset(id: "opt_v", keyCode: UInt32(kVK_ANSI_V), modifiers: UInt32(optionKey)),
+        HotkeyPreset(id: "cmd_shift_v", keyCode: UInt32(kVK_ANSI_V), modifiers: UInt32(cmdKey | shiftKey)),
+        HotkeyPreset(id: "ctrl_opt_v", keyCode: UInt32(kVK_ANSI_V), modifiers: UInt32(controlKey | optionKey)),
+        HotkeyPreset(id: "cmd_opt_v", keyCode: UInt32(kVK_ANSI_V), modifiers: UInt32(cmdKey | optionKey)),
+        HotkeyPreset(id: "opt_space", keyCode: UInt32(kVK_Space), modifiers: UInt32(optionKey))
     ]
 
     static func matching(keyCode: UInt32, modifiers: UInt32) -> HotkeyPreset? {
         all.first { $0.keyCode == keyCode && $0.modifiers == modifiers }
+    }
+
+    func title(for language: AppLanguage) -> String {
+        switch id {
+        case "opt_v":
+            return language.text(ptBR: "Option + V (Padrão)", en: "Option + V (Default)")
+        case "cmd_shift_v":
+            return "Command + Shift + V"
+        case "ctrl_opt_v":
+            return "Control + Option + V"
+        case "cmd_opt_v":
+            return "Command + Option + V"
+        case "opt_space":
+            return "Option + Space"
+        default:
+            return HotkeyFormatter.displayString(keyCode: keyCode, modifiers: modifiers)
+        }
     }
 }
 

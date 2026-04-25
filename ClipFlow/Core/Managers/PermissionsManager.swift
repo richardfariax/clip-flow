@@ -18,22 +18,20 @@ final class PermissionsManager: ObservableObject {
 
     func requestAccessibility() {
         let options = [kAXTrustedCheckOptionPrompt.takeRetainedValue() as String: true] as CFDictionary
-        let granted = AXIsProcessTrustedWithOptions(options)
+        _ = AXIsProcessTrustedWithOptions(options)
         scheduleRefreshes()
-        if !granted {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                guard let self, !self.isAccessibilityGranted else { return }
-                self.openAccessibilitySettings()
-            }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            guard let self, !self.isAccessibilityGranted else { return }
+            self.openAccessibilitySettings()
         }
     }
 
     func requestInputMonitoring() {
         let granted = CGRequestListenEventAccess()
         scheduleRefreshes()
-        if !granted {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                guard let self, !self.isInputMonitoringGranted else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            guard let self else { return }
+            if !granted || !self.isInputMonitoringGranted {
                 self.openInputMonitoringSettings()
             }
         }

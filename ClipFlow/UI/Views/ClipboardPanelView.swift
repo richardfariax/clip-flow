@@ -32,7 +32,7 @@ struct ClipboardPanelView: View {
             LinearGradient(
                 colors: [
                     Color.white.opacity(0.15),
-                    Color.white.opacity(0.02),
+                    Color.white.opacity(0.03),
                     Color.black.opacity(0.10)
                 ],
                 startPoint: .topLeading,
@@ -42,7 +42,7 @@ struct ClipboardPanelView: View {
 
             RadialGradient(
                 colors: [
-                    Color(red: 0.44, green: 0.54, blue: 0.92).opacity(0.20),
+                    Color(red: 0.44, green: 0.54, blue: 0.92).opacity(0.18),
                     Color.clear
                 ],
                 center: .bottomLeading,
@@ -66,7 +66,7 @@ struct ClipboardPanelView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("ClipFlow")
                         .font(.system(size: 24, weight: .bold, design: .rounded))
-                    Text("\(settings.hotkeyDisplay) para abrir. Enter para colar.")
+                    Text("\(settings.hotkeyDisplay) \(t("para abrir. Enter para colar.", "to open. Press Enter to paste."))")
                         .font(.system(size: 12, weight: .regular, design: .rounded))
                         .foregroundStyle(.secondary)
                 }
@@ -82,7 +82,7 @@ struct ClipboardPanelView: View {
                     .padding(.vertical, 6)
                     .background(Capsule().fill(Color.white.opacity(0.10)))
 
-                Button("Limpar Tudo") {
+                Button(t("Limpar Tudo", "Clear All")) {
                     viewModel.clearAll()
                 }
                 .buttonStyle(.plain)
@@ -119,7 +119,7 @@ struct ClipboardPanelView: View {
             Image(systemName: "magnifyingglass")
                 .foregroundStyle(.secondary.opacity(0.95))
 
-            TextField("Buscar por conteúdo ou app", text: $viewModel.searchText)
+            TextField(t("Buscar por conteúdo ou app", "Search by content or app"), text: $viewModel.searchText)
                 .textFieldStyle(.plain)
                 .font(.system(size: 15, weight: .medium, design: .rounded))
                 .onSubmit {
@@ -162,6 +162,7 @@ struct ClipboardPanelView: View {
                     ClipboardCardView(
                         item: item,
                         isSelected: viewModel.selectedItemID == item.id,
+                        language: settings.language,
                         onPaste: {
                             closePanel()
                             viewModel.paste(item: item)
@@ -185,9 +186,10 @@ struct ClipboardPanelView: View {
                     emptyState
                 }
             }
-            .padding(.horizontal, 6)
+            .padding(.horizontal, 10)
             .padding(.vertical, 6)
         }
+        .scrollIndicators(.hidden)
     }
 
     private var emptyState: some View {
@@ -195,14 +197,18 @@ struct ClipboardPanelView: View {
             Image(systemName: "tray")
                 .font(.system(size: 20, weight: .medium))
                 .foregroundStyle(.secondary)
-            Text("Nenhum item no histórico")
+            Text(t("Nenhum item no histórico", "No history items"))
                 .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(.secondary)
-            Text("Copie algo para começar")
+            Text(t("Copie algo para começar", "Copy something to start"))
                 .font(.system(size: 11, weight: .regular))
                 .foregroundStyle(.tertiary)
         }
         .frame(maxWidth: .infinity)
         .padding(40)
+    }
+
+    private func t(_ pt: String, _ en: String) -> String {
+        settings.text(ptBR: pt, en: en)
     }
 }

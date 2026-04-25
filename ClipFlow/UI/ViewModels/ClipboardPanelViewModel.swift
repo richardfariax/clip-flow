@@ -67,17 +67,17 @@ final class ClipboardPanelViewModel: ObservableObject {
         self.selectedItemID = items[nextIndex].id
     }
 
-    func paste(item: DecodedClipboardItem) {
+    func paste(item: DecodedClipboardItem, targetApplication: NSRunningApplication? = nil) {
         selectedItemID = item.id
-        pasteService.paste(item: item, targetApplication: targetApplicationProvider())
+        pasteService.paste(item: item, targetApplication: targetApplication ?? targetApplicationProvider())
     }
 
-    func pasteSelectedItem() {
+    func pasteSelectedItem(targetApplication: NSRunningApplication? = nil) {
         guard let selectedItemID,
               let selected = items.first(where: { $0.id == selectedItemID }) else {
             return
         }
-        paste(item: selected)
+        paste(item: selected, targetApplication: targetApplication)
     }
 
     func toggleFavorite(itemID: UUID) {

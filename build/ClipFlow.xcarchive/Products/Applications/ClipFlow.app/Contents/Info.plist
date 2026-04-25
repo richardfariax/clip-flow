@@ -6,10 +6,12 @@
 	<string>25E253</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
+	<key>CFBundleDisplayName</key>
+	<string>ClipFlow</string>
 	<key>CFBundleExecutable</key>
 	<string>ClipFlow</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.example.clipflow</string>
+	<string>com.richadfarias.clipflow</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
@@ -40,6 +42,8 @@
 	<string>2640</string>
 	<key>DTXcodeBuild</key>
 	<string>17E192</string>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.productivity</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>14.0</string>
 	<key>LSUIElement</key>

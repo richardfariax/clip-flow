@@ -5,10 +5,10 @@ import Foundation
 @MainActor
 final class PasteService {
     private let permissionsManager: PermissionsManager
-    private let focusRetryDelay: TimeInterval = 0.06
-    private let initialPasteDelay: TimeInterval = 0.12
-    private let finalActivationDelay: TimeInterval = 0.05
-    private let maxFocusRetries: Int = 10
+    private let focusRetryDelay: TimeInterval = 0.07
+    private let initialPasteDelay: TimeInterval = 0.14
+    private let finalActivationDelay: TimeInterval = 0.08
+    private let maxFocusRetries: Int = 14
 
     init(permissionsManager: PermissionsManager) {
         self.permissionsManager = permissionsManager
@@ -48,7 +48,7 @@ final class PasteService {
 
         let target = resolveTargetApplication(from: targetApplication)
         if let target {
-            target.activate(options: [.activateAllWindows])
+            target.activate(options: [.activateIgnoringOtherApps, .activateAllWindows])
         }
 
         pasteWithFocusRetry(targetApplication: target, attempt: 0, completion: completion)
@@ -89,7 +89,7 @@ final class PasteService {
 
             if !hasFocus, attempt < self.maxFocusRetries {
                 if attempt == 2 || attempt == 5 || attempt == 8 {
-                    targetApplication.activate(options: [.activateAllWindows])
+                    targetApplication.activate(options: [.activateIgnoringOtherApps, .activateAllWindows])
                 }
                 self.pasteWithFocusRetry(
                     targetApplication: targetApplication,
@@ -100,9 +100,9 @@ final class PasteService {
             }
 
             if !hasFocus {
-                targetApplication.activate(options: [.activateAllWindows])
+                targetApplication.activate(options: [.activateIgnoringOtherApps, .activateAllWindows])
                 DispatchQueue.main.asyncAfter(deadline: .now() + self.finalActivationDelay) {
-                    completion?(self.triggerCommandV())
+                    completion?(self.triggerCommandV(to: targetApplication.processIdentifier))
                 }
                 return
             }
@@ -111,7 +111,7 @@ final class PasteService {
         }
     }
 
-    private func triggerCommandV() -> Bool {
+    private func triggerCommandV(to pid: pid_t? = nil) -> Bool {
         guard let source = CGEventSource(stateID: .hidSystemState),
               let keyDown = CGEvent(keyboardEventSource: source, virtualKey: 9, keyDown: true),
               let keyUp = CGEvent(keyboardEventSource: source, virtualKey: 9, keyDown: false) else {
@@ -120,8 +120,13 @@ final class PasteService {
 
         keyDown.flags = .maskCommand
         keyUp.flags = .maskCommand
-        keyDown.post(tap: .cghidEventTap)
-        keyUp.post(tap: .cghidEventTap)
+        if let pid {
+            keyDown.postToPid(pid)
+            keyUp.postToPid(pid)
+        } else {
+            keyDown.post(tap: .cghidEventTap)
+            keyUp.post(tap: .cghidEventTap)
+        }
         return true
     }
 }

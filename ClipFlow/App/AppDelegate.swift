@@ -21,6 +21,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var panelController: ClipboardPanelController?
     private var menuBarController: MenuBarController?
     private var lastExternalApplication: NSRunningApplication?
+    private var panelTargetApplication: NSRunningApplication?
 
     private var settingsWindowController: NSWindowController?
 
@@ -102,8 +103,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             },
             onConfirmSelection: { [weak self] in
                 guard let self else { return }
+                let targetApplication = self.panelTargetApplication
                 self.panelController?.close()
-                self.panelViewModel?.pasteSelectedItem()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.03) {
+                    self.panelViewModel?.pasteSelectedItem(targetApplication: targetApplication)
+                }
             }
         )
     }
@@ -112,6 +116,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menuBarController = MenuBarController(
             onOpenPanel: { [weak self] in
                 self?.captureFrontmostExternalApplication()
+                self?.panelTargetApplication = self?.lastExternalApplication
                 self?.panelController?.show()
                 self?.panelViewModel?.refresh()
             },
@@ -126,6 +131,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             },
             isPausedProvider: { [weak self] in
                 self?.settings.pauseMonitoring ?? false
+            },
+            languageProvider: { [weak self] in
+                self?.settings.language ?? .system
             }
         )
     }
@@ -171,6 +179,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self.menuBarController?.refreshAppearance()
             }
             .store(in: &cancellables)
+
+        settings.$language
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.menuBarController?.refreshLocalizedContent()
+            }
+            .store(in: &cancellables)
     }
 
     private func configureApplicationActivationTracking() {
@@ -190,6 +205,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         captureFrontmostExternalApplication()
+        panelTargetApplication = lastExternalApplication
         panelController?.show()
         panelViewModel?.refresh()
     }
@@ -209,6 +225,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         lastExternalApplication = app
+        if panelController?.isVisible == false {
+            panelTargetApplication = app
+        }
     }
 
     private func openSettingsWindow() {
@@ -231,7 +250,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let hosting = NSHostingController(rootView: settingsView)
         let window = NSWindow(contentViewController: hosting)
-        window.title = "Preferências"
+        window.title = settings.text(ptBR: "Preferências", en: "Preferences")
         window.styleMask = [.titled, .closable, .miniaturizable, .fullSizeContentView]
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true

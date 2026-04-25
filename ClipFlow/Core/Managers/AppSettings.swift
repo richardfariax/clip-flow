@@ -18,6 +18,47 @@ enum AppAppearance: String, CaseIterable, Identifiable {
             return "Escuro"
         }
     }
+
+    func title(for language: AppLanguage) -> String {
+        switch self {
+        case .system:
+            return language.text(ptBR: "Sistema", en: "System")
+        case .light:
+            return language.text(ptBR: "Claro", en: "Light")
+        case .dark:
+            return language.text(ptBR: "Escuro", en: "Dark")
+        }
+    }
+}
+
+enum AppLanguage: String, CaseIterable, Identifiable {
+    case system
+    case portuguese
+    case english
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .system:
+            return "System"
+        case .portuguese:
+            return "Português"
+        case .english:
+            return "English"
+        }
+    }
+
+    func text(ptBR: String, en: String) -> String {
+        switch self {
+        case .system:
+            return Locale.preferredLanguages.first?.lowercased().hasPrefix("pt") == true ? ptBR : en
+        case .portuguese:
+            return ptBR
+        case .english:
+            return en
+        }
+    }
 }
 
 @MainActor
@@ -31,6 +72,7 @@ final class AppSettings: ObservableObject {
         static let hotkeyModifiers = "hotkeyModifiers"
         static let launchAtLogin = "launchAtLogin"
         static let appearance = "appearance"
+        static let language = "language"
     }
 
     @Published var historyLimit: Int {
@@ -93,6 +135,10 @@ final class AppSettings: ObservableObject {
         didSet { userDefaults.set(appearance.rawValue, forKey: Keys.appearance) }
     }
 
+    @Published var language: AppLanguage {
+        didSet { userDefaults.set(language.rawValue, forKey: Keys.language) }
+    }
+
     private let userDefaults: UserDefaults
 
     var hotkeyDisplay: String {
@@ -133,6 +179,13 @@ final class AppSettings: ObservableObject {
         } else {
             appearance = .system
         }
+
+        if let storedLanguageRaw = userDefaults.string(forKey: Keys.language),
+           let storedLanguage = AppLanguage(rawValue: storedLanguageRaw) {
+            language = storedLanguage
+        } else {
+            language = .system
+        }
     }
 
     private static func normalizedHistoryLimit(_ value: Int) -> Int {
@@ -165,5 +218,9 @@ final class AppSettings: ObservableObject {
             return UInt32(optionKey)
         }
         return value
+    }
+
+    func text(ptBR: String, en: String) -> String {
+        language.text(ptBR: ptBR, en: en)
     }
 }
