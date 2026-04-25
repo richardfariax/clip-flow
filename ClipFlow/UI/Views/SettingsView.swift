@@ -19,7 +19,7 @@ struct SettingsView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     header
 
-                    topSections
+                    generalSection
 
                     glassSection(title: "Atalho Global", subtitle: "Abertura rápida do painel", fillsWidth: true) {
                         VStack(alignment: .leading, spacing: 12) {
@@ -140,48 +140,10 @@ struct SettingsView: View {
         .padding(.horizontal, 2)
     }
 
-    private var topSections: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(alignment: .top, spacing: 16) {
-                generalSection
-                    .frame(minWidth: 360, maxWidth: .infinity, alignment: .leading)
-
-                startupSection
-                    .frame(minWidth: 280, maxWidth: .infinity, alignment: .leading)
-            }
-
-            VStack(alignment: .leading, spacing: 16) {
-                generalSection
-                startupSection
-            }
-        }
-    }
-
     private var generalSection: some View {
-        glassSection(title: "Geral", subtitle: "Comportamento e aparência do app", fillsWidth: true) {
-            VStack(alignment: .leading, spacing: 10) {
-                Picker("Limite do Histórico", selection: $settings.historyLimit) {
-                    Text("100").tag(100)
-                    Text("500").tag(500)
-                    Text("1000").tag(1000)
-                }
-
-                Picker("Aparência", selection: $settings.appearance) {
-                    ForEach(AppAppearance.allCases) { appearance in
-                        Text(appearance.title).tag(appearance)
-                    }
-                }
-
-                Toggle("Pausar monitoramento", isOn: $settings.pauseMonitoring)
-
-                Toggle("Criptografia local (AES-GCM)", isOn: $settings.enableEncryption)
-            }
-        }
-    }
-
-    private var startupSection: some View {
-        glassSection(title: "Inicialização", subtitle: "Abertura automática com o macOS", fillsWidth: true) {
-            VStack(alignment: .leading, spacing: 8) {
+        glassSection(title: "Geral", subtitle: "Comportamento principal do ClipFlow", fillsWidth: true) {
+            VStack(alignment: .leading, spacing: 14) {
+                sectionLabel("Inicialização")
                 Toggle("Iniciar com o macOS", isOn: Binding(
                     get: { settings.launchAtLogin },
                     set: { newValue in
@@ -201,6 +163,26 @@ struct SettingsView: View {
                         .font(.caption)
                         .foregroundStyle(.red)
                 }
+
+                Divider()
+                    .overlay(Color.white.opacity(0.12))
+
+                sectionLabel("Histórico e aparência")
+                Picker("Limite do Histórico", selection: $settings.historyLimit) {
+                    Text("100").tag(100)
+                    Text("500").tag(500)
+                    Text("1000").tag(1000)
+                }
+
+                Picker("Aparência", selection: $settings.appearance) {
+                    ForEach(AppAppearance.allCases) { appearance in
+                        Text(appearance.title).tag(appearance)
+                    }
+                }
+
+                Toggle("Pausar monitoramento", isOn: $settings.pauseMonitoring)
+
+                Toggle("Criptografia local (AES-GCM)", isOn: $settings.enableEncryption)
             }
         }
     }
@@ -232,6 +214,12 @@ struct SettingsView: View {
                         .strokeBorder(Color.white.opacity(0.15), lineWidth: 1.0)
                 )
         )
+    }
+
+    private func sectionLabel(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 12, weight: .semibold, design: .rounded))
+            .foregroundStyle(.secondary)
     }
 
     private func syncHotkeyPresetState() {
