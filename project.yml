@@ -19,8 +19,11 @@ targets:
       - path: ClipFlow/App
       - path: ClipFlow/Core
       - path: ClipFlow/UI
-    resources:
-      - path: ClipFlow/Resources/Assets.xcassets
+      - path: ClipFlow/Resources
+        buildPhase: resources
+        excludes:
+          - Info.plist
+          - ClipFlow.entitlements
     settings:
       base:
         PRODUCT_NAME: ClipFlow
