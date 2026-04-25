@@ -122,6 +122,10 @@ struct ClipboardPanelView: View {
             TextField("Buscar por conteúdo ou app", text: $viewModel.searchText)
                 .textFieldStyle(.plain)
                 .font(.system(size: 15, weight: .medium, design: .rounded))
+                .onSubmit {
+                    closePanel()
+                    viewModel.pasteSelectedItem()
+                }
 
             Spacer(minLength: 0)
 

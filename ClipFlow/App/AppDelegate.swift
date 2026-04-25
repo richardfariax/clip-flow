@@ -42,6 +42,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         monitorService?.start()
         permissionsManager.refresh()
+        permissionsManager.promptOnFirstLaunchIfNeeded()
 
         if settings.launchAtLogin {
             try? launchAtLoginManager.setEnabled(true)
@@ -203,7 +204,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else {
             return
         }
-        guard app.bundleIdentifier != Bundle.main.bundleIdentifier else { return }
+        if app.bundleIdentifier == Bundle.main.bundleIdentifier {
+            permissionsManager.refresh()
+            return
+        }
         lastExternalApplication = app
     }
 

@@ -5,9 +5,10 @@ import Foundation
 @MainActor
 final class PasteService {
     private let permissionsManager: PermissionsManager
-    private let focusRetryDelay: TimeInterval = 0.05
-    private let initialPasteDelay: TimeInterval = 0.09
-    private let maxFocusRetries: Int = 8
+    private let focusRetryDelay: TimeInterval = 0.06
+    private let initialPasteDelay: TimeInterval = 0.12
+    private let finalActivationDelay: TimeInterval = 0.05
+    private let maxFocusRetries: Int = 10
 
     init(permissionsManager: PermissionsManager) {
         self.permissionsManager = permissionsManager
@@ -18,7 +19,9 @@ final class PasteService {
         targetApplication: NSRunningApplication?,
         completion: ((Bool) -> Void)? = nil
     ) {
+        permissionsManager.refresh()
         guard permissionsManager.isAccessibilityGranted else {
+            permissionsManager.requestAccessibility()
             completion?(false)
             return
         }
@@ -85,7 +88,7 @@ final class PasteService {
             let hasFocus = frontmostPID == targetApplication.processIdentifier
 
             if !hasFocus, attempt < self.maxFocusRetries {
-                if attempt == 2 || attempt == 5 {
+                if attempt == 2 || attempt == 5 || attempt == 8 {
                     targetApplication.activate(options: [.activateAllWindows])
                 }
                 self.pasteWithFocusRetry(
@@ -96,12 +99,19 @@ final class PasteService {
                 return
             }
 
-            let postedToTarget = self.triggerCommandV(to: targetApplication.processIdentifier)
-            completion?(postedToTarget)
+            if !hasFocus {
+                targetApplication.activate(options: [.activateAllWindows])
+                DispatchQueue.main.asyncAfter(deadline: .now() + self.finalActivationDelay) {
+                    completion?(self.triggerCommandV())
+                }
+                return
+            }
+
+            completion?(self.triggerCommandV())
         }
     }
 
-    private func triggerCommandV(to processIdentifier: pid_t? = nil) -> Bool {
+    private func triggerCommandV() -> Bool {
         guard let source = CGEventSource(stateID: .hidSystemState),
               let keyDown = CGEvent(keyboardEventSource: source, virtualKey: 9, keyDown: true),
               let keyUp = CGEvent(keyboardEventSource: source, virtualKey: 9, keyDown: false) else {
@@ -110,15 +120,8 @@ final class PasteService {
 
         keyDown.flags = .maskCommand
         keyUp.flags = .maskCommand
-
-        if let processIdentifier {
-            keyDown.postToPid(processIdentifier)
-            keyUp.postToPid(processIdentifier)
-        } else {
-            keyDown.post(tap: .cghidEventTap)
-            keyUp.post(tap: .cghidEventTap)
-        }
-
+        keyDown.post(tap: .cghidEventTap)
+        keyUp.post(tap: .cghidEventTap)
         return true
     }
 }

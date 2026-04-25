@@ -39,7 +39,10 @@ struct ClipboardCardView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(cardBackground)
         .contentShape(RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous))
-        .onTapGesture(perform: onPaste)
+        .onTapGesture {
+            onSelect()
+            onPaste()
+        }
         .scaleEffect(isHovering ? 1.005 : 1.0)
         .animation(.spring(response: 0.22, dampingFraction: 0.86), value: isHovering)
         .animation(.spring(response: 0.20, dampingFraction: 0.84), value: isSelected)
@@ -69,7 +72,7 @@ struct ClipboardCardView: View {
                 RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous)
                     .strokeBorder(borderColor, lineWidth: isSelected ? 1.6 : 1.0)
             )
-            .shadow(color: Color.black.opacity(isHovering ? 0.22 : 0.12), radius: isHovering ? 14 : 8, x: 0, y: 8)
+            .compositingGroup()
     }
 
     private var borderColor: Color {
