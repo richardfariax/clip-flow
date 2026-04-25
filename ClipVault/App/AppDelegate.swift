@@ -11,7 +11,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var cryptoService = LocalCryptoService()
     private var permissionsManager = PermissionsManager()
     private var launchAtLoginManager = LaunchAtLoginManager()
-    private var updateManager = UpdateManager()
 
     private var storageService: ClipboardStorageService?
     private var monitorService: ClipboardMonitorService?
@@ -118,9 +117,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             },
             onTogglePause: { [weak self] newValue in
                 self?.settings.pauseMonitoring = newValue
-            },
-            onCheckUpdates: { [weak self] in
-                self?.updateManager.checkForUpdates()
             },
             onQuit: {
                 NSApplication.shared.terminate(nil)

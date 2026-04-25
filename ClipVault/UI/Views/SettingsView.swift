@@ -18,8 +18,21 @@ struct SettingsView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    Text("Preferências")
-                        .font(.system(size: 26, weight: .bold, design: .rounded))
+                    HStack(spacing: 12) {
+                        Image("ClipFlowLogo")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 32, height: 32)
+                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("ClipFlow")
+                                .font(.system(size: 20, weight: .bold, design: .rounded))
+                            Text("Preferências")
+                                .font(.system(size: 13, weight: .medium, design: .rounded))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
 
                     GroupBox("Geral") {
                         VStack(alignment: .leading, spacing: 10) {
@@ -91,7 +104,7 @@ struct SettingsView: View {
                                 }
                                 Text("Personalizado").tag(HotkeyPreset.customID)
                             }
-                            .onChange(of: selectedHotkeyPresetID) { newValue in
+                            .onChange(of: selectedHotkeyPresetID, initial: false) { _, newValue in
                                 guard let selectedPreset = HotkeyPreset.all.first(where: { $0.id == newValue }) else {
                                     return
                                 }
@@ -146,10 +159,10 @@ struct SettingsView: View {
             permissionsManager.refresh()
             syncHotkeyPresetState()
         }
-        .onChange(of: settings.hotkeyCode) { _ in
+        .onChange(of: settings.hotkeyCode, initial: false) { _, _ in
             syncHotkeyPresetState()
         }
-        .onChange(of: settings.hotkeyModifiers) { _ in
+        .onChange(of: settings.hotkeyModifiers, initial: false) { _, _ in
             syncHotkeyPresetState()
         }
     }

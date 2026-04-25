@@ -42,7 +42,7 @@ final class PasteService {
 
         if let targetApplication,
            targetApplication.bundleIdentifier != Bundle.main.bundleIdentifier {
-            targetApplication.activate(options: [.activateIgnoringOtherApps])
+            targetApplication.activate(options: [])
         }
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) { [weak self] in

@@ -28,8 +28,16 @@ struct ClipboardPanelView: View {
     private var header: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
-                Text("ClipVault")
-                    .font(.system(size: 24, weight: .bold, design: .rounded))
+                HStack(spacing: 10) {
+                    Image("ClipFlowLogo")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 28, height: 28)
+                        .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+
+                    Text("ClipFlow")
+                        .font(.system(size: 24, weight: .bold, design: .rounded))
+                }
                 Text("\(settings.hotkeyDisplay) para abrir. Enter para colar.")
                     .font(.system(size: 12, weight: .regular, design: .rounded))
                     .foregroundStyle(.secondary)

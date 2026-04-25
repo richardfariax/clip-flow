@@ -9,7 +9,6 @@ final class MenuBarController: NSObject {
     private let onOpenPanel: () -> Void
     private let onOpenSettings: () -> Void
     private let onTogglePause: (Bool) -> Void
-    private let onCheckUpdates: () -> Void
     private let onQuit: () -> Void
     private let isPausedProvider: () -> Bool
 
@@ -17,7 +16,6 @@ final class MenuBarController: NSObject {
         onOpenPanel: @escaping () -> Void,
         onOpenSettings: @escaping () -> Void,
         onTogglePause: @escaping (Bool) -> Void,
-        onCheckUpdates: @escaping () -> Void,
         onQuit: @escaping () -> Void,
         isPausedProvider: @escaping () -> Bool
     ) {
@@ -25,7 +23,6 @@ final class MenuBarController: NSObject {
         self.onOpenPanel = onOpenPanel
         self.onOpenSettings = onOpenSettings
         self.onTogglePause = onTogglePause
-        self.onCheckUpdates = onCheckUpdates
         self.onQuit = onQuit
         self.isPausedProvider = isPausedProvider
         super.init()
@@ -41,7 +38,14 @@ final class MenuBarController: NSObject {
 
     private func configureStatusItem() {
         if let button = statusItem.button {
-            button.image = NSImage(systemSymbolName: "clipboard", accessibilityDescription: "ClipVault")
+            let menuBarLogo = NSImage(named: "ClipFlowLogo")
+            if let menuBarLogo {
+                menuBarLogo.size = NSSize(width: 18, height: 18)
+                menuBarLogo.isTemplate = false
+                button.image = menuBarLogo
+            } else {
+                button.image = NSImage(systemSymbolName: "clipboard", accessibilityDescription: "ClipFlow")
+            }
             button.imagePosition = .imageOnly
         }
         statusItem.menu = menu
@@ -50,7 +54,7 @@ final class MenuBarController: NSObject {
     private func configureMenu() {
         menu.autoenablesItems = false
 
-        let openPanelItem = NSMenuItem(title: "Abrir ClipVault", action: #selector(openPanel), keyEquivalent: "")
+        let openPanelItem = NSMenuItem(title: "Abrir ClipFlow", action: #selector(openPanel), keyEquivalent: "")
         openPanelItem.target = self
         menu.addItem(openPanelItem)
 
@@ -66,13 +70,7 @@ final class MenuBarController: NSObject {
         settingsItem.target = self
         menu.addItem(settingsItem)
 
-        let updatesItem = NSMenuItem(title: "Verificar Atualizações", action: #selector(checkUpdates), keyEquivalent: "")
-        updatesItem.target = self
-        menu.addItem(updatesItem)
-
-        menu.addItem(.separator())
-
-        let quitItem = NSMenuItem(title: "Sair do ClipVault", action: #selector(quitApp), keyEquivalent: "q")
+        let quitItem = NSMenuItem(title: "Sair do ClipFlow", action: #selector(quitApp), keyEquivalent: "q")
         quitItem.target = self
         menu.addItem(quitItem)
     }
@@ -89,10 +87,6 @@ final class MenuBarController: NSObject {
         let updated = !isPausedProvider()
         onTogglePause(updated)
         refreshPauseState()
-    }
-
-    @objc private func checkUpdates() {
-        onCheckUpdates()
     }
 
     @objc private func quitApp() {

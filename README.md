@@ -7,7 +7,9 @@ Aplicativo nativo macOS para histórico de área de transferência, inspirado no
 - Histórico de textos e imagens.
 - Classificação de texto: link, email, código, texto longo e texto comum.
 - Painel flutuante com atalho global padrão `Option + V`.
+- Presets de hotkey global nas preferências.
 - Busca no histórico.
+- Navegação por teclado no painel (`↑`, `↓`, `Enter`, `Esc`).
 - Favoritar item.
 - Fixar item no topo.
 - Excluir item individual.
@@ -19,8 +21,9 @@ Aplicativo nativo macOS para histórico de área de transferência, inspirado no
 - Menu bar app com ícone e ações rápidas.
 - Pausar monitoramento.
 - Ignorar apps sensíveis por `bundle id`.
+- Não recaptura escrita programática feita pelo próprio ClipVault.
 - Criptografia local opcional (AES-GCM + chave no Keychain).
-- Suporte a atualização OTA via Sparkle (quando dependency adicionada no Xcode).
+- Distribuição manual via GitHub Releases (`.zip` assinado/notarizado).
 
 ## Estrutura de pastas
 
@@ -39,7 +42,6 @@ ClipVault/
       LaunchAtLoginManager.swift
       MenuBarController.swift
       PermissionsManager.swift
-      UpdateManager.swift
     Services/
       ClipboardMonitorService.swift
       ClipboardStorageService.swift
@@ -47,6 +49,7 @@ ClipVault/
       PasteService.swift
     Utilities/
       ClipboardContentClassifier.swift
+      HotkeySupport.swift
       KeychainHelper.swift
       NotificationNames.swift
   UI/
@@ -65,7 +68,7 @@ ClipVault/
     Info.plist
 ClipVaultTests/
 Docs/
-  SPARKLE_SETUP.md
+  GITHUB_RELEASE.md
   NOTARIZATION.md
 Scripts/
   release.sh
@@ -94,13 +97,14 @@ README.md
 1. Hotkey padrão: `Option + V`.
 2. Registro via Carbon em `HotkeyManager` com `RegisterEventHotKey`.
 3. No `AppDelegate`, o evento abre/fecha o painel flutuante.
-4. Se necessário, reaplique em `Preferências > Reaplicar Atalho`.
+4. Em `Preferências > Atalho Global`, selecione um preset.
+5. Se necessário, use `Reaplicar Atalho`.
 
-## 4) Sparkle OTA
+## 4) Distribuição Manual (GitHub)
 
-1. Siga [Docs/SPARKLE_SETUP.md](Docs/SPARKLE_SETUP.md).
-2. Publique `appcast.xml` com versões assinadas.
-3. Use o menu `Verificar Atualizações` para teste manual.
+1. Gere o artefato com `./Scripts/release.sh`.
+2. (Recomendado) Notarize seguindo [Docs/NOTARIZATION.md](Docs/NOTARIZATION.md).
+3. Publique o `.zip` no GitHub Releases conforme [Docs/GITHUB_RELEASE.md](Docs/GITHUB_RELEASE.md).
 
 ## 5) Permissões macOS
 
@@ -118,8 +122,8 @@ README.md
 ```
 
 3. Notarize conforme [Docs/NOTARIZATION.md](Docs/NOTARIZATION.md).
-4. Faça `staple` e publique `.zip`/`.dmg`.
-5. Atualize `appcast.xml` do Sparkle com a nova versão.
+4. Faça `staple` e publique `.zip` no GitHub Releases.
+5. Inclua checksum `SHA256` para validação.
 
 ## 7) Requisitos de assinatura e notarização
 
