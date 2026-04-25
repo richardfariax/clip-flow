@@ -1,58 +1,65 @@
-# ClipFlow
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="ClipFlow/Resources/Assets.xcassets/ClipFlowLogoDark.imageset/logo-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="ClipFlow/Resources/Assets.xcassets/ClipFlowLogoLight.imageset/logo-light.png">
+    <img src="ClipFlow/Resources/Assets.xcassets/ClipFlowLogoLight.imageset/logo-light.png" alt="ClipFlow logo" width="110">
+  </picture>
+</p>
 
-ClipFlow is a native macOS clipboard history app (menu bar + global hotkey), built with Swift, SwiftUI, AppKit, NSPasteboard, and SwiftData.
+<h1 align="center">ClipFlow</h1>
 
-## What it does
-- Monitors clipboard changes in background.
-- Stores text and images locally.
-- Supports search, favorites, pin to top, delete, and clear all.
-- Opens a floating panel with global hotkey (`Option + V` by default).
-- Pastes selected item back to the previously focused app.
-- Supports Launch at Login.
-- Supports ignored apps list (password managers, etc).
-- Optional local AES-GCM encryption.
-- Manual distribution via GitHub Releases (`.dmg` / `.zip`).
+<p align="center">
+  Premium clipboard manager for macOS.<br>
+  Fast, minimal, native, and built for daily professional workflows.
+</p>
 
-## Requirements
-- macOS 14+
-- Xcode 15+
+<p align="center">
+  <a href="../../releases/latest"><img alt="Download" src="https://img.shields.io/badge/Download-macOS%20DMG-0A84FF?style=for-the-badge"></a>
+  <img alt="Platform" src="https://img.shields.io/badge/platform-macOS%2014%2B-1f2937?style=for-the-badge">
+  <img alt="Built with" src="https://img.shields.io/badge/SwiftUI%20%2B%20AppKit-Native-111827?style=for-the-badge">
+</p>
 
-## Project structure
-- `ClipFlow/` app source code
-- `ClipFlowTests/` unit tests
-- `Scripts/release.sh` release zip builder
-- `Scripts/release_dmg.sh` release dmg builder
-- `ClipFlow.xcodeproj` and `ClipFlow.xcworkspace`
+## Why ClipFlow
+ClipFlow gives you a `Windows + V` style clipboard history experience on macOS, with a polished floating panel, global hotkey access, and local-first privacy.
 
-## Bundle identifier
-- `com.richadfarias.clipflow`
+## Highlights
+- Global hotkey to open the clipboard panel (`Option + V` by default)
+- Clipboard history for text and images
+- Search, favorite, pin, delete, and clear all
+- Automatic paste back to the previously focused app
+- Ignored app list for sensitive software (password managers, etc.)
+- Optional local AES-GCM encryption
+- Menu bar native app with light/dark support
+- Launch at Login support
 
-## Run locally
-```bash
-xcodebuild -project ClipFlow.xcodeproj -scheme ClipFlow -destination 'platform=macOS' build
-```
-
-Or open `ClipFlow.xcodeproj` in Xcode and run.
+## Install (for end users)
+1. Open [latest release](../../releases/latest).
+2. Download `ClipFlow.dmg`.
+3. Drag `ClipFlow.app` to `/Applications`.
+4. Open ClipFlow and grant requested permissions.
 
 ## Permissions
-ClipFlow may need:
-- Accessibility (automatic paste via Cmd+V simulation)
-- Input Monitoring (best reliability for global hotkey behavior)
+ClipFlow may request:
+- Accessibility: required for automatic paste simulation (`Cmd + V`)
+- Input Monitoring: improves reliability for global hotkeys
 
-Tip: for stable permission behavior, test with an app installed in `/Applications` (from DMG), not only from Xcode DerivedData.
+## For maintainers
+Build artifacts locally:
 
-## Build release artifacts
 ```bash
 ./Scripts/release.sh
 ./Scripts/release_dmg.sh
 ```
 
-Artifacts are generated in `build/`.
+GitHub Release automation:
+- Workflow: `.github/workflows/release-assets.yml`
+- Trigger: publish a Release
+- Uploads: `.dmg`, `.zip`, and `.sha256` files automatically
 
-## Distribution
-1. Upload `build/ClipFlow.dmg` (or `build/ClipFlow.zip`) to GitHub Releases.
-2. Share checksum file (`.sha256`) with the release.
-3. User installs by dragging `ClipFlow.app` to `/Applications`.
+## Privacy
+ClipFlow stores data locally on your Mac.
+No cloud sync is enabled by default.
 
 ## Credits
-- Richard Farias: https://www.linkedin.com/in/richardfariasss/
+Developed by Richard Farias
+- LinkedIn: https://www.linkedin.com/in/richardfariasss/
