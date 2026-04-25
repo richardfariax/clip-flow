@@ -10,6 +10,10 @@
 	<string>ClipFlow</string>
 	<key>CFBundleExecutable</key>
 	<string>ClipFlow</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
+	<key>CFBundleIconName</key>
+	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
 	<string>com.richadfarias.clipflow</string>
 	<key>CFBundleInfoDictionaryVersion</key>
