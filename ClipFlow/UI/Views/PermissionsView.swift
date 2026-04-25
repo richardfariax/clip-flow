@@ -43,12 +43,6 @@ struct PermissionsView: View {
             ))
             .font(.caption)
             .foregroundStyle(.tertiary)
-
-            Button(t("Reverificar Agora", "Recheck Now")) {
-                permissionsManager.refresh()
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
         }
         .padding(2)
         .onAppear {
@@ -85,6 +79,16 @@ struct PermissionsView: View {
             .buttonStyle(.borderedProminent)
             .controlSize(.small)
             .disabled(granted)
+
+            Button {
+                permissionsManager.refresh()
+            } label: {
+                Image(systemName: "arrow.clockwise")
+                    .font(.system(size: 12, weight: .semibold))
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .help(t("Reverificar status", "Refresh status"))
 
             Button(t("Abrir Ajustes", "Open Settings")) {
                 openAction()
