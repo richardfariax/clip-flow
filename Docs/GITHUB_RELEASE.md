@@ -1,7 +1,7 @@
 # Distribuição Manual via GitHub Releases
 
 ## Objetivo
-Publicar o `ClipVault.app` para instalação manual, sem mecanismo de atualização automática.
+Publicar o `ClipFlow.app` para instalação manual, sem mecanismo de atualização automática.
 
 ## Fluxo de publicação
 1. Atualize versão do app (`MARKETING_VERSION` e `CURRENT_PROJECT_VERSION`).
@@ -14,21 +14,21 @@ Publicar o `ClipVault.app` para instalação manual, sem mecanismo de atualizaç
 Opcional: se quiser apontar workspace/projeto explicitamente:
 
 ```bash
-XCODE_WORKSPACE="ClipVault.xcworkspace" SCHEME="ClipVault" ./Scripts/release.sh
+XCODE_WORKSPACE="ClipFlow.xcworkspace" SCHEME="ClipFlow" ./Scripts/release.sh
 # ou
-XCODE_PROJECT="ClipVault.xcodeproj" SCHEME="ClipVault" ./Scripts/release.sh
+XCODE_PROJECT="ClipFlow.xcodeproj" SCHEME="ClipFlow" ./Scripts/release.sh
 ```
 
 3. (Recomendado) Notarize e faça staple usando o guia em `Docs/NOTARIZATION.md`.
 4. Suba no GitHub Releases:
-   - `build/ClipVault.zip` (ou `build/ClipVault-notarized.zip`)
-   - `build/ClipVault.zip.sha256` (checksum)
+   - `build/ClipFlow.zip` (ou `build/ClipFlow-notarized.zip`)
+   - `build/ClipFlow.zip.sha256` (checksum)
 5. Crie release notes com versão e mudanças.
 
 ## Passo a passo de instalação para usuário final
 1. Baixar o `.zip` na página de Releases do GitHub.
 2. Descompactar.
-3. Arrastar `ClipVault.app` para `/Applications`.
+3. Arrastar `ClipFlow.app` para `/Applications`.
 4. Abrir o app.
 5. Se o macOS bloquear na primeira execução:
    - Abrir `System Settings > Privacy & Security`.

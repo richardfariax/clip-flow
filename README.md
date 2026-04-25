@@ -1,4 +1,4 @@
-# ClipVault (macOS)
+# ClipFlow (macOS)
 
 Aplicativo nativo macOS para histórico de área de transferência, inspirado no `Windows + V`, com SwiftUI + AppKit, menu bar app, hotkey global e persistência local.
 
@@ -21,16 +21,16 @@ Aplicativo nativo macOS para histórico de área de transferência, inspirado no
 - Menu bar app com ícone e ações rápidas.
 - Pausar monitoramento.
 - Ignorar apps sensíveis por `bundle id`.
-- Não recaptura escrita programática feita pelo próprio ClipVault.
+- Não recaptura escrita programática feita pelo próprio ClipFlow.
 - Criptografia local opcional (AES-GCM + chave no Keychain).
 - Distribuição manual via GitHub Releases (`.zip` assinado/notarizado).
 
 ## Estrutura de pastas
 
 ```text
-ClipVault/
+ClipFlow/
   App/
-    ClipVaultApp.swift
+    ClipFlowApp.swift
     AppDelegate.swift
   Core/
     Models/
@@ -64,9 +64,11 @@ ClipVault/
       PermissionsView.swift
       SettingsView.swift
   Resources/
-    ClipVault.entitlements
+    Assets.xcassets/
+      ClipFlowLogo.imageset/
+    ClipFlow.entitlements
     Info.plist
-ClipVaultTests/
+ClipFlowTests/
 Docs/
   GITHUB_RELEASE.md
   NOTARIZATION.md
@@ -78,13 +80,19 @@ README.md
 ## 1) Passo a passo: criar projeto no Xcode
 
 1. Abra o Xcode e crie projeto `App` (`macOS`, interface `SwiftUI`, linguagem `Swift`).
-2. Nomeie como `ClipVault`.
+2. Nomeie como `ClipFlow`.
 3. Defina deployment target em `macOS 14.0+` (SwiftData).
 4. Em `Signing & Capabilities`, configure Team e Bundle ID.
-5. Em `Build Settings`, aponte `Info.plist` para `ClipVault/Resources/Info.plist`.
-6. Adicione os arquivos Swift da pasta `ClipVault/` ao target.
-7. Remova arquivos padrão criados pelo template que conflitem com `ClipVaultApp.swift` e `AppDelegate.swift`.
+5. Em `Build Settings`, aponte `Info.plist` para `ClipFlow/Resources/Info.plist`.
+6. Adicione os arquivos Swift da pasta `ClipFlow/` ao target.
+7. Remova arquivos padrão criados pelo template que conflitem com `ClipFlowApp.swift` e `AppDelegate.swift`.
 8. Execute (`Run`) e confirme que o app abre apenas na menu bar.
+
+### Logo do app (ClipFlow)
+1. Abra `ClipFlow/Resources/Assets.xcassets`.
+2. Selecione `ClipFlowLogo.imageset`.
+3. Arraste a imagem enviada (`ClipFlow`) para os slots `1x` e `2x`.
+4. O app já usa esse asset automaticamente na menu bar, painel e preferências.
 
 ## 2) Launch at Login
 

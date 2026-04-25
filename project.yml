@@ -1,0 +1,41 @@
+name: ClipFlow
+options:
+  createIntermediateGroups: true
+settings:
+  base:
+    MARKETING_VERSION: 1.0.0
+    CURRENT_PROJECT_VERSION: 1
+    SWIFT_VERSION: 5.0
+    PRODUCT_BUNDLE_IDENTIFIER: com.example.clipflow
+    CODE_SIGN_ENTITLEMENTS: ClipFlow/Resources/ClipFlow.entitlements
+    INFOPLIST_FILE: ClipFlow/Resources/Info.plist
+    GENERATE_INFOPLIST_FILE: NO
+targets:
+  ClipFlow:
+    type: application
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: ClipFlow/App
+      - path: ClipFlow/Core
+      - path: ClipFlow/UI
+    resources:
+      - path: ClipFlow/Resources/Assets.xcassets
+    settings:
+      base:
+        PRODUCT_NAME: ClipFlow
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+
+  ClipFlowTests:
+    type: bundle.unit-test
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: ClipFlowTests
+    dependencies:
+      - target: ClipFlow
+    settings:
+      base:
+        PRODUCT_NAME: ClipFlowTests
+        PRODUCT_BUNDLE_IDENTIFIER: com.example.clipflow.tests
+        GENERATE_INFOPLIST_FILE: YES

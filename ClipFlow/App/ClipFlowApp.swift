@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct ClipVaultApp: App {
+struct ClipFlowApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     var body: some Scene {

@@ -2,7 +2,7 @@ import Carbon
 import Foundation
 
 final class HotkeyManager {
-    static let hotkeyPressedNotification = Notification.Name("ClipVaultHotkeyPressed")
+    static let hotkeyPressedNotification = Notification.Name("ClipFlowHotkeyPressed")
 
     private var hotKeyRef: EventHotKeyRef?
     private var eventHandlerRef: EventHandlerRef?
@@ -22,7 +22,7 @@ final class HotkeyManager {
         )
 
         guard status == noErr else {
-            NSLog("[ClipVault] Falha ao registrar hotkey global: \(status)")
+            NSLog("[ClipFlow] Falha ao registrar hotkey global: \(status)")
             return
         }
 

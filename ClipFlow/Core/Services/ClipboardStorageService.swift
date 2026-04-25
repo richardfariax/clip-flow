@@ -45,7 +45,7 @@ final class ClipboardStorageService {
             try enforceHistoryLimit()
             try modelContext.save()
         } catch {
-            NSLog("[ClipVault] Falha ao salvar item do clipboard: \(error.localizedDescription)")
+            NSLog("[ClipFlow] Falha ao salvar item do clipboard: \(error.localizedDescription)")
         }
     }
 
@@ -97,7 +97,7 @@ final class ClipboardStorageService {
                 )
             }
         } catch {
-            NSLog("[ClipVault] Falha ao decodificar item: \(error.localizedDescription)")
+            NSLog("[ClipFlow] Falha ao decodificar item: \(error.localizedDescription)")
             return nil
         }
     }

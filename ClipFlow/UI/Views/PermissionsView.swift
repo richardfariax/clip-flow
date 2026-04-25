@@ -8,7 +8,7 @@ struct PermissionsView: View {
             Text("Permissões")
                 .font(.title2.bold())
 
-            Text("ClipVault precisa de Accessibility para colar automaticamente e Input Monitoring para capturar atalhos globais com máxima confiabilidade.")
+            Text("ClipFlow precisa de Accessibility para colar automaticamente e Input Monitoring para capturar atalhos globais com máxima confiabilidade.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
 

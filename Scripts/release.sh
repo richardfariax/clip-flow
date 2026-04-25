@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SCHEME="${SCHEME:-ClipVault}"
+SCHEME="${SCHEME:-ClipFlow}"
 CONFIGURATION="${CONFIGURATION:-Release}"
 BUILD_DIR="${BUILD_DIR:-build}"
 ARCHIVE_PATH="${BUILD_DIR}/${SCHEME}.xcarchive"

@@ -1,5 +1,5 @@
 import XCTest
-@testable import ClipVault
+@testable import ClipFlow
 
 final class ClipboardContentClassifierTests: XCTestCase {
     func testURLClassification() {

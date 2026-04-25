@@ -2,7 +2,7 @@ import CryptoKit
 import Foundation
 
 final class LocalCryptoService {
-    private let serviceName = "com.clipvault.local-crypto"
+    private let serviceName = "com.clipflow.local-crypto"
     private let accountName = "primary-key"
 
     private lazy var key: SymmetricKey = {
@@ -19,7 +19,7 @@ final class LocalCryptoService {
     func encrypt(_ data: Data) throws -> Data {
         let sealed = try AES.GCM.seal(data, using: key)
         guard let combined = sealed.combined else {
-            throw NSError(domain: "ClipVault.Crypto", code: 1, userInfo: [NSLocalizedDescriptionKey: "Falha ao gerar payload criptografado"]) 
+            throw NSError(domain: "ClipFlow.Crypto", code: 1, userInfo: [NSLocalizedDescriptionKey: "Falha ao gerar payload criptografado"]) 
         }
         return combined
     }

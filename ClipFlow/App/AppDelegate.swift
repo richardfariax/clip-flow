@@ -30,7 +30,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.accessory)
 
         guard configurePersistence() else {
-            fatalError("Falha ao iniciar persistência do ClipVault")
+            fatalError("Falha ao iniciar persistência do ClipFlow")
         }
 
         configureServices()
@@ -58,7 +58,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             modelContainer = try ModelContainer(for: ClipboardItemEntity.self)
             return true
         } catch {
-            NSLog("[ClipVault] Falha ao criar ModelContainer: \(error.localizedDescription)")
+            NSLog("[ClipFlow] Falha ao criar ModelContainer: \(error.localizedDescription)")
             return false
         }
     }
