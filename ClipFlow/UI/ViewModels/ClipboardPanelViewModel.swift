@@ -2,9 +2,52 @@ import AppKit
 import Combine
 import Foundation
 
+enum ClipboardPanelFilter: String, CaseIterable, Identifiable {
+    case all
+    case favorites
+    case pinned
+    case textOnly
+    case imagesOnly
+
+    var id: String { rawValue }
+
+    func title(for language: AppLanguage) -> String {
+        switch self {
+        case .all:
+            return language.text(ptBR: "Todos", en: "All")
+        case .favorites:
+            return language.text(ptBR: "Favoritos", en: "Favorites")
+        case .pinned:
+            return language.text(ptBR: "Fixados", en: "Pinned")
+        case .textOnly:
+            return language.text(ptBR: "Textos", en: "Text")
+        case .imagesOnly:
+            return language.text(ptBR: "Imagens", en: "Images")
+        }
+    }
+
+    func matches(_ item: DecodedClipboardItem) -> Bool {
+        switch self {
+        case .all:
+            return true
+        case .favorites:
+            return item.isFavorite
+        case .pinned:
+            return item.isPinned
+        case .textOnly:
+            return item.kind == .text
+        case .imagesOnly:
+            return item.kind == .image
+        }
+    }
+}
+
 @MainActor
 final class ClipboardPanelViewModel: ObservableObject {
     @Published var searchText: String = "" {
+        didSet { applyFiltering() }
+    }
+    @Published private(set) var activeFilter: ClipboardPanelFilter = .all {
         didSet { applyFiltering() }
     }
     @Published private(set) var items: [DecodedClipboardItem] = []
@@ -46,6 +89,14 @@ final class ClipboardPanelViewModel: ObservableObject {
         selectedItemID = itemID
     }
 
+    func setFilter(_ filter: ClipboardPanelFilter) {
+        activeFilter = filter
+    }
+
+    func itemCount(for filter: ClipboardPanelFilter) -> Int {
+        allItems.filter(filter.matches).count
+    }
+
     func moveSelection(upward: Bool) {
         guard !items.isEmpty else {
             selectedItemID = nil
@@ -80,14 +131,50 @@ final class ClipboardPanelViewModel: ObservableObject {
         paste(item: selected, targetApplication: targetApplication)
     }
 
+    @discardableResult
+    func copySelectedItemToPasteboard() -> Bool {
+        guard let selectedItem = selectedItem else {
+            return false
+        }
+
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+
+        switch selectedItem.kind {
+        case .text:
+            guard let text = selectedItem.text else {
+                return false
+            }
+            pasteboard.setString(text, forType: .string)
+        case .image:
+            guard let image = selectedItem.image else {
+                return false
+            }
+            pasteboard.writeObjects([image])
+        }
+
+        NotificationCenter.default.post(name: .clipboardDidProgrammaticWrite, object: nil)
+        return true
+    }
+
     func toggleFavorite(itemID: UUID) {
         storageService.toggleFavorite(itemID: itemID)
         refresh()
     }
 
+    func toggleFavoriteForSelectedItem() {
+        guard let selectedItemID else { return }
+        toggleFavorite(itemID: selectedItemID)
+    }
+
     func togglePin(itemID: UUID) {
         storageService.togglePin(itemID: itemID)
         refresh()
+    }
+
+    func togglePinForSelectedItem() {
+        guard let selectedItemID else { return }
+        togglePin(itemID: selectedItemID)
     }
 
     func delete(itemID: UUID) {
@@ -107,13 +194,17 @@ final class ClipboardPanelViewModel: ObservableObject {
     private func applyFiltering() {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else {
-            items = allItems
+            items = allItems.filter(activeFilter.matches)
             ensureValidSelection()
             return
         }
 
         let lowercasedQuery = query.lowercased()
         items = allItems.filter { item in
+            guard activeFilter.matches(item) else {
+                return false
+            }
+
             if let text = item.text?.lowercased(), text.contains(lowercasedQuery) {
                 return true
             }
@@ -139,5 +230,13 @@ final class ClipboardPanelViewModel: ObservableObject {
         }
 
         self.selectedItemID = items.first?.id
+    }
+
+    private var selectedItem: DecodedClipboardItem? {
+        guard let selectedItemID else {
+            return nil
+        }
+
+        return items.first(where: { $0.id == selectedItemID })
     }
 }

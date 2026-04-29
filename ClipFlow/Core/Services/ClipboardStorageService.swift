@@ -57,6 +57,9 @@ final class ClipboardStorageService {
                 if lhs.isPinned != rhs.isPinned {
                     return lhs.isPinned && !rhs.isPinned
                 }
+                if lhs.isFavorite != rhs.isFavorite {
+                    return lhs.isFavorite && !rhs.isFavorite
+                }
                 return lhs.createdAt > rhs.createdAt
             }
         } catch {
@@ -84,7 +87,8 @@ final class ClipboardStorageService {
                     isFavorite: entity.isFavorite,
                     isPinned: entity.isPinned,
                     isEncrypted: entity.isEncrypted,
-                    sourceBundleID: entity.sourceBundleID
+                    sourceBundleID: entity.sourceBundleID,
+                    sourceApplicationName: resolveApplicationName(bundleID: entity.sourceBundleID)
                 )
             case .image:
                 let image = NSImage(data: rawPayload)
@@ -98,7 +102,8 @@ final class ClipboardStorageService {
                     isFavorite: entity.isFavorite,
                     isPinned: entity.isPinned,
                     isEncrypted: entity.isEncrypted,
-                    sourceBundleID: entity.sourceBundleID
+                    sourceBundleID: entity.sourceBundleID,
+                    sourceApplicationName: resolveApplicationName(bundleID: entity.sourceBundleID)
                 )
             }
         } catch {
@@ -201,5 +206,26 @@ final class ClipboardStorageService {
                 overflow -= 1
             }
         }
+    }
+
+    private func resolveApplicationName(bundleID: String?) -> String? {
+        guard let bundleID, !bundleID.isEmpty else {
+            return nil
+        }
+
+        if let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID),
+           let bundle = Bundle(url: appURL),
+           let appName = bundle.object(forInfoDictionaryKey: "CFBundleName") as? String,
+           !appName.isEmpty {
+            return appName
+        }
+
+        let fallback = bundleID
+            .split(separator: ".")
+            .last
+            .map(String.init)?
+            .replacingOccurrences(of: "-", with: " ")
+            .replacingOccurrences(of: "_", with: " ")
+        return fallback?.capitalized
     }
 }
