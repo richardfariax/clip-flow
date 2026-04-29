@@ -443,25 +443,26 @@
 			};
 			name = Debug;
 		};
-		A7591AC6372D9E205C4651BD /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				COMBINE_HIDPI_IMAGES = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-					"@loader_path/../Frameworks",
-				);
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.richadfarias.clipflow.tests;
-				PRODUCT_NAME = ClipFlowTests;
-				SDKROOT = macosx;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ClipFlow.app/Contents/MacOS/ClipFlow";
+			A7591AC6372D9E205C4651BD /* Release */ = {
+				isa = XCBuildConfiguration;
+				buildSettings = {
+					BUNDLE_LOADER = "$(TEST_HOST)";
+					COMBINE_HIDPI_IMAGES = YES;
+					GENERATE_INFOPLIST_FILE = YES;
+					INFOPLIST_FILE = "";
+					LD_RUNPATH_SEARCH_PATHS = (
+						"$(inherited)",
+						"@executable_path/../Frameworks",
+						"@loader_path/../Frameworks",
+					);
+					MACOSX_DEPLOYMENT_TARGET = 14.0;
+					PRODUCT_BUNDLE_IDENTIFIER = com.richadfarias.clipflow.tests;
+					PRODUCT_NAME = ClipFlowTests;
+					SDKROOT = macosx;
+					TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ClipFlow.app/Contents/MacOS/ClipFlow";
+				};
+				name = Release;
 			};
-			name = Release;
-		};
 		C07FAD1014AACC9D89FF8DFD /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -480,25 +481,26 @@
 			};
 			name = Release;
 		};
-		CAEE26DA424166819508DDD6 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				COMBINE_HIDPI_IMAGES = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-					"@loader_path/../Frameworks",
-				);
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.richadfarias.clipflow.tests;
-				PRODUCT_NAME = ClipFlowTests;
-				SDKROOT = macosx;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ClipFlow.app/Contents/MacOS/ClipFlow";
+			CAEE26DA424166819508DDD6 /* Debug */ = {
+				isa = XCBuildConfiguration;
+				buildSettings = {
+					BUNDLE_LOADER = "$(TEST_HOST)";
+					COMBINE_HIDPI_IMAGES = YES;
+					GENERATE_INFOPLIST_FILE = YES;
+					INFOPLIST_FILE = "";
+					LD_RUNPATH_SEARCH_PATHS = (
+						"$(inherited)",
+						"@executable_path/../Frameworks",
+						"@loader_path/../Frameworks",
+					);
+					MACOSX_DEPLOYMENT_TARGET = 14.0;
+					PRODUCT_BUNDLE_IDENTIFIER = com.richadfarias.clipflow.tests;
+					PRODUCT_NAME = ClipFlowTests;
+					SDKROOT = macosx;
+					TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ClipFlow.app/Contents/MacOS/ClipFlow";
+				};
+				name = Debug;
 			};
-			name = Debug;
-		};
 		D8084E6FD03F6177FB32D49A /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {

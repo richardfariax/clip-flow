@@ -50,13 +50,18 @@ final class ClipboardStorageService {
     }
 
     func fetchItems() -> [ClipboardItemEntity] {
-        let descriptor = FetchDescriptor<ClipboardItemEntity>()
-        let items = (try? modelContext.fetch(descriptor)) ?? []
-        return items.sorted { lhs, rhs in
-            if lhs.isPinned != rhs.isPinned {
-                return lhs.isPinned && !rhs.isPinned
+        do {
+            let descriptor = FetchDescriptor<ClipboardItemEntity>()
+            let items = try modelContext.fetch(descriptor)
+            return items.sorted { lhs, rhs in
+                if lhs.isPinned != rhs.isPinned {
+                    return lhs.isPinned && !rhs.isPinned
+                }
+                return lhs.createdAt > rhs.createdAt
             }
-            return lhs.createdAt > rhs.createdAt
+        } catch {
+            NSLog("[ClipFlow] Falha ao buscar histórico: \(error.localizedDescription)")
+            return []
         }
     }
 
@@ -116,27 +121,43 @@ final class ClipboardStorageService {
     }
 
     func delete(itemID: UUID) {
-        let descriptor = FetchDescriptor<ClipboardItemEntity>(predicate: #Predicate { $0.id == itemID })
-        guard let found = try? modelContext.fetch(descriptor).first else { return }
-        modelContext.delete(found)
-        try? modelContext.save()
+        do {
+            let descriptor = FetchDescriptor<ClipboardItemEntity>(predicate: #Predicate { $0.id == itemID })
+            guard let found = try modelContext.fetch(descriptor).first else {
+                return
+            }
+            modelContext.delete(found)
+            try modelContext.save()
+        } catch {
+            NSLog("[ClipFlow] Falha ao excluir item \(itemID): \(error.localizedDescription)")
+        }
     }
 
     func clearAll() {
-        let descriptor = FetchDescriptor<ClipboardItemEntity>()
-        let items = (try? modelContext.fetch(descriptor)) ?? []
-        for item in items {
-            modelContext.delete(item)
+        do {
+            let descriptor = FetchDescriptor<ClipboardItemEntity>()
+            let items = try modelContext.fetch(descriptor)
+            for item in items {
+                modelContext.delete(item)
+            }
+            try modelContext.save()
+        } catch {
+            NSLog("[ClipFlow] Falha ao limpar histórico: \(error.localizedDescription)")
         }
-        try? modelContext.save()
     }
 
     private func update(itemID: UUID, block: (ClipboardItemEntity) -> Void) {
-        let descriptor = FetchDescriptor<ClipboardItemEntity>(predicate: #Predicate { $0.id == itemID })
-        guard let item = try? modelContext.fetch(descriptor).first else { return }
-        block(item)
-        item.updatedAt = Date()
-        try? modelContext.save()
+        do {
+            let descriptor = FetchDescriptor<ClipboardItemEntity>(predicate: #Predicate { $0.id == itemID })
+            guard let item = try modelContext.fetch(descriptor).first else {
+                return
+            }
+            block(item)
+            item.updatedAt = Date()
+            try modelContext.save()
+        } catch {
+            NSLog("[ClipFlow] Falha ao atualizar item \(itemID): \(error.localizedDescription)")
+        }
     }
 
     private func decryptIfNeeded(_ item: ClipboardItemEntity) throws -> Data {
@@ -174,7 +195,6 @@ final class ClipboardStorageService {
         }
 
         if overflow > 0 {
-            // Se tudo estiver fixado, ainda mantém o limite para evitar crescimento infinito.
             let pinnedCandidates = allItems.reversed().filter { $0.isPinned }
             for item in pinnedCandidates where overflow > 0 {
                 modelContext.delete(item)

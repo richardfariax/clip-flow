@@ -41,6 +41,9 @@ targets:
       - target: ClipFlow
     settings:
       base:
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/ClipFlow.app/Contents/MacOS/ClipFlow"
+        INFOPLIST_FILE: ""
         PRODUCT_NAME: ClipFlowTests
         PRODUCT_BUNDLE_IDENTIFIER: com.richadfarias.clipflow.tests
         GENERATE_INFOPLIST_FILE: YES

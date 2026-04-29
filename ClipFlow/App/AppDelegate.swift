@@ -31,7 +31,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.accessory)
 
         guard configurePersistence() else {
-            fatalError("Falha ao iniciar persistência do ClipFlow")
+            presentStartupFailureAndTerminate()
+            return
         }
 
         configureServices()
@@ -46,7 +47,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         permissionsManager.promptOnFirstLaunchIfNeeded()
 
         if settings.launchAtLogin {
-            try? launchAtLoginManager.setEnabled(true)
+            do {
+                try launchAtLoginManager.setEnabled(true)
+            } catch {
+                NSLog("[ClipFlow] Falha ao ativar 'Launch at Login' no startup: \(error.localizedDescription)")
+            }
         }
     }
 
@@ -65,6 +70,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSLog("[ClipFlow] Falha ao criar ModelContainer: \(error.localizedDescription)")
             return false
         }
+    }
+
+    private func presentStartupFailureAndTerminate() {
+        let message = settings.text(
+            ptBR: "Não foi possível iniciar a persistência local do ClipFlow.",
+            en: "ClipFlow could not initialize local persistence."
+        )
+        let details = settings.text(
+            ptBR: "O app será encerrado para evitar comportamento inconsistente.",
+            en: "The app will now quit to avoid inconsistent behavior."
+        )
+
+        let alert = NSAlert()
+        alert.alertStyle = .critical
+        alert.messageText = "ClipFlow"
+        alert.informativeText = "\(message)\n\n\(details)"
+        alert.addButton(withTitle: "OK")
+
+        NSApp.activate(ignoringOtherApps: true)
+        alert.runModal()
+        NSApp.terminate(nil)
     }
 
     private func configureServices() {
