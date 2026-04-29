@@ -6,17 +6,21 @@ struct ClipboardPanelView: View {
     let closePanel: () -> Void
 
     var body: some View {
-        ZStack {
-            panelBackground
-
-            VStack(spacing: 14) {
-                header
-                searchField
-                content
-            }
-            .padding(18)
+        VStack(spacing: 12) {
+            header
+            searchField
+            filterBar
+            content
+            keyboardHelp
         }
+        .padding(16)
         .frame(width: 560, height: 700)
+        .background(panelBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(Color(nsColor: .separatorColor), lineWidth: 1)
+        )
         .animation(.easeInOut(duration: 0.16), value: viewModel.searchText)
         .animation(.easeInOut(duration: 0.16), value: viewModel.selectedItemID)
         .onAppear {
@@ -25,171 +29,141 @@ struct ClipboardPanelView: View {
     }
 
     private var panelBackground: some View {
-        ZStack {
-            VisualEffectBlur(material: .hudWindow, blendingMode: .behindWindow)
-                .ignoresSafeArea()
-
-            LinearGradient(
-                colors: [
-                    Color.white.opacity(0.15),
-                    Color.white.opacity(0.03),
-                    Color.black.opacity(0.10)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
-
-            RadialGradient(
-                colors: [
-                    Color(red: 0.44, green: 0.54, blue: 0.92).opacity(0.18),
-                    Color.clear
-                ],
-                center: .bottomLeading,
-                startRadius: 20,
-                endRadius: 520
-            )
-            .ignoresSafeArea()
-        }
-        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .strokeBorder(Color.white.opacity(0.20), lineWidth: 1.0)
-        )
+        VisualEffectBlur(material: .windowBackground, blendingMode: .withinWindow)
     }
 
     private var header: some View {
         HStack {
             HStack(spacing: 10) {
-                BrandLogoView(size: 28, cornerRadius: 7)
+                BrandLogoView(size: 24, cornerRadius: 6)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text("ClipFlow")
-                        .font(.system(size: 24, weight: .bold, design: .rounded))
-                    Text("\(settings.hotkeyDisplay) \(t("para abrir. Enter para colar.", "to open. Press Enter to paste."))")
-                        .font(.system(size: 12, weight: .regular, design: .rounded))
+                        .font(.title3.weight(.semibold))
+                    Text("\(settings.hotkeyDisplay) · \(t("Enter para colar", "Press Enter to paste"))")
+                        .font(.caption)
                         .foregroundStyle(.secondary)
                 }
             }
 
-            Spacer(minLength: 16)
+            Spacer(minLength: 12)
 
-            HStack(spacing: 8) {
-                Text("\(viewModel.items.count)")
-                    .font(.system(size: 12, weight: .regular, design: .rounded))
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(Capsule().fill(Color.white.opacity(0.10)))
+            Text(displayedCountText)
+                .font(.caption)
+                .foregroundStyle(.secondary)
 
-                Button(t("Limpar Tudo", "Clear All")) {
-                    viewModel.clearAll()
-                }
-                .buttonStyle(.plain)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(
-                    RoundedRectangle(cornerRadius: 11, style: .continuous)
-                        .fill(Color.white.opacity(0.10))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 11, style: .continuous)
-                                .strokeBorder(Color.white.opacity(0.18), lineWidth: 1.0)
-                        )
-                )
-
-                Button {
-                    closePanel()
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 12, weight: .semibold))
-                        .frame(width: 28, height: 28)
-                }
-                .buttonStyle(.plain)
-                .background(
-                    Circle()
-                        .fill(Color.white.opacity(0.10))
-                        .overlay(Circle().strokeBorder(Color.white.opacity(0.20), lineWidth: 1.0))
-                )
+            Button(t("Limpar", "Clear")) {
+                viewModel.clearAll()
             }
+            .buttonStyle(.bordered)
+
+            Button {
+                closePanel()
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.callout.weight(.semibold))
+                    .frame(width: 24, height: 24)
+            }
+            .buttonStyle(.borderless)
         }
     }
 
     private var searchField: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "magnifyingglass")
-                .foregroundStyle(.secondary.opacity(0.95))
+        TextField(t("Buscar por conteúdo ou app", "Search by content or app"), text: $viewModel.searchText)
+            .textFieldStyle(.roundedBorder)
+            .onSubmit {
+                closePanel()
+                viewModel.pasteSelectedItem()
+            }
+    }
 
-            TextField(t("Buscar por conteúdo ou app", "Search by content or app"), text: $viewModel.searchText)
-                .textFieldStyle(.plain)
-                .font(.system(size: 15, weight: .medium, design: .rounded))
-                .onSubmit {
-                    closePanel()
-                    viewModel.pasteSelectedItem()
+    private var filterBar: some View {
+        HStack(spacing: 10) {
+            Text(t("Filtro", "Filter"))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            Picker("", selection: filterBinding) {
+                ForEach(ClipboardPanelFilter.allCases) { filter in
+                    Text(filter.title(for: settings.language)).tag(filter)
                 }
+            }
+            .labelsHidden()
+            .pickerStyle(.menu)
 
             Spacer(minLength: 0)
 
-            Text("↑ ↓")
-                .font(.system(size: 11, weight: .semibold, design: .monospaced))
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 7)
-                .padding(.vertical, 4)
-                .background(Capsule().fill(Color.white.opacity(0.09)))
-
-            Text("↩")
-                .font(.system(size: 11, weight: .semibold, design: .monospaced))
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 7)
-                .padding(.vertical, 4)
-                .background(Capsule().fill(Color.white.opacity(0.09)))
+            if viewModel.activeFilter != .all {
+                Button(t("Limpar filtro", "Clear filter")) {
+                    viewModel.setFilter(.all)
+                }
+                .buttonStyle(.link)
+                .font(.caption)
+            }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 11)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color.white.opacity(0.11))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .strokeBorder(Color.white.opacity(0.22), lineWidth: 1)
-                )
-        )
     }
 
     private var content: some View {
-        ScrollView {
-            LazyVStack(spacing: 10) {
-                ForEach(viewModel.items) { item in
-                    ClipboardCardView(
-                        item: item,
-                        isSelected: viewModel.selectedItemID == item.id,
-                        language: settings.language,
-                        onPaste: {
-                            closePanel()
-                            viewModel.paste(item: item)
-                        },
-                        onSelect: {
-                            viewModel.select(itemID: item.id)
-                        },
-                        onToggleFavorite: {
-                            viewModel.toggleFavorite(itemID: item.id)
-                        },
-                        onTogglePin: {
-                            viewModel.togglePin(itemID: item.id)
-                        },
-                        onDelete: {
-                            viewModel.delete(itemID: item.id)
+        GroupBox {
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(spacing: 8) {
+                        ForEach(viewModel.items) { item in
+                            ClipboardCardView(
+                                item: item,
+                                isSelected: viewModel.selectedItemID == item.id,
+                                language: settings.language,
+                                onPaste: {
+                                    closePanel()
+                                    viewModel.paste(item: item)
+                                },
+                                onSelect: {
+                                    viewModel.select(itemID: item.id)
+                                },
+                                onToggleFavorite: {
+                                    viewModel.toggleFavorite(itemID: item.id)
+                                },
+                                onTogglePin: {
+                                    viewModel.togglePin(itemID: item.id)
+                                },
+                                onDelete: {
+                                    viewModel.delete(itemID: item.id)
+                                }
+                            )
+                            .id(item.id)
                         }
-                    )
-                }
 
-                if viewModel.items.isEmpty {
-                    emptyState
+                        if viewModel.items.isEmpty {
+                            emptyState
+                        }
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 8)
+                }
+                .onChange(of: viewModel.selectedItemID, initial: false) { _, selectedItemID in
+                    guard let selectedItemID else { return }
+                    withAnimation(.easeInOut(duration: 0.14)) {
+                        proxy.scrollTo(selectedItemID, anchor: .center)
+                    }
                 }
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
         }
-        .scrollIndicators(.hidden)
+        .groupBoxStyle(.automatic)
+    }
+
+    private var keyboardHelp: some View {
+        HStack(spacing: 10) {
+            Text("⌘1-5")
+            Text("⌘D")
+            Text("⌘P")
+            Text("⌘C")
+            Text("↑ ↓")
+            Text("↩")
+            Spacer(minLength: 0)
+            Text(t("atalhos", "shortcuts"))
+        }
+        .font(.caption2.monospaced())
+        .foregroundStyle(.secondary)
     }
 
     private var emptyState: some View {
@@ -198,10 +172,10 @@ struct ClipboardPanelView: View {
                 .font(.system(size: 20, weight: .medium))
                 .foregroundStyle(.secondary)
             Text(t("Nenhum item no histórico", "No history items"))
-                .font(.system(size: 13, weight: .medium))
+                .font(.subheadline.weight(.medium))
                 .foregroundStyle(.secondary)
             Text(t("Copie algo para começar", "Copy something to start"))
-                .font(.system(size: 11, weight: .regular))
+                .font(.caption)
                 .foregroundStyle(.tertiary)
         }
         .frame(maxWidth: .infinity)
@@ -210,5 +184,21 @@ struct ClipboardPanelView: View {
 
     private func t(_ pt: String, _ en: String) -> String {
         settings.text(ptBR: pt, en: en)
+    }
+
+    private var displayedCountText: String {
+        let total = viewModel.itemCount(for: .all)
+        let filtered = viewModel.items.count
+        if filtered == total {
+            return "\(total) \(t("itens", "items"))"
+        }
+        return "\(filtered)/\(total) \(t("itens", "items"))"
+    }
+
+    private var filterBinding: Binding<ClipboardPanelFilter> {
+        Binding(
+            get: { viewModel.activeFilter },
+            set: { viewModel.setFilter($0) }
+        )
     }
 }

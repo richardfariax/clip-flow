@@ -26,8 +26,18 @@ ClipFlow gives you a `Windows + V` style clipboard history experience on macOS, 
 ## Highlights
 
 - Global hotkey to open the clipboard panel (`Option + V` by default)
+- Preset shortcuts and custom shortcut recorder in Settings
 - Clipboard history for text and images
 - Search, favorite, pin, delete, and clear all
+- Quick filters: All, Favorites, Pinned, Text, and Images
+- Source app label on each clipboard record (when available)
+- Filtered/total counter in panel header
+- Selection auto-scroll while navigating with keyboard (`↑` and `↓`)
+- Keyboard power actions inside panel:
+  - `⌘1..⌘5` switch filters
+  - `⌘D` favorite selected item
+  - `⌘P` pin selected item
+  - `⌘C` copy selected item back to clipboard
 - Automatic paste back to the previously focused app
 - Ignored app list for sensitive software (password managers, etc.)
 - Optional local AES-GCM encryption

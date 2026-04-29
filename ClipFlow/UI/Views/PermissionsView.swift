@@ -6,12 +6,12 @@ struct PermissionsView: View {
     @State private var refreshTimer = Timer.publish(every: 2.0, on: .main, in: .common).autoconnect()
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 8) {
             Text(t(
                 "ClipFlow precisa de Accessibility para colar automaticamente e Input Monitoring para capturar atalhos globais com máxima confiabilidade.",
                 "ClipFlow needs Accessibility to paste automatically and Input Monitoring for more reliable global hotkeys."
             ))
-            .font(.callout)
+            .font(.subheadline)
             .foregroundStyle(.secondary)
 
             if isRunningFromDerivedData {
@@ -21,6 +21,7 @@ struct PermissionsView: View {
                 ))
                 .font(.caption)
                 .foregroundStyle(.orange)
+                .padding(.bottom, 2)
             }
 
             permissionRow(
@@ -44,7 +45,7 @@ struct PermissionsView: View {
             .font(.caption)
             .foregroundStyle(.tertiary)
         }
-        .padding(2)
+        .padding(.top, 2)
         .onAppear {
             permissionsManager.refresh()
         }
@@ -65,7 +66,7 @@ struct PermissionsView: View {
         HStack(alignment: .center) {
             VStack(alignment: .leading, spacing: 3) {
                 Text(title)
-                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    .font(.system(size: 15, weight: .semibold))
                 Text(granted ? t("Concedida", "Granted") : t("Não concedida", "Not granted"))
                     .font(.caption)
                     .foregroundStyle(granted ? .green : .orange)
@@ -96,13 +97,14 @@ struct PermissionsView: View {
             .buttonStyle(.bordered)
             .controlSize(.small)
         }
-        .padding(10)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
         .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.white.opacity(0.07))
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color(nsColor: .controlBackgroundColor))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .strokeBorder(Color.white.opacity(0.12), lineWidth: 1.0)
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .strokeBorder(Color(nsColor: .separatorColor), lineWidth: 1.0)
                 )
         )
     }
