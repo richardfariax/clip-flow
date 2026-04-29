@@ -410,7 +410,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_ENTITLEMENTS = ClipFlow/Resources/ClipFlow.entitlements;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -430,7 +430,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = ClipFlow/Resources/Info.plist;
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.1.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -443,25 +443,26 @@
 			};
 			name = Debug;
 		};
-		A7591AC6372D9E205C4651BD /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				COMBINE_HIDPI_IMAGES = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-					"@loader_path/../Frameworks",
-				);
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.richadfarias.clipflow.tests;
-				PRODUCT_NAME = ClipFlowTests;
-				SDKROOT = macosx;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ClipFlow.app/Contents/MacOS/ClipFlow";
+			A7591AC6372D9E205C4651BD /* Release */ = {
+				isa = XCBuildConfiguration;
+				buildSettings = {
+					BUNDLE_LOADER = "$(TEST_HOST)";
+					COMBINE_HIDPI_IMAGES = YES;
+					GENERATE_INFOPLIST_FILE = YES;
+					INFOPLIST_FILE = "";
+					LD_RUNPATH_SEARCH_PATHS = (
+						"$(inherited)",
+						"@executable_path/../Frameworks",
+						"@loader_path/../Frameworks",
+					);
+					MACOSX_DEPLOYMENT_TARGET = 14.0;
+					PRODUCT_BUNDLE_IDENTIFIER = com.richadfarias.clipflow.tests;
+					PRODUCT_NAME = ClipFlowTests;
+					SDKROOT = macosx;
+					TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ClipFlow.app/Contents/MacOS/ClipFlow";
+				};
+				name = Release;
 			};
-			name = Release;
-		};
 		C07FAD1014AACC9D89FF8DFD /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -480,25 +481,26 @@
 			};
 			name = Release;
 		};
-		CAEE26DA424166819508DDD6 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				COMBINE_HIDPI_IMAGES = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-					"@loader_path/../Frameworks",
-				);
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.richadfarias.clipflow.tests;
-				PRODUCT_NAME = ClipFlowTests;
-				SDKROOT = macosx;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ClipFlow.app/Contents/MacOS/ClipFlow";
+			CAEE26DA424166819508DDD6 /* Debug */ = {
+				isa = XCBuildConfiguration;
+				buildSettings = {
+					BUNDLE_LOADER = "$(TEST_HOST)";
+					COMBINE_HIDPI_IMAGES = YES;
+					GENERATE_INFOPLIST_FILE = YES;
+					INFOPLIST_FILE = "";
+					LD_RUNPATH_SEARCH_PATHS = (
+						"$(inherited)",
+						"@executable_path/../Frameworks",
+						"@loader_path/../Frameworks",
+					);
+					MACOSX_DEPLOYMENT_TARGET = 14.0;
+					PRODUCT_BUNDLE_IDENTIFIER = com.richadfarias.clipflow.tests;
+					PRODUCT_NAME = ClipFlowTests;
+					SDKROOT = macosx;
+					TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ClipFlow.app/Contents/MacOS/ClipFlow";
+				};
+				name = Debug;
 			};
-			name = Debug;
-		};
 		D8084E6FD03F6177FB32D49A /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -534,7 +536,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_ENTITLEMENTS = ClipFlow/Resources/ClipFlow.entitlements;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -548,7 +550,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = ClipFlow/Resources/Info.plist;
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.1.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.richadfarias.clipflow;

@@ -33,4 +33,5 @@ struct DecodedClipboardItem: Identifiable {
     let isPinned: Bool
     let isEncrypted: Bool
     let sourceBundleID: String?
+    let sourceApplicationName: String?
 }

@@ -12,6 +12,10 @@ final class ClipboardPanelController {
     private let panel: FloatingPanel
     private let onMoveSelection: (Bool) -> Void
     private let onConfirmSelection: () -> Void
+    private let onToggleFavoriteSelection: () -> Void
+    private let onTogglePinSelection: () -> Void
+    private let onCopySelection: () -> Void
+    private let onSelectFilter: (ClipboardPanelFilter) -> Void
     private var keyMonitor: Any?
 
     var isVisible: Bool {
@@ -21,10 +25,18 @@ final class ClipboardPanelController {
     init(
         rootView: ClipboardPanelView,
         onMoveSelection: @escaping (Bool) -> Void,
-        onConfirmSelection: @escaping () -> Void
+        onConfirmSelection: @escaping () -> Void,
+        onToggleFavoriteSelection: @escaping () -> Void,
+        onTogglePinSelection: @escaping () -> Void,
+        onCopySelection: @escaping () -> Void,
+        onSelectFilter: @escaping (ClipboardPanelFilter) -> Void
     ) {
         self.onMoveSelection = onMoveSelection
         self.onConfirmSelection = onConfirmSelection
+        self.onToggleFavoriteSelection = onToggleFavoriteSelection
+        self.onTogglePinSelection = onTogglePinSelection
+        self.onCopySelection = onCopySelection
+        self.onSelectFilter = onSelectFilter
 
         let hosting = NSHostingView(rootView: rootView)
 
@@ -38,11 +50,11 @@ final class ClipboardPanelController {
         panel.titleVisibility = .hidden
         panel.titlebarAppearsTransparent = true
         panel.isFloatingPanel = true
-        panel.level = .floating
+        panel.level = .statusBar
         panel.backgroundColor = .clear
         panel.isOpaque = false
         panel.hasShadow = true
-        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
+        panel.collectionBehavior = [.fullScreenAuxiliary, .transient, .moveToActiveSpace]
         panel.standardWindowButton(.closeButton)?.isHidden = true
         panel.standardWindowButton(.miniaturizeButton)?.isHidden = true
         panel.standardWindowButton(.zoomButton)?.isHidden = true
@@ -58,7 +70,8 @@ final class ClipboardPanelController {
         centerOnActiveScreen()
         NSApp.activate(ignoringOtherApps: true)
         panel.alphaValue = 0
-        panel.makeKeyAndOrderFront(nil)
+        panel.orderFrontRegardless()
+        panel.makeKey()
 
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0.16
@@ -71,7 +84,8 @@ final class ClipboardPanelController {
     }
 
     private func centerOnActiveScreen() {
-        let screen = NSApp.keyWindow?.screen ?? NSScreen.main
+        let mouseLocation = NSEvent.mouseLocation
+        let screen = NSScreen.screens.first(where: { NSMouseInRect(mouseLocation, $0.frame, false) }) ?? NSScreen.main
         guard let frame = screen?.visibleFrame else { return }
 
         let origin = NSPoint(
@@ -88,6 +102,38 @@ final class ClipboardPanelController {
             guard let self else { return event }
             guard self.panel.isVisible, event.window == self.panel else {
                 return event
+            }
+
+            let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+            if flags.contains(.command) {
+                switch Int(event.keyCode) {
+                case kVK_ANSI_1:
+                    self.onSelectFilter(.all)
+                    return nil
+                case kVK_ANSI_2:
+                    self.onSelectFilter(.favorites)
+                    return nil
+                case kVK_ANSI_3:
+                    self.onSelectFilter(.pinned)
+                    return nil
+                case kVK_ANSI_4:
+                    self.onSelectFilter(.textOnly)
+                    return nil
+                case kVK_ANSI_5:
+                    self.onSelectFilter(.imagesOnly)
+                    return nil
+                case kVK_ANSI_D:
+                    self.onToggleFavoriteSelection()
+                    return nil
+                case kVK_ANSI_P:
+                    self.onTogglePinSelection()
+                    return nil
+                case kVK_ANSI_C:
+                    self.onCopySelection()
+                    return nil
+                default:
+                    break
+                }
             }
 
             switch Int(event.keyCode) {

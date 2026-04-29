@@ -3,8 +3,8 @@ options:
   createIntermediateGroups: true
 settings:
   base:
-    MARKETING_VERSION: 1.0.0
-    CURRENT_PROJECT_VERSION: 1
+    MARKETING_VERSION: 1.1.0
+    CURRENT_PROJECT_VERSION: 2
     SWIFT_VERSION: 5.0
     PRODUCT_BUNDLE_IDENTIFIER: com.richadfarias.clipflow
     CODE_SIGN_ENTITLEMENTS: ClipFlow/Resources/ClipFlow.entitlements
@@ -41,6 +41,9 @@ targets:
       - target: ClipFlow
     settings:
       base:
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/ClipFlow.app/Contents/MacOS/ClipFlow"
+        INFOPLIST_FILE: ""
         PRODUCT_NAME: ClipFlowTests
         PRODUCT_BUNDLE_IDENTIFIER: com.richadfarias.clipflow.tests
         GENERATE_INFOPLIST_FILE: YES

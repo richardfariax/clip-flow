@@ -11,112 +11,144 @@ struct ClipboardCardView: View {
     let onDelete: () -> Void
 
     @State private var isHovering = false
-    private let cardCornerRadius: CGFloat = 14
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            header
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Image(systemName: leadingIconName)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 16)
+
+                Text(titleText)
+                    .font(.subheadline.weight(.medium))
+                    .lineLimit(1)
+
+                Spacer(minLength: 6)
+
+                if item.isEncrypted {
+                    Image(systemName: "lock.fill")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+
+                actionButtons
+            }
 
             contentView
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            HStack(spacing: 8) {
-                actionPill(
-                    title: item.isFavorite ? t("Favorito", "Favorite") : t("Favoritar", "Favorite"),
-                    icon: item.isFavorite ? "star.fill" : "star",
-                    isCritical: false
-                ) {
-                    onToggleFavorite()
-                }
+            HStack(spacing: 6) {
+                Text(item.createdAt.formatted(date: .abbreviated, time: .shortened))
 
-                actionPill(
-                    title: item.isPinned ? t("Fixado", "Pinned") : t("Fixar", "Pin"),
-                    icon: item.isPinned ? "pin.fill" : "pin",
-                    isCritical: false
-                ) {
-                    onTogglePin()
+                if let sourceApplicationName = item.sourceApplicationName {
+                    Text("•")
+                    Text(sourceApplicationName)
+                        .lineLimit(1)
                 }
 
                 Spacer(minLength: 0)
-
-                actionPill(title: t("Excluir", "Delete"), icon: "trash", isCritical: true) {
-                    onDelete()
-                }
             }
+            .font(.caption)
+            .foregroundStyle(.secondary)
         }
-        .padding(15)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(cardBackground)
-        .contentShape(RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous))
+        .padding(.horizontal, 10)
+        .padding(.vertical, 9)
+        .background(rowBackground)
+        .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         .onTapGesture {
             onSelect()
             onPaste()
         }
-        .animation(.easeInOut(duration: 0.16), value: isHovering)
-        .animation(.easeInOut(duration: 0.16), value: isSelected)
         .onHover { hovering in
             isHovering = hovering
-            if hovering {
-                onSelect()
-            }
         }
+        .animation(.easeInOut(duration: 0.12), value: isHovering)
+        .animation(.easeInOut(duration: 0.12), value: isSelected)
     }
 
-    private var cardBackground: some View {
-        RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous)
-            .fill(Color.white.opacity(isSelected ? 0.14 : 0.10))
+    private var rowBackground: some View {
+        RoundedRectangle(cornerRadius: 8, style: .continuous)
+            .fill(selectionColor)
             .overlay(
-                RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color.white.opacity(0.10),
-                                Color.white.opacity(0.03),
-                                Color.clear
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous)
-                    .strokeBorder(borderColor, lineWidth: isSelected ? 1.3 : 1.0)
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(Color(nsColor: .separatorColor).opacity(isSelected ? 0.9 : 0.45), lineWidth: 1)
             )
     }
 
-    private var borderColor: Color {
+    private var selectionColor: Color {
         if isSelected {
-            return Color.white.opacity(0.55)
+            return Color.accentColor.opacity(0.20)
         }
-        return Color.white.opacity(isHovering ? 0.30 : 0.18)
+        if isHovering {
+            return Color(nsColor: .controlAccentColor).opacity(0.08)
+        }
+        return Color(nsColor: .controlBackgroundColor).opacity(0.35)
     }
 
-    private var header: some View {
-        HStack(spacing: 8) {
-            Image(systemName: leadingIconName)
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(.secondary)
-                .frame(width: 18)
-
-            Text(titleText)
-                .font(.system(size: 14, weight: .semibold, design: .rounded))
-                .lineLimit(1)
-
-            Spacer(minLength: 8)
-
-            if item.isEncrypted {
-                Image(systemName: "lock.fill")
-                    .font(.system(size: 10, weight: .semibold))
+    @ViewBuilder
+    private var contentView: some View {
+        switch item.kind {
+        case .text:
+            Text(item.text ?? t("Conteúdo indisponível", "Unavailable content"))
+                .font(.footnote)
+                .lineLimit(3)
+                .foregroundStyle(.primary)
+        case .image:
+            if let image = item.image {
+                Image(nsImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(maxHeight: 140)
+                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+            } else {
+                Text(t("Imagem indisponível", "Unavailable image"))
+                    .font(.footnote)
                     .foregroundStyle(.secondary)
             }
-
-            Text(item.createdAt.formatted(date: .abbreviated, time: .shortened))
-                .font(.system(size: 11, weight: .medium, design: .rounded))
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
         }
+    }
+
+    private var actionButtons: some View {
+        HStack(spacing: 6) {
+            iconActionButton(
+                systemImage: item.isFavorite ? "star.fill" : "star",
+                label: t("Favoritar", "Favorite"),
+                tint: .yellow,
+                action: onToggleFavorite
+            )
+
+            iconActionButton(
+                systemImage: item.isPinned ? "pin.fill" : "pin",
+                label: t("Fixar", "Pin"),
+                tint: .secondary,
+                action: onTogglePin
+            )
+
+            iconActionButton(
+                systemImage: "trash",
+                label: t("Excluir", "Delete"),
+                tint: .red,
+                action: onDelete
+            )
+        }
+        .opacity(isHovering || isSelected ? 1 : 0.72)
+    }
+
+    private func iconActionButton(
+        systemImage: String,
+        label: String,
+        tint: Color,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.caption)
+                .foregroundStyle(tint)
+                .frame(width: 18, height: 18)
+        }
+        .buttonStyle(.borderless)
+        .help(label)
     }
 
     private var leadingIconName: String {
@@ -146,44 +178,6 @@ struct ClipboardCardView: View {
         case .image:
             return t("Imagem copiada", "Copied image")
         }
-    }
-
-    @ViewBuilder
-    private var contentView: some View {
-        switch item.kind {
-        case .text:
-            Text(item.text ?? t("Conteúdo indisponível", "Unavailable content"))
-                .font(.system(size: 12, weight: .regular, design: .rounded))
-                .lineLimit(4)
-                .foregroundStyle(.primary)
-        case .image:
-            if let image = item.image {
-                Image(nsImage: image)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(maxHeight: 160)
-                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-            } else {
-                Text(t("Imagem indisponível", "Unavailable image"))
-                    .font(.system(size: 12, weight: .regular))
-                    .foregroundStyle(.secondary)
-            }
-        }
-    }
-
-    private func actionPill(title: String, icon: String, isCritical: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Label(title, systemImage: icon)
-                .font(.system(size: 11, weight: .medium))
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .foregroundStyle(isCritical ? Color.red.opacity(0.92) : Color.primary)
-                .background(
-                    Capsule(style: .continuous)
-                        .fill(isCritical ? Color.red.opacity(0.11) : Color.white.opacity(0.14))
-                )
-        }
-        .buttonStyle(.plain)
     }
 
     private func t(_ pt: String, _ en: String) -> String {

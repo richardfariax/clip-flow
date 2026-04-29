@@ -5,6 +5,7 @@ import SwiftUI
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    private let settingsContentSize = NSSize(width: 880, height: 780)
     private var modelContainer: ModelContainer?
 
     private var settings = AppSettings()
@@ -31,7 +32,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.accessory)
 
         guard configurePersistence() else {
-            fatalError("Falha ao iniciar persistência do ClipFlow")
+            presentStartupFailureAndTerminate()
+            return
         }
 
         configureServices()
@@ -46,7 +48,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         permissionsManager.promptOnFirstLaunchIfNeeded()
 
         if settings.launchAtLogin {
-            try? launchAtLoginManager.setEnabled(true)
+            do {
+                try launchAtLoginManager.setEnabled(true)
+            } catch {
+                NSLog("[ClipFlow] Falha ao ativar 'Launch at Login' no startup: \(error.localizedDescription)")
+            }
         }
     }
 
@@ -65,6 +71,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSLog("[ClipFlow] Falha ao criar ModelContainer: \(error.localizedDescription)")
             return false
         }
+    }
+
+    private func presentStartupFailureAndTerminate() {
+        let message = settings.text(
+            ptBR: "Não foi possível iniciar a persistência local do ClipFlow.",
+            en: "ClipFlow could not initialize local persistence."
+        )
+        let details = settings.text(
+            ptBR: "O app será encerrado para evitar comportamento inconsistente.",
+            en: "The app will now quit to avoid inconsistent behavior."
+        )
+
+        let alert = NSAlert()
+        alert.alertStyle = .critical
+        alert.messageText = "ClipFlow"
+        alert.informativeText = "\(message)\n\n\(details)"
+        alert.addButton(withTitle: "OK")
+
+        NSApp.activate(ignoringOtherApps: true)
+        alert.runModal()
+        NSApp.terminate(nil)
     }
 
     private func configureServices() {
@@ -108,6 +135,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.03) {
                     self.panelViewModel?.pasteSelectedItem(targetApplication: targetApplication)
                 }
+            },
+            onToggleFavoriteSelection: { [weak self] in
+                self?.panelViewModel?.toggleFavoriteForSelectedItem()
+            },
+            onTogglePinSelection: { [weak self] in
+                self?.panelViewModel?.togglePinForSelectedItem()
+            },
+            onCopySelection: { [weak self] in
+                _ = self?.panelViewModel?.copySelectedItemToPasteboard()
+            },
+            onSelectFilter: { [weak self] filter in
+                self?.panelViewModel?.setFilter(filter)
             }
         )
     }
@@ -231,9 +270,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func openSettingsWindow() {
+        panelController?.close()
+
         if let existing = settingsWindowController {
             existing.showWindow(nil)
-            existing.window?.makeKeyAndOrderFront(nil)
+            if let window = existing.window {
+                window.setContentSize(settingsContentSize)
+                window.minSize = settingsContentSize
+                window.maxSize = settingsContentSize
+                positionSettingsWindow(window)
+                window.level = .floating
+                window.orderFrontRegardless()
+                window.makeKey()
+            }
+            NotificationCenter.default.post(name: Notification.Name("clipflow.settings.scrollToTop"), object: nil)
             NSApp.activate(ignoringOtherApps: true)
             return
         }
@@ -251,15 +301,45 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let hosting = NSHostingController(rootView: settingsView)
         let window = NSWindow(contentViewController: hosting)
         window.title = settings.text(ptBR: "Preferências", en: "Preferences")
-        window.styleMask = [.titled, .closable, .miniaturizable, .fullSizeContentView]
+        window.styleMask = [.titled, .closable, .miniaturizable]
         window.titleVisibility = .hidden
-        window.titlebarAppearsTransparent = true
+        window.titlebarAppearsTransparent = false
         window.isReleasedWhenClosed = false
-        window.center()
+        window.isMovable = true
+        window.isMovableByWindowBackground = false
+        window.level = .floating
+        window.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary]
+        window.setContentSize(settingsContentSize)
+        window.minSize = settingsContentSize
+        window.maxSize = settingsContentSize
+        positionSettingsWindow(window)
 
         let controller = NSWindowController(window: window)
         settingsWindowController = controller
         controller.showWindow(nil)
+        positionSettingsWindow(window)
+        window.orderFrontRegardless()
+        window.makeKey()
+        NotificationCenter.default.post(name: Notification.Name("clipflow.settings.scrollToTop"), object: nil)
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    private func positionSettingsWindow(_ window: NSWindow) {
+        let mouseLocation = NSEvent.mouseLocation
+        let screen = NSScreen.screens.first(where: { NSMouseInRect(mouseLocation, $0.frame, false) }) ?? NSScreen.main
+        guard let frame = screen?.visibleFrame else { return }
+
+        let frameSize = window.frameRect(forContentRect: NSRect(origin: .zero, size: settingsContentSize)).size
+        var origin = NSPoint(
+            x: frame.midX - frameSize.width / 2,
+            y: frame.midY - frameSize.height / 2
+        )
+
+        let maxX = frame.maxX - frameSize.width
+        let maxY = frame.maxY - frameSize.height
+        origin.x = min(max(origin.x, frame.minX), maxX)
+        origin.y = min(max(origin.y, frame.minY), maxY)
+
+        window.setFrame(NSRect(origin: origin, size: frameSize), display: true)
     }
 }

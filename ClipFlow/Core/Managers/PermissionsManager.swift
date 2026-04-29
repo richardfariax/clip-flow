@@ -47,7 +47,6 @@ final class PermissionsManager: ObservableObject {
     }
 
     func openInputMonitoringSettings() {
-        // `Privacy_ListenEvent` e o identificador estável para Input Monitoring.
         openSettings(urls: [
             "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_ListenEvent",
             "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_InputMonitoring",

@@ -155,16 +155,12 @@ final class AppSettings: ObservableObject {
         enableEncryption = userDefaults.object(forKey: Keys.enableEncryption) as? Bool ?? false
         launchAtLogin = userDefaults.object(forKey: Keys.launchAtLogin) as? Bool ?? false
 
-        if let savedIgnored = userDefaults.object(forKey: Keys.ignoredBundleIDs) as? [String], !savedIgnored.isEmpty {
+        if let savedIgnored = userDefaults.object(forKey: Keys.ignoredBundleIDs) as? [String] {
             ignoredBundleIDs = Self.normalizedBundleIDs(savedIgnored)
         } else {
-            ignoredBundleIDs = Self.normalizedBundleIDs([
-                "com.1password.1password",
-                "com.apple.keychainaccess",
-                "com.lastpass.LastPass",
-                "com.bitwarden.desktop",
-                "org.keepassxc.keepassxc"
-            ])
+            let emptyIgnoredBundleIDs: [String] = []
+            ignoredBundleIDs = emptyIgnoredBundleIDs
+            userDefaults.set(emptyIgnoredBundleIDs, forKey: Keys.ignoredBundleIDs)
         }
 
         let savedHotkeyCode = UInt32(userDefaults.object(forKey: Keys.hotkeyCode) as? Int ?? Int(kVK_ANSI_V))

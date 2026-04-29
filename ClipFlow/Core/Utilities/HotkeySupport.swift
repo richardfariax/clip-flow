@@ -1,3 +1,4 @@
+import AppKit
 import Carbon
 import Foundation
 
@@ -99,5 +100,41 @@ enum HotkeyFormatter {
         parts.append(keyName)
 
         return parts.joined(separator: " + ")
+    }
+
+    static func carbonModifiers(from flags: NSEvent.ModifierFlags) -> UInt32 {
+        var modifiers: UInt32 = 0
+
+        if flags.contains(.control) {
+            modifiers |= UInt32(controlKey)
+        }
+        if flags.contains(.option) {
+            modifiers |= UInt32(optionKey)
+        }
+        if flags.contains(.shift) {
+            modifiers |= UInt32(shiftKey)
+        }
+        if flags.contains(.command) {
+            modifiers |= UInt32(cmdKey)
+        }
+
+        return modifiers
+    }
+
+    static func isValidShortcut(keyCode: UInt32, modifiers: UInt32) -> Bool {
+        guard modifiers != 0 else {
+            return false
+        }
+
+        return !isModifierOnlyKeyCode(keyCode)
+    }
+
+    static func isModifierOnlyKeyCode(_ keyCode: UInt32) -> Bool {
+        switch Int(keyCode) {
+        case kVK_Command, kVK_RightCommand, kVK_Shift, kVK_RightShift, kVK_Option, kVK_RightOption, kVK_Control, kVK_RightControl, kVK_CapsLock:
+            return true
+        default:
+            return false
+        }
     }
 }
