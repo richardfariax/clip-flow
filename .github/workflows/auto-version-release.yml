@@ -1,0 +1,140 @@
+name: Auto Version and Release
+
+on:
+  pull_request:
+    types:
+      - closed
+    branches:
+      - main
+      - master
+
+permissions:
+  actions: write
+  contents: write
+
+jobs:
+  release-on-merge:
+    if: github.event.pull_request.merged == true && (github.event.pull_request.base.ref == 'main' || github.event.pull_request.base.ref == 'master') && github.event.pull_request.head.ref == 'dev'
+    runs-on: macos-15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Calculate next version from Conventional Commits
+        id: semver
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          set -euo pipefail
+
+          git fetch --tags --force
+
+          latest_tag="$(git tag --sort=-version:refname | head -n 1 || true)"
+          if [[ -z "${latest_tag}" ]]; then
+            current_version="0.0.0"
+          else
+            current_version="${latest_tag#v}"
+          fi
+
+          commit_messages="$(git log --format=%s "${BASE_SHA}..${MERGE_SHA}" || true)"
+          if [[ -z "${commit_messages}" ]]; then
+            commit_messages="${PR_TITLE}"
+          fi
+
+          bump_type="none"
+          if printf '%s\n' "${commit_messages}" | rg -iq '^(feat)(\([^)]+\))?!?:'; then
+            bump_type="minor"
+          elif printf '%s\n' "${commit_messages}" | rg -iq '^(fix)(\([^)]+\))?!?:'; then
+            bump_type="patch"
+          fi
+
+          if [[ "${bump_type}" == "none" ]]; then
+            echo "should_release=false" >> "${GITHUB_OUTPUT}"
+            echo "Nenhum commit feat:/fix: detectado. Release não será criada."
+            exit 0
+          fi
+
+          IFS='.' read -r major minor patch <<< "${current_version}"
+          if [[ "${bump_type}" == "minor" ]]; then
+            minor=$((minor + 1))
+            patch=0
+          else
+            patch=$((patch + 1))
+          fi
+
+          next_version="${major}.${minor}.${patch}"
+          echo "should_release=true" >> "${GITHUB_OUTPUT}"
+          echo "bump_type=${bump_type}" >> "${GITHUB_OUTPUT}"
+          echo "next_version=${next_version}" >> "${GITHUB_OUTPUT}"
+          echo "latest_tag=${latest_tag}" >> "${GITHUB_OUTPUT}"
+
+          echo "Próxima versão: ${next_version} (${bump_type})"
+
+      - name: Stop when no release is needed
+        if: steps.semver.outputs.should_release != 'true'
+        run: echo "Sem release para este merge."
+
+      - name: Set git identity
+        if: steps.semver.outputs.should_release == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump project version files
+        if: steps.semver.outputs.should_release == 'true'
+        id: bump
+        env:
+          NEXT_VERSION: ${{ steps.semver.outputs.next_version }}
+        run: |
+          set -euo pipefail
+          chmod +x Scripts/bump_versions.sh
+
+          current_build="$(awk '/CURRENT_PROJECT_VERSION:/ {print $2; exit}' project.yml)"
+          next_build=$((current_build + 1))
+
+          ./Scripts/bump_versions.sh "${NEXT_VERSION}" "${next_build}"
+
+          echo "next_build=${next_build}" >> "${GITHUB_OUTPUT}"
+
+      - name: Commit and push version bump
+        if: steps.semver.outputs.should_release == 'true'
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+          NEXT_VERSION: ${{ steps.semver.outputs.next_version }}
+          NEXT_BUILD: ${{ steps.bump.outputs.next_build }}
+        run: |
+          set -euo pipefail
+          git add project.yml ClipFlow.xcodeproj/project.pbxproj
+          git commit -m "chore(release): ${NEXT_VERSION} (build ${NEXT_BUILD}) [skip ci]"
+          git push origin "${BASE_REF}"
+
+      - name: Create Git tag and GitHub Release
+        if: steps.semver.outputs.should_release == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NEXT_VERSION: ${{ steps.semver.outputs.next_version }}
+        run: |
+          set -euo pipefail
+
+          if ! git rev-parse "${NEXT_VERSION}" >/dev/null 2>&1; then
+            git tag "${NEXT_VERSION}"
+            git push origin "${NEXT_VERSION}"
+          fi
+
+          if ! gh release view "${NEXT_VERSION}" >/dev/null 2>&1; then
+            gh release create "${NEXT_VERSION}" --title "${NEXT_VERSION}" --generate-notes
+          fi
+
+      - name: Trigger release asset build/upload
+        if: steps.semver.outputs.should_release == 'true'
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NEXT_VERSION: ${{ steps.semver.outputs.next_version }}
+        run: |
+          gh workflow run release-assets.yml --ref "${BASE_REF}" -f release_tag="${NEXT_VERSION}"

@@ -118,6 +118,15 @@ GitHub Release automation:
 - Uploads: `.dmg`, `.zip`, and `.sha256` files automatically
 - Homebrew cask file in this repo: `Casks/clipflow.rb`
 
+Automatic semantic versioning on merge `dev -> main`:
+
+- Workflow: `.github/workflows/auto-version-release.yml`
+- Uses Conventional Commits from merged commits:
+  - `feat:` => bumps minor (`1.1.0` -> `1.2.0`)
+  - `fix:` => bumps patch (`1.2.0` -> `1.2.1`)
+- Updates `project.yml` and `ClipFlow.xcodeproj/project.pbxproj`
+- Commits bumped version, creates tag/release, and triggers asset build/upload
+
 ## Privacy
 
 ClipFlow stores data locally on your Mac.
