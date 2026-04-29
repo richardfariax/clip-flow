@@ -36,10 +36,44 @@ jobs:
           ./Scripts/release.sh
           ./Scripts/release_dmg.sh
 
+      - name: Resolve target release tag
+        id: resolve_tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RAW_TAG: ${{ github.event.release.tag_name || inputs.release_tag }}
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${RAW_TAG:-}" ]]; then
+            echo "Erro: nenhuma tag foi informada para upload." >&2
+            exit 1
+          fi
+
+          tag_name="${RAW_TAG}"
+          if ! gh release view "${tag_name}" >/dev/null 2>&1; then
+            if [[ "${tag_name}" == v* ]]; then
+              alt_tag="${tag_name#v}"
+            else
+              alt_tag="v${tag_name}"
+            fi
+
+            if gh release view "${alt_tag}" >/dev/null 2>&1; then
+              tag_name="${alt_tag}"
+            else
+              echo "Erro: release não encontrada para '${RAW_TAG}' (também testado '${alt_tag}')." >&2
+              echo "Releases disponíveis:" >&2
+              gh release list --limit 20 >&2
+              exit 1
+            fi
+          fi
+
+          echo "resolved_tag=${tag_name}" >> "${GITHUB_OUTPUT}"
+          echo "Release alvo: ${tag_name}"
+
       - name: Upload assets to GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG_NAME: ${{ github.event.release.tag_name || inputs.release_tag }}
+          TAG_NAME: ${{ steps.resolve_tag.outputs.resolved_tag }}
         run: |
           gh release upload "$TAG_NAME" \
             build/ClipFlow.dmg \
