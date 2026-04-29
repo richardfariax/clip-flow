@@ -101,13 +101,12 @@ final class ClipboardMonitorService {
         }
 
         if let text = pasteboard.string(forType: .string) {
-            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !trimmed.isEmpty else { return nil }
-            guard let data = trimmed.data(using: .utf8) else { return nil }
+            guard !text.isEmpty else { return nil }
+            guard let data = text.data(using: .utf8) else { return nil }
 
             return ClipboardSnapshot(
                 kind: .text,
-                textSubtype: ClipboardContentClassifier.classifyText(trimmed),
+                textSubtype: ClipboardContentClassifier.classifyText(text),
                 payload: data,
                 contentHash: ClipboardContentClassifier.sha256Hex(data),
                 createdAt: Date()

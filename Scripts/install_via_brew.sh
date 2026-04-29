@@ -1,16 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-TAP_NAME="${TAP_NAME:-richardfariax/clip-flow}"
-TAP_URL="${TAP_URL:-https://github.com/richardfariax/clip-flow}"
+OWNER="${OWNER:-richardfariax}"
+REPO="${REPO:-clip-flow}"
 CASK_NAME="${CASK_NAME:-clipflow}"
+APP_DIR="${APP_DIR:-$HOME/Applications}"
+CASK_URL="${CASK_URL:-https://raw.githubusercontent.com/${OWNER}/${REPO}/main/Casks/${CASK_NAME}.rb}"
 
 if ! command -v brew >/dev/null 2>&1; then
   echo "Homebrew is required: https://brew.sh" >&2
   exit 1
 fi
 
-brew tap "${TAP_NAME}" "${TAP_URL}"
-brew install --cask "${CASK_NAME}"
+mkdir -p "${APP_DIR}"
+brew install --cask --appdir="${APP_DIR}" "${CASK_URL}"
 
-echo "ClipFlow installed via Homebrew cask."
+echo "ClipFlow installed via Homebrew at ${APP_DIR}/ClipFlow.app"
