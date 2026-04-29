@@ -2,6 +2,11 @@ name: Build Release Assets
 
 on:
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Existing release tag to upload assets to (e.g. 1.1.0)"
+        required: true
+        type: string
   release:
     types:
       - published
@@ -34,7 +39,7 @@ jobs:
       - name: Upload assets to GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG_NAME: ${{ github.event.release.tag_name }}
+          TAG_NAME: ${{ github.event.release.tag_name || inputs.release_tag }}
         run: |
           gh release upload "$TAG_NAME" \
             build/ClipFlow.dmg \
