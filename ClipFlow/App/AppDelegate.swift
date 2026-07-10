@@ -1,4 +1,5 @@
 import AppKit
+import Carbon
 import Combine
 import SwiftData
 import SwiftUI
@@ -16,6 +17,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var storageService: ClipboardStorageService?
     private var monitorService: ClipboardMonitorService?
     private var pasteService: PasteService?
+    private var screenshotService: ScreenshotService?
+    private var screenAnalysisService: ScreenAnalysisService?
+
+    private var voiceCommandService: VoiceCommandService?
+    private var voiceCommandExecutor: VoiceCommandExecutor?
+    private var voiceHUDController: VoiceHUDController?
+    private var spokenResponseService = SpokenResponseService()
+    private var pendingFollowUp: VoiceCommandExecutor.FollowUp?
 
     private var hotkeyManager = HotkeyManager()
     private var panelViewModel: ClipboardPanelViewModel?
@@ -38,6 +47,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         configureServices()
         configurePanel()
+        configureVoiceControl()
         configureMenuBar()
         configureHotkey()
         configureApplicationActivationTracking()
@@ -46,6 +56,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         monitorService?.start()
         permissionsManager.refresh()
         permissionsManager.promptOnFirstLaunchIfNeeded()
+        // O bind de settings.$voiceControlEnabled inicia o serviço de voz se habilitado.
 
         if settings.launchAtLogin {
             do {
@@ -59,6 +70,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         hotkeyManager.unregister()
         monitorService?.stop()
+        voiceCommandService?.stop()
         NotificationCenter.default.removeObserver(self)
         NSWorkspace.shared.notificationCenter.removeObserver(self)
     }
@@ -105,6 +117,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         storageService = storage
         monitorService = monitor
         pasteService = paste
+        screenshotService = ScreenshotService()
+        screenAnalysisService = ScreenAnalysisService()
     }
 
     private func configurePanel() {
@@ -147,8 +161,129 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             },
             onSelectFilter: { [weak self] filter in
                 self?.panelViewModel?.setFilter(filter)
+            },
+            onStackSelection: { [weak self] in
+                self?.panelViewModel?.addSelectedToStack()
             }
         )
+    }
+
+    private func configureVoiceControl() {
+        guard let panelViewModel, let pasteService, let screenshotService, let screenAnalysisService else { return }
+
+        let hud = VoiceHUDController()
+        hud.isSoundEnabled = { [weak self] in
+            self?.settings.voiceSoundFeedback ?? true
+        }
+        voiceHUDController = hud
+
+        let executor = VoiceCommandExecutor(
+            settings: settings,
+            panelViewModel: panelViewModel,
+            pasteService: pasteService,
+            screenshotService: screenshotService,
+            screenAnalysisService: screenAnalysisService,
+            targetApplicationProvider: { [weak self] in
+                self?.lastExternalApplication
+            },
+            openPanel: { [weak self] in
+                self?.openPanelFromExternalTrigger()
+            },
+            closePanel: { [weak self] in
+                self?.panelController?.close()
+            },
+            openSettings: { [weak self] in
+                self?.openSettingsWindow()
+            },
+            hideOverlayForCapture: { [weak self] in
+                self?.voiceHUDController?.hide()
+            }
+        )
+        voiceCommandExecutor = executor
+
+        let voiceService = VoiceCommandService(settings: settings)
+        voiceService.onWakeWordDetected = { [weak self] in
+            guard let self else { return }
+            let hint = self.pendingFollowUp != nil
+                ? self.settings.text(ptBR: "Pode responder...", en: "Go ahead...")
+                : self.settings.text(ptBR: "Ouvindo... diga um comando", en: "Listening... say a command")
+            self.voiceHUDController?.showListening(hint: hint)
+        }
+        voiceService.onPartialCommand = { [weak self] transcript in
+            self?.voiceHUDController?.updateTranscript(transcript)
+        }
+        voiceService.onCommandCaptured = { [weak self] rawText in
+            guard let self else { return }
+            // Silencia o microfone imediatamente para não captar a própria resposta falada.
+            self.voiceCommandService?.pauseForSpeechOutput()
+            if let followUp = self.pendingFollowUp {
+                self.pendingFollowUp = nil
+                self.voiceCommandExecutor?.handleFollowUpResponse(followUp, answer: rawText) { [weak self] feedback in
+                    self?.presentFeedback(feedback)
+                }
+            } else {
+                self.voiceCommandExecutor?.execute(rawText: rawText) { [weak self] feedback in
+                    self?.presentFeedback(feedback)
+                }
+            }
+        }
+        voiceService.onCaptureCancelled = { [weak self] in
+            guard let self else { return }
+            if self.pendingFollowUp != nil {
+                // Usuário não respondeu à pergunta: encerra a conversa em silêncio.
+                self.pendingFollowUp = nil
+                self.voiceHUDController?.hide()
+                self.voiceCommandService?.resumeAfterSpeechOutput()
+                return
+            }
+            self.voiceHUDController?.showFeedback(
+                message: self.settings.text(
+                    ptBR: "Nenhum comando reconhecido. Tente de novo.",
+                    en: "No command recognized. Try again."
+                ),
+                success: false
+            )
+        }
+        voiceCommandService = voiceService
+    }
+
+    /// Mostra o feedback, fala a resposta e mantém o overlay até o fim da fala.
+    /// Se o assistente fez uma pergunta, volta a ouvir a resposta em seguida.
+    private func presentFeedback(_ feedback: VoiceCommandExecutor.Feedback) {
+        voiceHUDController?.showFeedback(message: feedback.message, success: feedback.success, autoHide: false)
+
+        let proceed: () -> Void = { [weak self] in
+            guard let self else { return }
+            if let followUp = feedback.followUp {
+                self.pendingFollowUp = followUp
+                self.voiceCommandService?.beginFollowUpCapture()
+            } else {
+                self.voiceHUDController?.hide()
+            }
+        }
+
+        if settings.voiceSpokenResponses {
+            spokenResponseService.speak(
+                feedback.message,
+                languageCode: settings.text(ptBR: "pt-BR", en: "en-US")
+            ) { [weak self] in
+                self?.voiceCommandService?.resumeAfterSpeechOutput()
+                proceed()
+            }
+        } else {
+            let readingTime = min(max(Double(feedback.message.count) * 0.045, 2.0), 6.0)
+            DispatchQueue.main.asyncAfter(deadline: .now() + readingTime) { [weak self] in
+                self?.voiceCommandService?.resumeAfterSpeechOutput()
+                proceed()
+            }
+        }
+    }
+
+    private func openPanelFromExternalTrigger() {
+        captureFrontmostExternalApplication()
+        panelTargetApplication = lastExternalApplication
+        panelController?.show()
+        panelViewModel?.refresh()
     }
 
     private func configureMenuBar() {
@@ -165,11 +300,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             onTogglePause: { [weak self] newValue in
                 self?.settings.pauseMonitoring = newValue
             },
+            onToggleVoice: { [weak self] newValue in
+                self?.settings.voiceControlEnabled = newValue
+            },
             onQuit: {
                 NSApplication.shared.terminate(nil)
             },
             isPausedProvider: { [weak self] in
                 self?.settings.pauseMonitoring ?? false
+            },
+            isVoiceEnabledProvider: { [weak self] in
+                self?.settings.voiceControlEnabled ?? false
             },
             languageProvider: { [weak self] in
                 self?.settings.language ?? .system
@@ -186,6 +327,39 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             name: HotkeyManager.hotkeyPressedNotification,
             object: nil
         )
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleVoiceHotkeyPress),
+            name: HotkeyManager.voiceHotkeyPressedNotification,
+            object: nil
+        )
+    }
+
+    /// Aplica o modo de ativação de voz: escuta contínua (wake word) ou
+    /// push-to-talk (⌥⇧V) em que o microfone só liga durante a captura.
+    private func applyVoiceActivationConfiguration() {
+        voiceCommandService?.stop()
+        voiceHUDController?.hide()
+        hotkeyManager.unregisterVoiceHotkey()
+        menuBarController?.refreshVoiceState()
+
+        guard settings.voiceControlEnabled else { return }
+
+        switch settings.voiceActivationMode {
+        case .wakeWord:
+            voiceCommandService?.start()
+        case .hotkey:
+            hotkeyManager.registerVoiceHotkey(
+                keyCode: UInt32(kVK_ANSI_V),
+                modifiers: UInt32(optionKey | shiftKey)
+            )
+        }
+    }
+
+    @objc private func handleVoiceHotkeyPress() {
+        guard settings.voiceControlEnabled, settings.voiceActivationMode == .hotkey else { return }
+        voiceCommandService?.beginManualCapture()
     }
 
     private func bindSettings() {
@@ -193,6 +367,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.menuBarController?.refreshPauseState()
+            }
+            .store(in: &cancellables)
+
+        settings.$voiceControlEnabled
+            .combineLatest(settings.$voiceActivationMode)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _, _ in
+                self?.applyVoiceActivationConfiguration()
             }
             .store(in: &cancellables)
 
