@@ -14,14 +14,27 @@ struct PermissionsView: View {
             .font(.subheadline)
             .foregroundStyle(.secondary)
 
+            if permissionsManager.requiresRegrantAfterUpdate {
+                updateRegrantBanner
+            } else if permissionsManager.missingRequiredPermissions {
+                Label(
+                    t(
+                        "Permissões críticas ausentes — hotkeys ou colagem podem falhar.",
+                        "Critical permissions missing — hotkeys or paste may fail."
+                    ),
+                    systemImage: "lock.trianglebadge.exclamationmark.fill"
+                )
+                .font(.caption)
+                .foregroundStyle(.orange)
+            }
+
             if isRunningFromDerivedData {
                 Text(t(
-                    "Você está rodando via Xcode/DerivedData. Permissões (incluindo Gravação de Tela) valem só para este build — use o app em /Applications (.dmg) para permissões estáveis.",
-                    "You are running from Xcode/DerivedData. Permissions (including Screen Recording) apply only to this build — use the app in /Applications (.dmg) for stable permissions."
+                    "Rodando via Xcode/DerivedData — permissões valem só para este build. Use o .app em Applications para TCC estável.",
+                    "Running from Xcode/DerivedData — permissions apply only to this build. Use the .app in Applications for stable TCC."
                 ))
                 .font(.caption)
                 .foregroundStyle(.orange)
-                .padding(.bottom, 2)
             }
 
             permissionRow(
@@ -46,8 +59,8 @@ struct PermissionsView: View {
             )
 
             Text(t(
-                "Depois de conceder, volte ao app para atualizar o status. Para Gravação de Tela, pode ser necessário fechar e abrir o ClipFlow novamente.",
-                "After granting, return to the app to refresh status. For Screen Recording, you may need to quit and reopen ClipFlow."
+                "Depois de conceder, volte ao app. Gravação de Tela pode exigir reiniciar o ClipFlow.",
+                "After granting, return to the app. Screen Recording may require restarting ClipFlow."
             ))
             .font(.caption)
             .foregroundStyle(.tertiary)
@@ -62,6 +75,56 @@ struct PermissionsView: View {
         .onReceive(refreshTimer) { _ in
             permissionsManager.refresh()
         }
+    }
+
+    private var updateRegrantBanner: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Label(
+                t(
+                    "Update/reinstall — reconceda Accessibility e Input Monitoring",
+                    "Update/reinstall — re-grant Accessibility and Input Monitoring"
+                ),
+                systemImage: "exclamationmark.triangle.fill"
+            )
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.orange)
+
+            Text(t(
+                "O macOS amarra essas permissões ao binário. Solicite de novo ou reative em Ajustes → Privacidade.",
+                "macOS binds these permissions to the binary. Request again or re-enable in Settings → Privacy."
+            ))
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+
+            HStack(spacing: 8) {
+                Button(t("Solicitar de novo", "Request again")) {
+                    permissionsManager.requestAccessibility()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        permissionsManager.requestInputMonitoring()
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+
+                Button(t("Abrir Accessibility", "Open Accessibility")) {
+                    permissionsManager.openAccessibilitySettings()
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+            }
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color.orange.opacity(0.12))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .strokeBorder(Color.orange.opacity(0.35), lineWidth: 1)
+                )
+        )
+        .padding(.bottom, 4)
     }
 
     private func permissionRow(
