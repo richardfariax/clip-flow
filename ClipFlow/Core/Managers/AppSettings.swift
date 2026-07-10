@@ -61,6 +61,24 @@ enum AppLanguage: String, CaseIterable, Identifiable {
     }
 }
 
+enum VoiceActivationMode: String, CaseIterable, Identifiable {
+    /// Microfone sempre aberto, aguardando a wake word (indicador do macOS fica aceso).
+    case wakeWord
+    /// Microfone abre apenas ao pressionar o atalho e fecha após o comando.
+    case hotkey
+
+    var id: String { rawValue }
+
+    func title(for language: AppLanguage) -> String {
+        switch self {
+        case .wakeWord:
+            return language.text(ptBR: "Sempre ouvindo (wake word)", en: "Always listening (wake word)")
+        case .hotkey:
+            return language.text(ptBR: "Atalho (⌥⇧V)", en: "Hotkey (⌥⇧V)")
+        }
+    }
+}
+
 @MainActor
 final class AppSettings: ObservableObject {
     private enum Keys {
@@ -73,6 +91,12 @@ final class AppSettings: ObservableObject {
         static let launchAtLogin = "launchAtLogin"
         static let appearance = "appearance"
         static let language = "language"
+        static let voiceControlEnabled = "voiceControlEnabled"
+        static let voiceWakeWord = "voiceWakeWord"
+        static let voiceSoundFeedback = "voiceSoundFeedback"
+        static let voiceActivationMode = "voiceActivationMode"
+        static let voiceSpokenResponses = "voiceSpokenResponses"
+        static let userName = "userName"
     }
 
     @Published var historyLimit: Int {
@@ -139,6 +163,37 @@ final class AppSettings: ObservableObject {
         didSet { userDefaults.set(language.rawValue, forKey: Keys.language) }
     }
 
+    @Published var voiceControlEnabled: Bool {
+        didSet { userDefaults.set(voiceControlEnabled, forKey: Keys.voiceControlEnabled) }
+    }
+
+    @Published var voiceSoundFeedback: Bool {
+        didSet { userDefaults.set(voiceSoundFeedback, forKey: Keys.voiceSoundFeedback) }
+    }
+
+    @Published var voiceSpokenResponses: Bool {
+        didSet { userDefaults.set(voiceSpokenResponses, forKey: Keys.voiceSpokenResponses) }
+    }
+
+    @Published var voiceActivationMode: VoiceActivationMode {
+        didSet { userDefaults.set(voiceActivationMode.rawValue, forKey: Keys.voiceActivationMode) }
+    }
+
+    @Published var userName: String {
+        didSet { userDefaults.set(userName, forKey: Keys.userName) }
+    }
+
+    @Published var voiceWakeWord: String {
+        didSet {
+            let normalized = Self.normalizedWakeWord(voiceWakeWord)
+            if voiceWakeWord != normalized {
+                voiceWakeWord = normalized
+                return
+            }
+            userDefaults.set(voiceWakeWord, forKey: Keys.voiceWakeWord)
+        }
+    }
+
     private let userDefaults: UserDefaults
 
     var hotkeyDisplay: String {
@@ -182,6 +237,20 @@ final class AppSettings: ObservableObject {
         } else {
             language = .system
         }
+
+        voiceControlEnabled = userDefaults.object(forKey: Keys.voiceControlEnabled) as? Bool ?? false
+        voiceSoundFeedback = userDefaults.object(forKey: Keys.voiceSoundFeedback) as? Bool ?? true
+        voiceSpokenResponses = userDefaults.object(forKey: Keys.voiceSpokenResponses) as? Bool ?? true
+        voiceWakeWord = Self.normalizedWakeWord(userDefaults.string(forKey: Keys.voiceWakeWord) ?? "clipe")
+        userName = userDefaults.string(forKey: Keys.userName) ?? ""
+
+        if let storedModeRaw = userDefaults.string(forKey: Keys.voiceActivationMode),
+           let storedMode = VoiceActivationMode(rawValue: storedModeRaw) {
+            voiceActivationMode = storedMode
+        } else {
+            // Padrão discreto: microfone abre apenas quando o atalho é pressionado.
+            voiceActivationMode = .hotkey
+        }
     }
 
     private static func normalizedHistoryLimit(_ value: Int) -> Int {
@@ -207,6 +276,11 @@ final class AppSettings: ObservableObject {
             return UInt32(kVK_ANSI_V)
         }
         return value
+    }
+
+    private static func normalizedWakeWord(_ value: String) -> String {
+        let cleaned = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return cleaned.isEmpty ? "clipe" : cleaned
     }
 
     private static func normalizedHotkeyModifiers(_ value: UInt32) -> UInt32 {
