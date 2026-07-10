@@ -8,6 +8,7 @@ final class MenuBarController: NSObject {
         case togglePause = 1001
         case settings = 1002
         case quit = 1003
+        case toggleVoice = 1004
     }
 
     private let statusItem: NSStatusItem
@@ -16,24 +17,30 @@ final class MenuBarController: NSObject {
     private let onOpenPanel: () -> Void
     private let onOpenSettings: () -> Void
     private let onTogglePause: (Bool) -> Void
+    private let onToggleVoice: (Bool) -> Void
     private let onQuit: () -> Void
     private let isPausedProvider: () -> Bool
+    private let isVoiceEnabledProvider: () -> Bool
     private let languageProvider: () -> AppLanguage
 
     init(
         onOpenPanel: @escaping () -> Void,
         onOpenSettings: @escaping () -> Void,
         onTogglePause: @escaping (Bool) -> Void,
+        onToggleVoice: @escaping (Bool) -> Void,
         onQuit: @escaping () -> Void,
         isPausedProvider: @escaping () -> Bool,
+        isVoiceEnabledProvider: @escaping () -> Bool,
         languageProvider: @escaping () -> AppLanguage
     ) {
         self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         self.onOpenPanel = onOpenPanel
         self.onOpenSettings = onOpenSettings
         self.onTogglePause = onTogglePause
+        self.onToggleVoice = onToggleVoice
         self.onQuit = onQuit
         self.isPausedProvider = isPausedProvider
+        self.isVoiceEnabledProvider = isVoiceEnabledProvider
         self.languageProvider = languageProvider
         super.init()
 
@@ -46,6 +53,11 @@ final class MenuBarController: NSObject {
         pauseItem.state = isPausedProvider() ? .on : .off
     }
 
+    func refreshVoiceState() {
+        guard let voiceItem = menu.item(withTag: ItemTag.toggleVoice.rawValue) else { return }
+        voiceItem.state = isVoiceEnabledProvider() ? .on : .off
+    }
+
     func refreshAppearance() {
         applyStatusItemIcon()
     }
@@ -53,6 +65,7 @@ final class MenuBarController: NSObject {
     func refreshLocalizedContent() {
         guard let openPanel = menu.item(withTag: ItemTag.openPanel.rawValue),
               let pause = menu.item(withTag: ItemTag.togglePause.rawValue),
+              let voice = menu.item(withTag: ItemTag.toggleVoice.rawValue),
               let settings = menu.item(withTag: ItemTag.settings.rawValue),
               let quit = menu.item(withTag: ItemTag.quit.rawValue) else {
             return
@@ -60,6 +73,7 @@ final class MenuBarController: NSObject {
 
         openPanel.title = t("Abrir ClipFlow", "Open ClipFlow")
         pause.title = t("Pausar Monitoramento", "Pause Monitoring")
+        voice.title = t("Comandos de Voz", "Voice Commands")
         settings.title = t("Preferências...", "Preferences...")
         quit.title = t("Sair do ClipFlow", "Quit ClipFlow")
     }
@@ -101,6 +115,12 @@ final class MenuBarController: NSObject {
         pauseItem.state = isPausedProvider() ? .on : .off
         menu.addItem(pauseItem)
 
+        let voiceItem = NSMenuItem(title: t("Comandos de Voz", "Voice Commands"), action: #selector(toggleVoice), keyEquivalent: "")
+        voiceItem.target = self
+        voiceItem.tag = ItemTag.toggleVoice.rawValue
+        voiceItem.state = isVoiceEnabledProvider() ? .on : .off
+        menu.addItem(voiceItem)
+
         menu.addItem(.separator())
 
         let settingsItem = NSMenuItem(title: t("Preferências...", "Preferences..."), action: #selector(openSettings), keyEquivalent: ",")
@@ -126,6 +146,12 @@ final class MenuBarController: NSObject {
         let updated = !isPausedProvider()
         onTogglePause(updated)
         refreshPauseState()
+    }
+
+    @objc private func toggleVoice() {
+        let updated = !isVoiceEnabledProvider()
+        onToggleVoice(updated)
+        refreshVoiceState()
     }
 
     @objc private func quitApp() {
