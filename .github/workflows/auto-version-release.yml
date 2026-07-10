@@ -23,7 +23,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Calculate next version from Conventional Commits
+      - name: Calculate next version
         id: semver
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
@@ -32,48 +32,87 @@ jobs:
         run: |
           set -euo pipefail
 
+          chmod +x Scripts/version.sh Scripts/bump_versions.sh
+          ./Scripts/version.sh check
+
           git fetch --tags --force
 
+          current_version="$(./Scripts/version.sh read)"
+          current_build="$(./Scripts/version.sh read-build)"
+
           latest_tag="$(git tag --sort=-version:refname | head -n 1 || true)"
-          if [[ -z "${latest_tag}" ]]; then
-            current_version="0.0.0"
-          else
-            current_version="${latest_tag#v}"
+          latest_version=""
+          if [[ -n "${latest_tag}" ]]; then
+            latest_version="${latest_tag#v}"
+          fi
+
+          if [[ -n "${latest_version}" ]]; then
+            highest="$(printf '%s\n%s\n' "${current_version}" "${latest_version}" | sort -V | tail -n 1)"
+            if [[ "${highest}" != "${current_version}" ]]; then
+              echo "Erro: tag ${latest_tag} (${latest_version}) está à frente de project.yml (${current_version})." >&2
+              exit 1
+            fi
+          fi
+
+          # Produto já foi bumpado manualmente à frente da última tag → liberar essa versão.
+          if [[ -n "${latest_version}" ]] && [[ "${current_version}" != "${latest_version}" ]]; then
+            echo "should_release=true" >> "${GITHUB_OUTPUT}"
+            echo "already_bumped=true" >> "${GITHUB_OUTPUT}"
+            echo "bump_type=manual" >> "${GITHUB_OUTPUT}"
+            echo "next_version=${current_version}" >> "${GITHUB_OUTPUT}"
+            echo "next_build=${current_build}" >> "${GITHUB_OUTPUT}"
+            echo "latest_tag=${latest_tag}" >> "${GITHUB_OUTPUT}"
+            echo "Release pendente detectada: ${current_version} (build ${current_build}) > tag ${latest_version}"
+            exit 0
           fi
 
           commit_messages="$(git log --format=%s "${BASE_SHA}..${MERGE_SHA}" || true)"
           if [[ -z "${commit_messages}" ]]; then
             commit_messages="${PR_TITLE}"
           fi
+          commit_bodies="$(git log --format=%b "${BASE_SHA}..${MERGE_SHA}" || true)"
 
           bump_type="none"
-          if printf '%s\n' "${commit_messages}" | grep -Eiq '^(feat)(\([^)]+\))?!?:'; then
+          if printf '%s\n%s\n' "${commit_messages}" "${commit_bodies}" | grep -Eiq 'BREAKING CHANGE:|^(feat|fix|perf|refactor|chore)(\([^)]+\))?!:'; then
+            bump_type="major"
+          elif printf '%s\n' "${commit_messages}" | grep -Eiq '^feat(\([^)]+\))?:'; then
             bump_type="minor"
-          elif printf '%s\n' "${commit_messages}" | grep -Eiq '^(fix)(\([^)]+\))?!?:'; then
+          elif printf '%s\n' "${commit_messages}" | grep -Eiq '^fix(\([^)]+\))?:'; then
             bump_type="patch"
           fi
 
           if [[ "${bump_type}" == "none" ]]; then
             echo "should_release=false" >> "${GITHUB_OUTPUT}"
-            echo "Nenhum commit feat:/fix: detectado. Release não será criada."
+            echo "Nenhum bump detectado (feat/fix/breaking ou versão manual pendente)."
             exit 0
           fi
 
           IFS='.' read -r major minor patch <<< "${current_version}"
-          if [[ "${bump_type}" == "minor" ]]; then
-            minor=$((minor + 1))
-            patch=0
-          else
-            patch=$((patch + 1))
-          fi
+          case "${bump_type}" in
+            major)
+              major=$((major + 1))
+              minor=0
+              patch=0
+              ;;
+            minor)
+              minor=$((minor + 1))
+              patch=0
+              ;;
+            patch)
+              patch=$((patch + 1))
+              ;;
+          esac
 
           next_version="${major}.${minor}.${patch}"
+          next_build=$((current_build + 1))
+
           echo "should_release=true" >> "${GITHUB_OUTPUT}"
+          echo "already_bumped=false" >> "${GITHUB_OUTPUT}"
           echo "bump_type=${bump_type}" >> "${GITHUB_OUTPUT}"
           echo "next_version=${next_version}" >> "${GITHUB_OUTPUT}"
+          echo "next_build=${next_build}" >> "${GITHUB_OUTPUT}"
           echo "latest_tag=${latest_tag}" >> "${GITHUB_OUTPUT}"
-
-          echo "Próxima versão: ${next_version} (${bump_type})"
+          echo "Próxima versão: ${next_version} (build ${next_build}, ${bump_type})"
 
       - name: Stop when no release is needed
         if: steps.semver.outputs.should_release != 'true'
@@ -86,27 +125,20 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
       - name: Bump project version files
-        if: steps.semver.outputs.should_release == 'true'
-        id: bump
+        if: steps.semver.outputs.should_release == 'true' && steps.semver.outputs.already_bumped != 'true'
         env:
           NEXT_VERSION: ${{ steps.semver.outputs.next_version }}
+          NEXT_BUILD: ${{ steps.semver.outputs.next_build }}
         run: |
           set -euo pipefail
-          chmod +x Scripts/bump_versions.sh
-
-          current_build="$(awk '/CURRENT_PROJECT_VERSION:/ {print $2; exit}' project.yml)"
-          next_build=$((current_build + 1))
-
-          ./Scripts/bump_versions.sh "${NEXT_VERSION}" "${next_build}"
-
-          echo "next_build=${next_build}" >> "${GITHUB_OUTPUT}"
+          ./Scripts/version.sh bump "${NEXT_VERSION}" "${NEXT_BUILD}"
 
       - name: Commit and push version bump
-        if: steps.semver.outputs.should_release == 'true'
+        if: steps.semver.outputs.should_release == 'true' && steps.semver.outputs.already_bumped != 'true'
         env:
           BASE_REF: ${{ github.event.pull_request.base.ref }}
           NEXT_VERSION: ${{ steps.semver.outputs.next_version }}
-          NEXT_BUILD: ${{ steps.bump.outputs.next_build }}
+          NEXT_BUILD: ${{ steps.semver.outputs.next_build }}
         run: |
           set -euo pipefail
           git add project.yml ClipFlow.xcodeproj/project.pbxproj
@@ -118,16 +150,29 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NEXT_VERSION: ${{ steps.semver.outputs.next_version }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+          ALREADY_BUMPED: ${{ steps.semver.outputs.already_bumped }}
         run: |
           set -euo pipefail
 
-          if ! git rev-parse "${NEXT_VERSION}" >/dev/null 2>&1; then
+          # Garante que a tag aponta ao commit que contém a versão do produto.
+          git fetch origin "${BASE_REF}"
+          git checkout "origin/${BASE_REF}"
+
+          ./Scripts/version.sh check
+          ./Scripts/version.sh compare-tag "${NEXT_VERSION}"
+
+          if [[ "${ALREADY_BUMPED}" == "true" ]]; then
+            echo "Usando versão já bumpada em ${BASE_REF}: ${NEXT_VERSION}"
+          fi
+
+          if ! git rev-parse "refs/tags/${NEXT_VERSION}" >/dev/null 2>&1; then
             git tag "${NEXT_VERSION}"
-            git push origin "${NEXT_VERSION}"
+            git push origin "refs/tags/${NEXT_VERSION}"
           fi
 
           if ! gh release view "${NEXT_VERSION}" >/dev/null 2>&1; then
-            gh release create "${NEXT_VERSION}" --title "${NEXT_VERSION}" --generate-notes
+            gh release create "${NEXT_VERSION}" --title "ClipFlow ${NEXT_VERSION}" --generate-notes
           fi
 
       # GITHUB_TOKEN não dispara o evento release:published; disparamos o upload manualmente.

@@ -14,6 +14,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var cryptoService = LocalCryptoService()
     private var permissionsManager = PermissionsManager()
     private var launchAtLoginManager = LaunchAtLoginManager()
+    private lazy var appUpdateService = AppUpdateService(settings: settings)
 
     private var storageService: ClipboardStorageService?
     private var monitorService: ClipboardMonitorService?
@@ -56,7 +57,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         monitorService?.start()
         permissionsManager.refresh()
-        permissionsManager.promptOnFirstLaunchIfNeeded()
+        permissionsManager.validatePermissionsOnLaunch()
+        presentPermissionRegrantAlertIfNeeded()
+        scheduleLaunchUpdateCheck()
         // O bind de settings.$voiceControlEnabled inicia o serviço de voz se habilitado.
 
         if settings.launchAtLogin {
@@ -345,6 +348,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             onOpenSettings: { [weak self] in
                 self?.openSettingsWindow()
             },
+            onCheckForUpdates: { [weak self] in
+                self?.handleCheckForUpdatesFromMenu()
+            },
             onTogglePause: { [weak self] newValue in
                 self?.settings.pauseMonitoring = newValue
             },
@@ -362,8 +368,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             },
             languageProvider: { [weak self] in
                 self?.settings.language ?? .system
+            },
+            updateAvailableProvider: { [weak self] in
+                self?.appUpdateService.hasUpdateAvailable ?? false
             }
         )
+
+        appUpdateService.$phase
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.menuBarController?.refreshUpdateItem()
+            }
+            .store(in: &cancellables)
+    }
+
+    private func scheduleLaunchUpdateCheck() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) { [weak self] in
+            self?.appUpdateService.checkForUpdatesIfNeededOnLaunch()
+        }
+    }
+
+    private func handleCheckForUpdatesFromMenu() {
+        openSettingsWindow()
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(name: .openSettingsUpdates, object: nil)
+        }
+        Task { await appUpdateService.checkForUpdates(userInitiated: true) }
     }
 
     private func configureHotkey() {
@@ -499,6 +529,41 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    private func presentPermissionRegrantAlertIfNeeded() {
+        guard permissionsManager.requiresRegrantAfterUpdate else { return }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) { [weak self] in
+            guard let self, self.permissionsManager.requiresRegrantAfterUpdate else { return }
+
+            let alert = NSAlert()
+            alert.alertStyle = .warning
+            alert.messageText = self.settings.text(
+                ptBR: "Permissões após o update",
+                en: "Permissions after update"
+            )
+            alert.informativeText = self.settings.text(
+                ptBR: "O macOS pode ter invalidado Accessibility e Input Monitoring para este binário do ClipFlow. Reconceda as permissões para hotkeys e colagem voltarem a funcionar.",
+                en: "macOS may have invalidated Accessibility and Input Monitoring for this ClipFlow binary. Re-grant permissions so hotkeys and paste keep working."
+            )
+            alert.addButton(withTitle: self.settings.text(ptBR: "Abrir Permissões", en: "Open Permissions"))
+            alert.addButton(withTitle: self.settings.text(ptBR: "Agora não", en: "Not now"))
+
+            NSApp.activate(ignoringOtherApps: true)
+            let response = alert.runModal()
+            if response == .alertFirstButtonReturn {
+                self.openSettingsWindow()
+                // Aguarda a SettingsView montar o onReceive antes de trocar o pane.
+                DispatchQueue.main.async {
+                    NotificationCenter.default.post(name: .openSettingsPermissions, object: nil)
+                }
+                self.permissionsManager.requestAccessibility()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    self.permissionsManager.requestInputMonitoring()
+                }
+            }
+        }
+    }
+
     private func openSettingsWindow() {
         panelController?.close()
 
@@ -521,6 +586,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let settingsView = SettingsView(
             settings: settings,
             permissionsManager: permissionsManager,
+            appUpdateService: appUpdateService,
             launchManager: launchAtLoginManager,
             onRebindHotkey: { [weak self] in
                 guard let self else { return }

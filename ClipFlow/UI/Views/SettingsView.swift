@@ -8,6 +8,7 @@ private enum SettingsPane: String, CaseIterable, Identifiable, Hashable {
     case hotkey
     case ignoredApps
     case permissions
+    case updates
     case about
 
     var id: String { rawValue }
@@ -26,6 +27,8 @@ private enum SettingsPane: String, CaseIterable, Identifiable, Hashable {
             return language.text(ptBR: "Apps Ignorados", en: "Ignored Apps")
         case .permissions:
             return language.text(ptBR: "Permissões", en: "Permissions")
+        case .updates:
+            return language.text(ptBR: "Atualização", en: "Updates")
         case .about:
             return language.text(ptBR: "Sobre", en: "About")
         }
@@ -39,6 +42,7 @@ private enum SettingsPane: String, CaseIterable, Identifiable, Hashable {
         case .hotkey: return "keyboard"
         case .ignoredApps: return "app.badge.checkmark"
         case .permissions: return "lock.shield.fill"
+        case .updates: return "arrow.down.app.fill"
         case .about: return "info.circle.fill"
         }
     }
@@ -51,6 +55,7 @@ private enum SettingsPane: String, CaseIterable, Identifiable, Hashable {
         case .hotkey: return .blue
         case .ignoredApps: return .orange
         case .permissions: return .green
+        case .updates: return .teal
         case .about: return .cyan
         }
     }
@@ -59,6 +64,7 @@ private enum SettingsPane: String, CaseIterable, Identifiable, Hashable {
 struct SettingsView: View {
     @ObservedObject var settings: AppSettings
     @ObservedObject var permissionsManager: PermissionsManager
+    @ObservedObject var appUpdateService: AppUpdateService
 
     let launchManager: LaunchAtLoginManager
     let onRebindHotkey: () -> Void
@@ -101,6 +107,12 @@ struct SettingsView: View {
             loadAvailableAppsIfNeeded()
             generativeAnswers.refreshStatus(userName: settings.userName.isEmpty ? nil : settings.userName)
         }
+        .onReceive(NotificationCenter.default.publisher(for: .openSettingsPermissions)) { _ in
+            selectedPane = .permissions
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .openSettingsUpdates)) { _ in
+            selectedPane = .updates
+        }
         .onChange(of: settings.hotkeyCode, initial: false) { _, _ in
             syncHotkeyPresetState()
         }
@@ -135,10 +147,19 @@ struct SettingsView: View {
         List(selection: $selectedPane) {
             Section {
                 ForEach(SettingsPane.allCases) { pane in
-                    Label {
-                        Text(pane.title(for: settings.language))
-                    } icon: {
-                        settingsIcon(symbol: pane.symbolName, tint: pane.tint)
+                    HStack(spacing: 8) {
+                        Label {
+                            Text(pane.title(for: settings.language))
+                        } icon: {
+                            settingsIcon(symbol: pane.symbolName, tint: pane.tint)
+                        }
+
+                        if pane == .updates, appUpdateService.hasUpdateAvailable {
+                            Spacer(minLength: 0)
+                            Circle()
+                                .fill(Color.teal)
+                                .frame(width: 7, height: 7)
+                        }
                     }
                     .tag(pane)
                 }
@@ -181,9 +202,7 @@ struct SettingsView: View {
     }
 
     private var appVersionLabel: String {
-        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
-        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "—"
-        return "v\(version) (\(build))"
+        AppVersion.displayLabel
     }
 
     private func settingsIcon(symbol: String, tint: Color) -> some View {
@@ -209,6 +228,8 @@ struct SettingsView: View {
             settingsScroll { ignoredAppsForm }
         case .permissions:
             settingsScroll { permissionsForm }
+        case .updates:
+            settingsScroll { updatesForm }
         case .about:
             settingsScroll { aboutForm }
         }
@@ -653,6 +674,43 @@ struct SettingsView: View {
             }
             .formStyle(.grouped)
             .padding(.horizontal, -8)
+        }
+    }
+
+    private var updatesForm: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            paneHeader(
+                title: t("Atualização", "Updates"),
+                subtitle: t(
+                    "Atualização interna com progresso, verificação e instalação no mesmo local.",
+                    "In-app update with progress, verification, and same-path installation."
+                )
+            )
+
+            Form {
+                Section {
+                    AppUpdatePanel(service: appUpdateService, settings: settings)
+                        .listRowInsets(EdgeInsets(top: 8, leading: 4, bottom: 8, trailing: 4))
+                        .listRowBackground(Color.clear)
+                }
+
+                Section {
+                    Toggle(
+                        t("Verificar automaticamente ao abrir", "Check automatically on launch"),
+                        isOn: Binding(
+                            get: { appUpdateService.automaticChecksEnabled },
+                            set: { appUpdateService.setAutomaticChecksEnabled($0) }
+                        )
+                    )
+                }
+            }
+            .formStyle(.grouped)
+            .padding(.horizontal, -8)
+        }
+        .onAppear {
+            if case .idle = appUpdateService.phase {
+                Task { await appUpdateService.checkForUpdates(userInitiated: false) }
+            }
         }
     }
 

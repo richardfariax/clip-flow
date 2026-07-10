@@ -124,28 +124,13 @@ These permission dialogs are controlled by macOS security and cannot be bypassed
 
 ## For maintainers
 
-Build artifacts locally:
-
 ```bash
-./Scripts/release.sh
-./Scripts/release_dmg.sh
+./Scripts/version.sh status   # project.yml ↔ pbxproj ↔ git tag
+./Scripts/version.sh bump 2.1.0
+./Scripts/release.sh && ./Scripts/release_dmg.sh
 ```
 
-GitHub Release automation:
-
-- Workflow: `.github/workflows/release-assets.yml`
-- Trigger: publish a Release
-- Uploads: `.dmg`, `.zip`, and `.sha256` files automatically
-- Homebrew cask file in this repo: `Casks/clipflow.rb`
-
-Automatic semantic versioning on merge `dev -> main`:
-
-- Workflow: `.github/workflows/auto-version-release.yml`
-- Uses Conventional Commits from merged commits:
-  - `feat:` => bumps minor (`1.1.0` -> `1.2.0`)
-  - `fix:` => bumps patch (`1.2.0` -> `1.2.1`)
-- Updates `project.yml` and `ClipFlow.xcodeproj/project.pbxproj`
-- Commits bumped version, creates tag/release, and triggers asset build/upload
+Releases: merge `dev` → `main` runs semver (`feat`/`fix`/`feat!:`), tags, and uploads DMG/ZIP. Manual assets: `.github/workflows/release-assets.yml`. Cask: `Casks/clipflow.rb`.
 
 ## Privacy
 
