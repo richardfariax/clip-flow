@@ -96,6 +96,8 @@ final class AppSettings: ObservableObject {
         static let voiceSoundFeedback = "voiceSoundFeedback"
         static let voiceActivationMode = "voiceActivationMode"
         static let voiceSpokenResponses = "voiceSpokenResponses"
+        static let generativeAnswersEnabled = "generativeAnswersEnabled"
+        static let generativeUseWebContext = "generativeUseWebContext"
         static let userName = "userName"
     }
 
@@ -175,6 +177,16 @@ final class AppSettings: ObservableObject {
         didSet { userDefaults.set(voiceSpokenResponses, forKey: Keys.voiceSpokenResponses) }
     }
 
+    /// Respostas generativas via Apple Foundation Models (Apple Intelligence).
+    @Published var generativeAnswersEnabled: Bool {
+        didSet { userDefaults.set(generativeAnswersEnabled, forKey: Keys.generativeAnswersEnabled) }
+    }
+
+    /// Enriquece o prompt com trechos da web (gratuito) para fatos recentes.
+    @Published var generativeUseWebContext: Bool {
+        didSet { userDefaults.set(generativeUseWebContext, forKey: Keys.generativeUseWebContext) }
+    }
+
     @Published var voiceActivationMode: VoiceActivationMode {
         didSet { userDefaults.set(voiceActivationMode.rawValue, forKey: Keys.voiceActivationMode) }
     }
@@ -241,6 +253,8 @@ final class AppSettings: ObservableObject {
         voiceControlEnabled = userDefaults.object(forKey: Keys.voiceControlEnabled) as? Bool ?? false
         voiceSoundFeedback = userDefaults.object(forKey: Keys.voiceSoundFeedback) as? Bool ?? true
         voiceSpokenResponses = userDefaults.object(forKey: Keys.voiceSpokenResponses) as? Bool ?? true
+        generativeAnswersEnabled = userDefaults.object(forKey: Keys.generativeAnswersEnabled) as? Bool ?? true
+        generativeUseWebContext = userDefaults.object(forKey: Keys.generativeUseWebContext) as? Bool ?? true
         voiceWakeWord = Self.normalizedWakeWord(userDefaults.string(forKey: Keys.voiceWakeWord) ?? "clipe")
         userName = userDefaults.string(forKey: Keys.userName) ?? ""
 
