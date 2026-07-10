@@ -10,7 +10,26 @@ final class SpokenResponseService: NSObject, AVSpeechSynthesizerDelegate, AVAudi
     private let fallbackSynthesizer = AVSpeechSynthesizer()
     private var audioPlayer: AVAudioPlayer?
     private var onFinish: (() -> Void)?
+    private var onPlaybackStarted: (() -> Void)?
     private var currentAudioURL: URL?
+    private var meteringTimer: Timer?
+    private var didNotifyPlaybackStarted = false
+
+    /// 0...1 — energia do áudio enquanto o Clip fala (HUD).
+    private(set) var speechLevel: Double = 0
+    /// 0...1 — progresso da fala no texto (para legenda sincronizada).
+    private(set) var speechProgress: Double = 0
+
+    /// Chamado quando o áudio realmente começa a tocar (não quando a síntese inicia).
+    var playbackStartedHandler: (() -> Void)?
+
+    /// Nível atual para o HUD (atualizado em tempo real).
+    var speechLevelHandler: ((Double) -> Void)?
+    /// Progresso 0...1 da leitura do texto.
+    var speechProgressHandler: ((Double) -> Void)?
+
+    private var fallbackSpeechStartedAt: TimeInterval?
+    private var fallbackEstimatedDuration: TimeInterval = 0
 
     override init() {
         super.init()
@@ -27,6 +46,12 @@ final class SpokenResponseService: NSObject, AVSpeechSynthesizerDelegate, AVAudi
         }
 
         onFinish = completion
+        didNotifyPlaybackStarted = false
+        speechLevel = 0
+        speechProgress = 0
+        speechProgressHandler?(0)
+        fallbackSpeechStartedAt = nil
+        fallbackEstimatedDuration = 0
 
         Task {
             await speakWithNeuralVoice(text, languageCode: languageCode)
@@ -34,7 +59,15 @@ final class SpokenResponseService: NSObject, AVSpeechSynthesizerDelegate, AVAudi
     }
 
     func stop() {
+        stopMetering()
         onFinish = nil
+        onPlaybackStarted = nil
+        didNotifyPlaybackStarted = false
+        speechLevel = 0
+        speechProgress = 0
+        speechLevelHandler?(0)
+        speechProgressHandler?(0)
+        fallbackSpeechStartedAt = nil
 
         audioPlayer?.stop()
         audioPlayer = nil
@@ -71,9 +104,12 @@ final class SpokenResponseService: NSObject, AVSpeechSynthesizerDelegate, AVAudi
         do {
             let player = try AVAudioPlayer(contentsOf: url)
             player.delegate = self
+            player.isMeteringEnabled = true
             player.prepareToPlay()
             audioPlayer = player
             player.play()
+            notifyPlaybackStartedIfNeeded()
+            startMetering()
         } catch {
             NSLog("[ClipFlow] Falha ao reproduzir áudio TTS: \(error.localizedDescription)")
             finishSpeaking()
@@ -81,8 +117,6 @@ final class SpokenResponseService: NSObject, AVSpeechSynthesizerDelegate, AVAudi
     }
 
     /// Vozes neurais Edge TTS — mais naturais que as vozes do macOS.
-    /// pt-BR-ThalitaNeural: feminina, moderna e expressiva (ideal para assistente).
-    /// en-US-JennyNeural: feminina, natural e clara.
     static func neuralVoice(for languageCode: String) -> String {
         let prefix = languageCode.lowercased().prefix(2)
         switch prefix {
@@ -99,7 +133,12 @@ final class SpokenResponseService: NSObject, AVSpeechSynthesizerDelegate, AVAudi
         let utterance = AVSpeechUtterance(string: text)
         utterance.voice = bestSystemVoice(for: languageCode)
         utterance.rate = AVSpeechUtteranceDefaultSpeechRate
+        // Estimativa para sincronizar a legenda no fallback.
+        fallbackEstimatedDuration = max(2.2, Double(text.count) * 0.058)
+        fallbackSpeechStartedAt = CACurrentMediaTime()
         fallbackSynthesizer.speak(utterance)
+        notifyPlaybackStartedIfNeeded()
+        startFallbackPulse()
     }
 
     private func bestSystemVoice(for languageCode: String) -> AVSpeechSynthesisVoice? {
@@ -124,7 +163,82 @@ final class SpokenResponseService: NSObject, AVSpeechSynthesizerDelegate, AVAudi
         return AVSpeechSynthesisVoice(language: languageCode)
     }
 
+    private func notifyPlaybackStartedIfNeeded() {
+        guard !didNotifyPlaybackStarted else { return }
+        didNotifyPlaybackStarted = true
+        playbackStartedHandler?()
+    }
+
+    private func startMetering() {
+        stopMetering()
+        meteringTimer = Timer.scheduledTimer(withTimeInterval: 1.0 / 30.0, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                self?.updateMetering()
+            }
+        }
+    }
+
+    private func startFallbackPulse() {
+        stopMetering()
+        meteringTimer = Timer.scheduledTimer(withTimeInterval: 1.0 / 30.0, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                guard let self else { return }
+                guard self.fallbackSynthesizer.isSpeaking else {
+                    self.publishProgress(1)
+                    self.speechLevel = 0
+                    self.speechLevelHandler?(0)
+                    return
+                }
+                let t = Date().timeIntervalSinceReferenceDate
+                let level = 0.35 + 0.55 * abs(sin(t * 11.0)) * abs(sin(t * 7.3))
+                self.speechLevel = level
+                self.speechLevelHandler?(level)
+
+                if let started = self.fallbackSpeechStartedAt, self.fallbackEstimatedDuration > 0 {
+                    let elapsed = CACurrentMediaTime() - started
+                    self.publishProgress(min(0.995, elapsed / self.fallbackEstimatedDuration))
+                }
+            }
+        }
+    }
+
+    private func updateMetering() {
+        guard let player = audioPlayer, player.isPlaying else {
+            speechLevel = 0
+            speechLevelHandler?(0)
+            return
+        }
+        player.updateMeters()
+        let power = Double(player.averagePower(forChannel: 0))
+        // power típico: -60 (silêncio) a 0 (alto)
+        let normalized = max(0, min(1, (power + 45) / 40))
+        speechLevel = normalized
+        speechLevelHandler?(normalized)
+
+        let duration = player.duration
+        if duration > 0.05 {
+            // Leve avanço para a legenda não ficar atrás do áudio.
+            let raw = player.currentTime / duration
+            publishProgress(min(1, max(0, raw * 1.02)))
+        }
+    }
+
+    private func publishProgress(_ value: Double) {
+        let clamped = max(0, min(1, value))
+        speechProgress = clamped
+        speechProgressHandler?(clamped)
+    }
+
+    private func stopMetering() {
+        meteringTimer?.invalidate()
+        meteringTimer = nil
+    }
+
     private func finishSpeaking() {
+        stopMetering()
+        publishProgress(1)
+        speechLevel = 0
+        speechLevelHandler?(0)
         cleanupCurrentAudio()
         let callback = onFinish
         onFinish = nil
@@ -154,6 +268,12 @@ final class SpokenResponseService: NSObject, AVSpeechSynthesizerDelegate, AVAudi
 
     // MARK: - AVSpeechSynthesizerDelegate
 
+    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didStart utterance: AVSpeechUtterance) {
+        Task { @MainActor in
+            self.notifyPlaybackStartedIfNeeded()
+        }
+    }
+
     nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
         Task { @MainActor in
             self.finishSpeaking()
@@ -162,6 +282,11 @@ final class SpokenResponseService: NSObject, AVSpeechSynthesizerDelegate, AVAudi
 
     nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
         Task { @MainActor in
+            self.stopMetering()
+            self.speechLevel = 0
+            self.speechProgress = 0
+            self.speechLevelHandler?(0)
+            self.speechProgressHandler?(0)
             self.onFinish = nil
         }
     }

@@ -1,11 +1,12 @@
 import AppKit
 import Foundation
 
-/// Conecta comandos de voz reconhecidos às ações do app.
+/// Conecta comandos de voz às ações do app. Toda fala passa pelo modelo generativo.
 @MainActor
 final class VoiceCommandExecutor {
-    /// Ação pendente que aguarda a resposta falada do usuário (sem wake word).
     enum FollowUp {
+        /// Continuar a conversa (Clip fez uma pergunta).
+        case awaitReply
         case webSearch(String)
         case openURL(String)
     }
@@ -16,7 +17,6 @@ final class VoiceCommandExecutor {
     struct Feedback {
         let message: String
         let success: Bool
-        /// Se presente, o assistente fez uma pergunta e ficará ouvindo a resposta.
         let followUp: FollowUp?
 
         init(message: String, success: Bool, followUp: FollowUp? = nil) {
@@ -27,6 +27,7 @@ final class VoiceCommandExecutor {
     }
 
     private let knowledgeService = KnowledgeService()
+    private let generativeAnswerService = GenerativeAnswerService()
     private let settings: AppSettings
     private let panelViewModel: ClipboardPanelViewModel
     private let pasteService: PasteService
@@ -37,6 +38,9 @@ final class VoiceCommandExecutor {
     private let closePanel: () -> Void
     private let openSettings: () -> Void
     private let hideOverlayForCapture: () -> Void
+
+    /// Atualiza o HUD durante busca na web / geração.
+    var onGenerationPhaseChange: ((GenerativeAnswerService.GenerationPhase) -> Void)?
 
     init(
         settings: AppSettings,
@@ -60,44 +64,44 @@ final class VoiceCommandExecutor {
         self.closePanel = closePanel
         self.openSettings = openSettings
         self.hideOverlayForCapture = hideOverlayForCapture
+        generativeAnswerService.onPhaseChange = { [weak self] phase in
+            self?.onGenerationPhaseChange?(phase)
+        }
     }
 
     func execute(rawText: String, completion: @escaping (Feedback) -> Void) {
         guard let command = VoiceCommandParser.parse(rawText) else {
-            searchInternetAndSpeak(rawText, completion: completion)
+            chatWithAI(rawText, completion: completion)
             return
         }
 
         switch command {
         case .openApp(let name):
             let opened = openApplication(named: name)
-            completion(Feedback(
-                message: opened
-                    ? t("Abrindo \(name)...", "Opening \(name)...")
-                    : t("App \"\(name)\" não encontrado.", "App \"\(name)\" not found."),
-                success: opened
-            ))
+            speakAction(
+                opened ? "Abriu o app \(name)." : "Não encontrou o app chamado \(name).",
+                success: opened,
+                completion: completion
+            )
 
         case .screenshotFull:
             screenshotService.capture(.fullScreen) { [weak self] success in
                 guard let self else { return }
-                completion(Feedback(
-                    message: success
-                        ? self.t("Print salvo no histórico.", "Screenshot saved to history.")
-                        : self.t("Falha ao capturar a tela.", "Failed to capture the screen."),
-                    success: success
-                ))
+                self.speakAction(
+                    success ? "Print da tela inteira salvo no histórico." : "Falhou ao capturar a tela.",
+                    success: success,
+                    completion: completion
+                )
             }
 
         case .screenshotArea:
             screenshotService.capture(.interactiveArea) { [weak self] success in
                 guard let self else { return }
-                completion(Feedback(
-                    message: success
-                        ? self.t("Captura salva no histórico.", "Capture saved to history.")
-                        : self.t("Captura cancelada.", "Capture cancelled."),
-                    success: success
-                ))
+                self.speakAction(
+                    success ? "Captura de área salva no histórico." : "Captura de área cancelada.",
+                    success: success,
+                    completion: completion
+                )
             }
 
         case .analyzeScreen:
@@ -109,242 +113,240 @@ final class VoiceCommandExecutor {
                 guard let self else { return }
                 switch result {
                 case .success(let description):
-                    completion(Feedback(message: description, success: true))
+                    self.speakAction(
+                        "Conteúdo lido da tela: \(description)",
+                        success: true,
+                        completion: completion
+                    )
                 case .failure(ScreenAnalysisError.permissionDenied):
-                    completion(Feedback(
-                        message: self.t(
-                            "Não consegui capturar a tela. Confirme a permissão de Gravação de Tela para o ClipFlow nos Ajustes do Sistema e, se já estiver ativa, feche e abra o app novamente.",
-                            "I couldn't capture the screen. Confirm Screen Recording permission for ClipFlow in System Settings and, if it's already enabled, quit and reopen the app."
-                        ),
-                        success: false
-                    ))
+                    self.speakAction(
+                        "Não conseguiu capturar a tela por falta de permissão de Gravação de Tela. Peça para conferir nos Ajustes e reabrir o app se precisar.",
+                        success: false,
+                        completion: completion
+                    )
                 case .failure(ScreenAnalysisError.captureFailed):
-                    completion(Feedback(
-                        message: self.t("Não consegui capturar a tela.", "Failed to capture the screen."),
-                        success: false
-                    ))
+                    self.speakAction("Não conseguiu capturar a tela.", success: false, completion: completion)
                 case .failure:
-                    completion(Feedback(
-                        message: self.t("Não consegui analisar a tela.", "Couldn't analyze the screen."),
-                        success: false
-                    ))
+                    self.speakAction("Não conseguiu analisar a tela.", success: false, completion: completion)
                 }
             }
 
         case .openPanel:
             openPanel()
-            completion(Feedback(message: t("Painel aberto.", "Panel opened."), success: true))
+            speakAction("Abriu o painel do ClipFlow.", success: true, completion: completion)
 
         case .closePanel:
             closePanel()
-            completion(Feedback(message: t("Painel fechado.", "Panel closed."), success: true))
+            speakAction("Fechou o painel do ClipFlow.", success: true, completion: completion)
 
         case .copyItem(let index):
             panelViewModel.refresh()
             guard let item = panelViewModel.item(atDisplayIndex: index) else {
-                completion(itemNotFoundFeedback(index))
+                speakItemMissing(index, completion: completion)
                 return
             }
             let copied = panelViewModel.copyToPasteboard(item: item)
-            completion(Feedback(
-                message: copied
-                    ? t("Item \(index) copiado.", "Item \(index) copied.")
-                    : t("Falha ao copiar o item \(index).", "Failed to copy item \(index)."),
-                success: copied
-            ))
+            speakAction(
+                copied ? "Copiou o item \(index) do histórico." : "Falhou ao copiar o item \(index).",
+                success: copied,
+                completion: completion
+            )
 
         case .pasteItem(let index):
             panelViewModel.refresh()
             guard let item = panelViewModel.item(atDisplayIndex: index) else {
-                completion(itemNotFoundFeedback(index))
+                speakItemMissing(index, completion: completion)
                 return
             }
             panelViewModel.paste(item: item, targetApplication: targetApplicationProvider())
-            completion(Feedback(message: t("Colando item \(index)...", "Pasting item \(index)..."), success: true))
+            speakAction("Colando o item \(index) do histórico.", success: true, completion: completion)
 
         case .pasteLast:
             panelViewModel.refresh()
-            guard let item = panelViewModel.mostRecentItem() else {
-                completion(Feedback(message: t("Histórico vazio.", "History is empty."), success: false))
+            guard panelViewModel.mostRecentItem() != nil else {
+                speakAction("O histórico está vazio.", success: false, completion: completion)
                 return
             }
-            panelViewModel.paste(item: item, targetApplication: targetApplicationProvider())
-            completion(Feedback(message: t("Colando último item...", "Pasting last item..."), success: true))
+            if let item = panelViewModel.mostRecentItem() {
+                panelViewModel.paste(item: item, targetApplication: targetApplicationProvider())
+            }
+            speakAction("Colando o último item do histórico.", success: true, completion: completion)
 
         case .readLastItem:
             panelViewModel.refresh()
             guard let item = panelViewModel.mostRecentItem() else {
-                completion(Feedback(message: t("Histórico vazio.", "History is empty."), success: false))
+                speakAction("O histórico está vazio.", success: false, completion: completion)
                 return
             }
-            completion(Feedback(message: describeItem(item), success: true))
+            speakAction(
+                "Último item copiado: \(itemSpeechContext(item))",
+                success: true,
+                completion: completion
+            )
 
         case .copyLastItem:
             panelViewModel.refresh()
             guard let item = panelViewModel.mostRecentItem() else {
-                completion(Feedback(message: t("Histórico vazio.", "History is empty."), success: false))
+                speakAction("O histórico está vazio.", success: false, completion: completion)
                 return
             }
             let copied = panelViewModel.copyToPasteboard(item: item)
-            completion(Feedback(
-                message: copied
-                    ? t("Último item copiado.", "Last item copied.")
-                    : t("Falha ao copiar o último item.", "Failed to copy the last item."),
-                success: copied
-            ))
+            speakAction(
+                copied ? "Copiou o último item do histórico." : "Falhou ao copiar o último item.",
+                success: copied,
+                completion: completion
+            )
 
         case .favoriteItem(let index):
             panelViewModel.refresh()
             guard let item = panelViewModel.item(atDisplayIndex: index) else {
-                completion(itemNotFoundFeedback(index))
+                speakItemMissing(index, completion: completion)
                 return
             }
             panelViewModel.toggleFavorite(itemID: item.id)
-            completion(Feedback(message: t("Item \(index) favoritado.", "Item \(index) favorited."), success: true))
+            speakAction("Favoritou o item \(index).", success: true, completion: completion)
 
         case .deleteItem(let index):
             panelViewModel.refresh()
             guard let item = panelViewModel.item(atDisplayIndex: index) else {
-                completion(itemNotFoundFeedback(index))
+                speakItemMissing(index, completion: completion)
                 return
             }
             panelViewModel.delete(itemID: item.id)
-            completion(Feedback(message: t("Item \(index) apagado.", "Item \(index) deleted."), success: true))
+            speakAction("Apagou o item \(index) do histórico.", success: true, completion: completion)
 
         case .pinItem(let index):
             panelViewModel.refresh()
             guard let item = panelViewModel.item(atDisplayIndex: index) else {
-                completion(itemNotFoundFeedback(index))
+                speakItemMissing(index, completion: completion)
                 return
             }
+            let wasPinned = item.isPinned
             panelViewModel.togglePin(itemID: item.id)
-            let action = item.isPinned
-                ? t("desafixado", "unpinned")
-                : t("fixado", "pinned")
-            completion(Feedback(message: t("Item \(index) \(action).", "Item \(index) \(action)."), success: true))
+            speakAction(
+                wasPinned ? "Desafixou o item \(index)." : "Fixou o item \(index).",
+                success: true,
+                completion: completion
+            )
 
         case .historyCount:
             panelViewModel.refresh()
             let count = panelViewModel.itemCount
             let stack = panelViewModel.pasteStack.count
-            let message = stack > 0
-                ? t("\(count) itens no histórico e \(stack) na pilha.", "\(count) items in history and \(stack) in the stack.")
-                : t("\(count) itens no histórico.", "\(count) items in history.")
-            completion(Feedback(message: message, success: true))
+            let fact = stack > 0
+                ? "Há \(count) itens no histórico e \(stack) na pilha de colagem."
+                : "Há \(count) itens no histórico."
+            speakAction(fact, success: true, completion: completion)
 
         case .clearHistory:
             panelViewModel.clearAll()
-            completion(Feedback(message: t("Histórico limpo.", "History cleared."), success: true))
+            speakAction("Limpou o histórico da área de transferência.", success: true, completion: completion)
 
         case .dictate(let text):
             pasteService.paste(text: text, targetApplication: targetApplicationProvider())
-            completion(Feedback(message: t("Digitando...", "Typing..."), success: true))
+            speakAction("Digitando o texto ditado.", success: true, completion: completion)
 
         case .formatJSONLast:
             panelViewModel.refresh()
-            let formatted = panelViewModel.formatMostRecentJSON()
-            completion(Feedback(
-                message: formatted
-                    ? t("JSON formatado e copiado.", "JSON formatted and copied.")
-                    : t("Último item não é um JSON válido.", "Last item is not valid JSON."),
-                success: formatted
-            ))
+            let ok = panelViewModel.formatMostRecentJSON()
+            speakAction(
+                ok ? "Formatou o JSON do último item e copiou." : "O último item não é um JSON válido.",
+                success: ok,
+                completion: completion
+            )
 
         case .transformLast(let transform):
             panelViewModel.refresh()
-            let transformed = panelViewModel.transformMostRecent(transform)
-            completion(Feedback(
-                message: transformed
-                    ? t("\(transform.title(for: settings.language)) aplicado e copiado.", "\(transform.title(for: settings.language)) applied and copied.")
-                    : t("Não consegui aplicar essa transformação no último item.", "Couldn't apply that transform to the last item."),
-                success: transformed
-            ))
+            let ok = panelViewModel.transformMostRecent(transform)
+            let name = transform.title(for: settings.language)
+            speakAction(
+                ok ? "Aplicou \(name) no último item e copiou." : "Não conseguiu aplicar \(name) no último item.",
+                success: ok,
+                completion: completion
+            )
 
         case .saveSnippet(let name):
             panelViewModel.refresh()
             let saved = panelViewModel.saveMostRecentAsSnippet(named: name)
-            completion(Feedback(
-                message: saved
-                    ? t("Snippet \"\(name)\" salvo.", "Snippet \"\(name)\" saved.")
-                    : t("Nada para salvar como snippet.", "Nothing to save as a snippet."),
-                success: saved
-            ))
+            speakAction(
+                saved ? "Salvou o snippet chamado \(name)." : "Não havia nada para salvar como snippet.",
+                success: saved,
+                completion: completion
+            )
 
         case .pasteSnippet(let name):
             panelViewModel.refresh()
             guard let item = panelViewModel.snippet(named: name) else {
-                completion(Feedback(
-                    message: t("Snippet \"\(name)\" não encontrado.", "Snippet \"\(name)\" not found."),
-                    success: false
-                ))
+                speakAction("Não encontrou o snippet \(name).", success: false, completion: completion)
                 return
             }
             panelViewModel.paste(item: item, targetApplication: targetApplicationProvider())
-            completion(Feedback(message: t("Colando snippet \"\(name)\"...", "Pasting snippet \"\(name)\"..."), success: true))
+            speakAction("Colando o snippet \(name).", success: true, completion: completion)
 
         case .listSnippets:
             panelViewModel.refresh()
             let names = panelViewModel.snippetNames()
             if names.isEmpty {
-                completion(Feedback(message: t("Você ainda não tem snippets salvos.", "You don't have any saved snippets yet."), success: false))
+                speakAction("Ainda não há snippets salvos.", success: false, completion: completion)
             } else {
-                let list = names.joined(separator: ", ")
-                completion(Feedback(message: t("Seus snippets: \(list).", "Your snippets: \(list)."), success: true))
+                speakAction("Snippets salvos: \(names.joined(separator: ", ")).", success: true, completion: completion)
             }
 
         case .stackAdd(let index):
             panelViewModel.refresh()
             guard let item = panelViewModel.item(atDisplayIndex: index) else {
-                completion(itemNotFoundFeedback(index))
+                speakItemMissing(index, completion: completion)
                 return
             }
             panelViewModel.addToStack(itemID: item.id)
-            completion(Feedback(
-                message: t("Item \(index) na pilha (\(panelViewModel.pasteStack.count)).", "Item \(index) stacked (\(panelViewModel.pasteStack.count))."),
-                success: true
-            ))
+            speakAction(
+                "Adicionou o item \(index) à pilha. A pilha agora tem \(panelViewModel.pasteStack.count) itens.",
+                success: true,
+                completion: completion
+            )
 
         case .stackPasteNext:
             let pasted = panelViewModel.pasteNextFromStack(targetApplication: targetApplicationProvider())
-            completion(Feedback(
-                message: pasted
-                    ? t("Colando próximo da pilha (\(panelViewModel.pasteStack.count) restantes).", "Pasting next from stack (\(panelViewModel.pasteStack.count) left).")
-                    : t("Pilha vazia.", "Stack is empty."),
-                success: pasted
-            ))
+            speakAction(
+                pasted
+                    ? "Colou o próximo da pilha. Restam \(panelViewModel.pasteStack.count)."
+                    : "A pilha de colagem está vazia.",
+                success: pasted,
+                completion: completion
+            )
 
         case .stackClear:
             panelViewModel.clearStack()
-            completion(Feedback(message: t("Pilha limpa.", "Stack cleared."), success: true))
+            speakAction("Limpou a pilha de colagem.", success: true, completion: completion)
 
         case .pauseMonitoring:
             settings.pauseMonitoring = true
-            completion(Feedback(message: t("Monitoramento pausado.", "Monitoring paused."), success: true))
+            speakAction("Pausou o monitoramento da área de transferência.", success: true, completion: completion)
 
         case .resumeMonitoring:
             settings.pauseMonitoring = false
-            completion(Feedback(message: t("Monitoramento retomado.", "Monitoring resumed."), success: true))
+            speakAction("Retomou o monitoramento da área de transferência.", success: true, completion: completion)
 
         case .currentTime:
             let formatter = DateFormatter()
             formatter.locale = currentLocale()
             formatter.timeStyle = .short
             let time = formatter.string(from: Date())
-            completion(Feedback(message: t("Agora são \(time).", "It's \(time) right now."), success: true))
+            speakAction("Agora são \(time).", success: true, completion: completion)
 
         case .currentDate:
             let formatter = DateFormatter()
             formatter.locale = currentLocale()
             formatter.dateStyle = .full
             let date = formatter.string(from: Date())
-            completion(Feedback(message: t("Hoje é \(date).", "Today is \(date)."), success: true))
+            speakAction("Hoje é \(date).", success: true, completion: completion)
 
         case .dayOfWeek:
             let formatter = DateFormatter()
             formatter.locale = currentLocale()
             formatter.dateFormat = "EEEE"
             let day = formatter.string(from: Date())
-            completion(Feedback(message: t("Hoje é \(day).", "Today is \(day)."), success: true))
+            speakAction("Hoje é \(day).", success: true, completion: completion)
 
         case .weather:
             fetchWeather(completion: completion)
@@ -352,343 +354,384 @@ final class VoiceCommandExecutor {
         case .openWebsite(let site):
             if let url = websiteURL(from: site) {
                 NSWorkspace.shared.open(url)
-                completion(Feedback(message: t("Abrindo \(url.host ?? site)...", "Opening \(url.host ?? site)..."), success: true))
+                speakAction("Abrindo o site \(url.host ?? site).", success: true, completion: completion)
             } else {
-                completion(Feedback(
-                    message: t("Não consegui montar o endereço \"\(site)\".", "Couldn't build the address \"\(site)\"."),
-                    success: false
-                ))
+                speakAction("Não conseguiu montar o endereço \(site).", success: false, completion: completion)
             }
 
         case .setUserName(let name):
             settings.userName = name
-            completion(Feedback(
-                message: t("Prazer, \(name)! Vou lembrar do seu nome.", "Nice to meet you, \(name)! I'll remember your name."),
-                success: true
-            ))
-
-        case .askUserName:
-            if settings.userName.isEmpty {
-                completion(Feedback(
-                    message: t(
-                        "Ainda não sei seu nome. Diga: \"meu nome é ...\" que eu guardo.",
-                        "I don't know your name yet. Say \"my name is ...\" and I'll remember it."
-                    ),
-                    success: false
-                ))
-            } else {
-                completion(Feedback(
-                    message: t("Você é o \(settings.userName)!", "You're \(settings.userName)!"),
-                    success: true
-                ))
-            }
-
-        case .aboutAssistant:
-            let greeting = settings.userName.isEmpty
-                ? ""
-                : settings.text(ptBR: "Oi, \(settings.userName)! ", en: "Hi, \(settings.userName)! ")
-            completion(Feedback(
-                message: greeting + t(
-                    "Eu sou o Clip, o assistente de voz do ClipFlow. Controlo volume e brilho, abro apps e sites, leio a tela, colo do histórico, tiro prints, respondo perguntas, digo horas e clima. Diga 'o que você pode fazer' para a lista completa.",
-                    "I'm Clip, ClipFlow's voice assistant. I control volume and brightness, open apps and websites, read the screen, paste from history, take screenshots, answer questions, and tell time and weather. Say 'what can you do' for the full list."
-                ),
-                success: true
-            ))
-
-        case .aboutDeveloper:
-            completion(Feedback(
-                message: t(
-                    "Fui desenvolvido pelo \(Self.developerName). Quer que eu abra o LinkedIn dele?",
-                    "I was built by \(Self.developerName). Want me to open his LinkedIn?"
-                ),
-                success: true,
-                followUp: .openURL(Self.developerLinkedInURL)
-            ))
+            speakAction("Guardou o nome do usuário como \(name).", success: true, completion: completion)
 
         case .openDeveloperProfile:
             if let url = URL(string: Self.developerLinkedInURL) {
                 NSWorkspace.shared.open(url)
             }
-            completion(Feedback(
-                message: t("Abrindo o LinkedIn do \(Self.developerName)...", "Opening \(Self.developerName)'s LinkedIn..."),
-                success: true
-            ))
-
-        case .help:
-            completion(Feedback(
-                message: VoiceCommandCatalog.helpMessage(pt: usesPortuguese),
-                success: true
-            ))
-
-        case .greeting(let kind):
-            completion(Feedback(message: greetingMessage(for: kind), success: true))
-
-        case .thanks:
-            completion(Feedback(
-                message: t("Por nada! Estou aqui se precisar.", "You're welcome! I'm here if you need me."),
-                success: true
-            ))
-
-        case .goodbye:
-            completion(Feedback(
-                message: t("Até logo! Chame o Clip quando quiser.", "See you! Call Clip anytime."),
-                success: true
-            ))
-
-        case .howAreYou:
-            completion(Feedback(
-                message: t("Estou ótimo e pronto para ajudar!", "I'm great and ready to help!"),
-                success: true
-            ))
+            speakAction(
+                "Abrindo o LinkedIn de \(Self.developerName).",
+                success: true,
+                completion: completion
+            )
 
         case .openSettings:
             openSettings()
-            completion(Feedback(message: t("Abrindo configurações...", "Opening settings..."), success: true))
+            speakAction("Abrindo as configurações do ClipFlow.", success: true, completion: completion)
 
         case .setVoiceEnabled(let enabled):
             settings.voiceControlEnabled = enabled
-            completion(Feedback(
-                message: enabled
-                    ? t("Comandos de voz ativados.", "Voice commands enabled.")
-                    : t("Comandos de voz desativados.", "Voice commands disabled."),
-                success: true
-            ))
+            speakAction(
+                enabled ? "Ativou os comandos de voz." : "Desativou os comandos de voz.",
+                success: true,
+                completion: completion
+            )
 
         case .lockScreen:
             runShellCommand("/usr/bin/pmset", arguments: ["displaysleepnow"])
-            completion(Feedback(message: t("Tela bloqueada.", "Screen locked."), success: true))
+            speakAction("Bloqueou a tela.", success: true, completion: completion)
 
         case .openSpotlight:
             SystemKeySimulator.openSpotlight()
-            completion(Feedback(message: t("Abrindo Spotlight...", "Opening Spotlight..."), success: true))
+            speakAction("Abrindo o Spotlight.", success: true, completion: completion)
 
         case .volumeAdjust(let action):
             adjustVolume(action)
-            let message: String
+            let fact: String
             switch action {
-            case .up: message = t("Volume aumentado.", "Volume increased.")
-            case .down: message = t("Volume diminuído.", "Volume decreased.")
-            case .mute: message = t("Som silenciado.", "Sound muted.")
+            case .up: fact = "Aumentou o volume."
+            case .down: fact = "Diminuiu o volume."
+            case .mute: fact = "Silenciou o som."
             }
-            completion(Feedback(message: message, success: true))
+            speakAction(fact, success: true, completion: completion)
 
         case .brightnessAdjust(let action):
             adjustBrightness(action)
-            let message: String
+            let fact: String
             switch action {
-            case .up: message = t("Brilho aumentado.", "Brightness increased.")
-            case .down: message = t("Brilho diminuído.", "Brightness decreased.")
+            case .up: fact = "Aumentou o brilho da tela."
+            case .down: fact = "Diminuiu o brilho da tela."
             }
-            completion(Feedback(message: message, success: true))
+            speakAction(fact, success: true, completion: completion)
 
         case .openFolder(let folder):
             NSWorkspace.shared.open(folder.url)
-            completion(Feedback(
-                message: t("Abrindo \(folder.spokenName(pt: usesPortuguese))...", "Opening \(folder.spokenName(pt: usesPortuguese))..."),
-                success: true
-            ))
+            speakAction(
+                "Abrindo a pasta \(folder.spokenName(pt: usesPortuguese)).",
+                success: true,
+                completion: completion
+            )
 
         case .searchHistory(let query):
             panelViewModel.searchText = query
             panelViewModel.setFilter(.all)
             openPanel()
-            completion(Feedback(
-                message: t("Buscando \"\(query)\" no histórico...", "Searching history for \"\(query)\"..."),
-                success: true
-            ))
+            speakAction("Buscando \"\(query)\" no histórico e abrindo o painel.", success: true, completion: completion)
 
         case .showFilter(let filter):
             panelViewModel.setFilter(filter)
             openPanel()
-            completion(Feedback(
-                message: t("Mostrando \(filter.title(for: settings.language)).", "Showing \(filter.title(for: settings.language))."),
-                success: true
-            ))
+            speakAction(
+                "Mostrando o filtro \(filter.title(for: settings.language)) no painel.",
+                success: true,
+                completion: completion
+            )
 
         case .calculate(let result):
-            completion(Feedback(
-                message: t("O resultado é \(result).", "The result is \(result)."),
-                success: true
-            ))
-
-        case .question(let question):
-            answerQuestion(question, completion: completion)
+            speakAction("O resultado do cálculo é \(result).", success: true, completion: completion)
 
         case .webSearch(let query):
-            completion(performWebSearch(query))
+            performWebSearch(query, completion: completion)
         }
     }
 
-    /// Trata a resposta falada a uma pergunta do assistente
-    /// (ex.: "Quer que eu pesquise na web?" -> "sim").
     func handleFollowUpResponse(_ followUp: FollowUp, answer: String, completion: @escaping (Feedback) -> Void) {
-        let normalized = VoiceCommandParser.normalize(answer)
-        let words = Set(normalized.split(separator: " ").map(String.init))
-
-        let negatives: Set<String> = ["nao", "nope", "cancela", "deixa", "esquece"]
-        let affirmatives: Set<String> = ["sim", "pode", "claro", "quero", "manda", "vai", "bora", "yes", "sure", "yep", "ok", "please"]
-
-        if !words.isDisjoint(with: negatives) || normalized == "no" {
-            completion(Feedback(message: t("Ok, deixei pra lá.", "Okay, never mind."), success: true))
+        let cleaned = answer.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleaned.isEmpty else {
+            speakAction("Não entendeu a resposta.", success: false, completion: completion)
             return
         }
 
-        if !words.isDisjoint(with: affirmatives) {
-            switch followUp {
-            case .webSearch(let query):
-                searchInternetAndSpeak(query, completion: completion)
-            case .openURL(let urlString):
+        switch followUp {
+        case .awaitReply:
+            execute(rawText: cleaned, completion: completion)
+
+        case .webSearch(let query):
+            if isNegativeReply(cleaned) {
+                speakAction("O usuário recusou a oferta anterior.", success: true, completion: completion)
+            } else if isAffirmativeReply(cleaned) {
+                chatWithAI(query, completion: completion)
+            } else {
+                execute(rawText: cleaned, completion: completion)
+            }
+
+        case .openURL(let urlString):
+            if isNegativeReply(cleaned) {
+                speakAction("O usuário recusou a oferta anterior.", success: true, completion: completion)
+            } else if isAffirmativeReply(cleaned) {
                 if let url = URL(string: urlString) {
                     NSWorkspace.shared.open(url)
-                    completion(Feedback(message: t("Abrindo...", "Opening..."), success: true))
+                    speakAction("Abrindo o link pedido.", success: true, completion: completion)
                 } else {
-                    completion(Feedback(message: t("Não consegui abrir o link.", "Couldn't open the link."), success: false))
+                    speakAction("Não conseguiu abrir o link.", success: false, completion: completion)
                 }
+            } else {
+                execute(rawText: cleaned, completion: completion)
             }
+        }
+    }
+
+    private func isNegativeReply(_ answer: String) -> Bool {
+        let normalized = VoiceCommandParser.normalize(answer)
+        if normalized == "no" { return true }
+        let words = Set(normalized.split(separator: " ").map(String.init))
+        let negatives: Set<String> = ["nao", "nope", "cancela", "deixa", "esquece"]
+        return !words.isDisjoint(with: negatives)
+    }
+
+    private func isAffirmativeReply(_ answer: String) -> Bool {
+        let normalized = VoiceCommandParser.normalize(answer)
+        let words = Set(normalized.split(separator: " ").map(String.init))
+        let affirmatives: Set<String> = ["sim", "pode", "claro", "quero", "manda", "vai", "bora", "yes", "sure", "yep", "ok", "please"]
+        return !words.isDisjoint(with: affirmatives)
+    }
+
+    // MARK: - Fala generativa
+
+    private func speakAction(
+        _ fact: String,
+        success: Bool,
+        followUp: FollowUp? = nil,
+        completion: @escaping (Feedback) -> Void
+    ) {
+        respond(.action(fact: fact, success: success), success: success, followUp: followUp, useWeb: false, completion: completion)
+    }
+
+    /// Único caminho conversacional: a fala do usuário vai direto para a IA com o pre-prompt de identidade.
+    private func chatWithAI(_ userText: String, completion: @escaping (Feedback) -> Void) {
+        let cleaned = userText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleaned.isEmpty else {
+            speakAction("Não entendeu o que foi dito.", success: false, completion: completion)
+            return
+        }
+        let useWeb = settings.generativeUseWebContext && QuestionPreprocessor.prepare(cleaned) != nil
+        respond(.chat(cleaned), success: true, followUp: nil, useWeb: useWeb, completion: completion)
+    }
+
+    private func respond(
+        _ request: GenerativeAnswerService.SpokenRequest,
+        success: Bool,
+        followUp: FollowUp?,
+        useWeb: Bool,
+        completion: @escaping (Feedback) -> Void
+    ) {
+        let languageCode = settings.text(ptBR: "pt", en: "en")
+        let userName = settings.userName.isEmpty ? nil : settings.userName
+        let fallbackFact = fallbackText(for: request)
+
+        guard settings.generativeAnswersEnabled else {
+            completion(Feedback(message: sanitizeFallback(fallbackFact), success: success, followUp: followUp))
             return
         }
 
-        // Não foi sim/não: trata como um novo comando normal.
-        execute(rawText: answer, completion: completion)
+        generativeAnswerService.refreshStatus(userName: userName)
+        guard generativeAnswerService.status.isReady else {
+            completion(Feedback(
+                message: generativeUnavailableMessage(for: generativeAnswerService.status),
+                success: false,
+                followUp: nil
+            ))
+            return
+        }
+
+        generativeAnswerService.respond(
+            to: request,
+            languageCode: languageCode,
+            userName: userName,
+            useWebContext: useWeb
+        ) { [weak self] result in
+            guard let self else { return }
+            switch result {
+            case .success(let message):
+                let resolvedFollowUp = followUp ?? Self.resolveFollowUp(from: message)
+                completion(Feedback(message: message, success: success, followUp: resolvedFollowUp))
+            case .failure:
+                completion(Feedback(message: self.sanitizeFallback(fallbackFact), success: success, followUp: followUp))
+            }
+        }
     }
 
-    private func performWebSearch(_ query: String) -> Feedback {
+    /// Decide se o Clip deve continuar ouvindo após falar.
+    private static func resolveFollowUp(from message: String) -> FollowUp? {
+        if let urlFollowUp = openURLFollowUp(from: message) {
+            return urlFollowUp
+        }
+        if looksLikeAwaitingReply(message) {
+            return .awaitReply
+        }
+        return nil
+    }
+
+    /// Se a fala citou um link, prepara follow-up para abrir na internet após sim/não.
+    private static func openURLFollowUp(from message: String) -> FollowUp? {
+        guard let url = firstHTTPURL(in: message) else { return nil }
+        return .openURL(url.absoluteString)
+    }
+
+    /// Detecta pergunta / pedido de confirmação para manter a escuta aberta.
+    private static func looksLikeAwaitingReply(_ message: String) -> Bool {
+        let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return false }
+
+        if trimmed.hasSuffix("?") || trimmed.hasSuffix("？") {
+            return true
+        }
+
+        let normalized = VoiceCommandParser.normalize(trimmed)
+        let tail = String(normalized.suffix(100))
+        let markers = [
+            "quer que eu",
+            "quer que",
+            "posso ",
+            "voce quer",
+            "voce pode",
+            "me diz",
+            "me conta",
+            "o que acha",
+            "o que voce acha",
+            "confirma",
+            "topa",
+            "bora ",
+            "deseja",
+            "prefere",
+            "faz sentido",
+            "te interessa",
+            "posso abrir",
+            "quer abrir",
+            "me fala",
+            "e ai",
+            "e voce"
+        ]
+        return markers.contains { tail.contains($0) }
+    }
+
+    private static func firstHTTPURL(in text: String) -> URL? {
+        guard let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue) else {
+            return nil
+        }
+        let range = NSRange(text.startIndex..<text.endIndex, in: text)
+        let matches = detector.matches(in: text, options: [], range: range)
+        for match in matches {
+            guard let url = match.url,
+                  let scheme = url.scheme?.lowercased(),
+                  scheme == "http" || scheme == "https" else {
+                continue
+            }
+            return url
+        }
+        return nil
+    }
+
+    private func fallbackText(for request: GenerativeAnswerService.SpokenRequest) -> String {
+        switch request {
+        case .chat(let text):
+            return text
+        case .action(let fact, _):
+            return fact
+        }
+    }
+
+    private func sanitizeFallback(_ text: String) -> String {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.count <= 220 { return trimmed }
+        return String(trimmed.prefix(220))
+    }
+
+    private func speakItemMissing(_ index: Int, completion: @escaping (Feedback) -> Void) {
+        speakAction("O item \(index) não existe no histórico.", success: false, completion: completion)
+    }
+
+    private func performWebSearch(_ query: String, completion: @escaping (Feedback) -> Void) {
         var components = URLComponents(string: "https://www.google.com/search")
         components?.queryItems = [URLQueryItem(name: "q", value: query)]
         guard let url = components?.url else {
-            return Feedback(message: t("Não consegui pesquisar isso.", "Couldn't run that search."), success: false)
+            speakAction("Não conseguiu montar a pesquisa.", success: false, completion: completion)
+            return
         }
         NSWorkspace.shared.open(url)
-        return Feedback(message: t("Pesquisando por \"\(query)\"...", "Searching for \"\(query)\"..."), success: true)
+        speakAction("Abrindo pesquisa na web por \"\(query)\".", success: true, completion: completion)
     }
 
-    // MARK: - Assistente
+    private func generativeUnavailableMessage(for status: GenerativeAnswerService.ModelStatus) -> String {
+        // Únicas strings de sistema: o modelo ainda não pode falar.
+        switch status {
+        case .available:
+            return usesPortuguese ? "O modelo ainda não está pronto." : "The model isn't ready yet."
+        case .downloading:
+            return usesPortuguese
+                ? "O Apple Intelligence ainda está baixando o modelo."
+                : "Apple Intelligence is still downloading the model."
+        case .appleIntelligenceDisabled:
+            return usesPortuguese
+                ? "Ative o Apple Intelligence em Ajustes do Sistema para eu falar com você."
+                : "Turn on Apple Intelligence in System Settings so I can talk to you."
+        case .deviceNotEligible:
+            return usesPortuguese
+                ? "Este Mac não é compatível com Apple Intelligence."
+                : "This Mac isn't compatible with Apple Intelligence."
+        case .unavailable:
+            return usesPortuguese
+                ? "O modelo generativo está indisponível agora."
+                : "The generative model is unavailable right now."
+        case .unsupportedOS:
+            return usesPortuguese
+                ? "Respostas generativas pedem macOS 26 ou superior."
+                : "Generative answers require macOS 26 or later."
+        }
+    }
 
-    private func answerQuestion(_ question: String, completion: @escaping (Feedback) -> Void) {
-        let normalized = VoiceCommandParser.normalize(question)
-        if let assistantIntent = AssistantIntentDetector.detect(normalized: normalized) {
-            completion(localAssistantFeedback(for: assistantIntent))
+    // MARK: - Clima / helpers
+
+    private func fetchWeather(completion: @escaping (Feedback) -> Void) {
+        let lang = settings.text(ptBR: "pt", en: "en")
+        guard let url = URL(string: "https://wttr.in/?format=%t|%C&lang=\(lang)") else {
+            speakAction("Não conseguiu consultar o tempo.", success: false, completion: completion)
             return
         }
 
-        if let developerFeedback = developerKnowledgeFeedback(for: question) {
-            completion(developerFeedback)
-            return
-        }
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 6
 
-        let languageCode = settings.text(ptBR: "pt", en: "en")
-        let prepared = QuestionPreprocessor.prepare(question) ?? question
-        knowledgeService.answer(question: prepared, languageCode: languageCode) { [weak self] answer in
-            guard let self else { return }
-            if let answer, KnowledgeService.isAnswerRelevant(answer, to: prepared) {
-                completion(Feedback(message: answer, success: true))
-            } else {
-                self.searchInternetAndSpeak(
-                    prepared,
-                    completion: completion
-                )
+        URLSession.shared.dataTask(with: request) { [weak self] data, _, error in
+            let fact = Self.weatherFact(from: data, error: error)
+            DispatchQueue.main.async {
+                guard let self else { return }
+                if let fact {
+                    self.speakAction(fact, success: true, completion: completion)
+                } else {
+                    self.speakAction(
+                        "Não conseguiu consultar o tempo agora. Pode ser a conexão.",
+                        success: false,
+                        completion: completion
+                    )
+                }
             }
-        }
+        }.resume()
     }
 
-    private func localAssistantFeedback(for intent: AssistantIntent) -> Feedback {
-        switch intent {
-        case .aboutAssistant:
-            let greeting = settings.userName.isEmpty
-                ? ""
-                : settings.text(ptBR: "Oi, \(settings.userName)! ", en: "Hi, \(settings.userName)! ")
-            return Feedback(
-                message: greeting + t(
-                    "Eu sou o Clip, o assistente de voz do ClipFlow. Controlo volume e brilho, abro apps e sites, leio a tela, colo do histórico, tiro prints, respondo perguntas, digo horas e clima. Diga 'o que você pode fazer' para a lista completa.",
-                    "I'm Clip, ClipFlow's voice assistant. I control volume and brightness, open apps and websites, read the screen, paste from history, take screenshots, answer questions, and tell time and weather. Say 'what can you do' for the full list."
-                ),
-                success: true
-            )
-        case .aboutDeveloper:
-            return Feedback(
-                message: t(
-                    "Fui desenvolvido pelo \(Self.developerName). Quer que eu abra o LinkedIn dele?",
-                    "I was built by \(Self.developerName). Want me to open his LinkedIn?"
-                ),
-                success: true,
-                followUp: .openURL(Self.developerLinkedInURL)
-            )
-        case .openDeveloperProfile:
-            if let url = URL(string: Self.developerLinkedInURL) {
-                NSWorkspace.shared.open(url)
-            }
-            return Feedback(
-                message: t("Abrindo o LinkedIn do \(Self.developerName)...", "Opening \(Self.developerName)'s LinkedIn..."),
-                success: true
-            )
-        case .help:
-            return Feedback(
-                message: VoiceCommandCatalog.helpMessage(pt: usesPortuguese),
-                success: true
-            )
-        }
-    }
-
-    private func developerKnowledgeFeedback(for question: String) -> Feedback? {
-        guard let answer = DeveloperKnowledgeService.answer(question: question, portuguese: usesPortuguese) else {
+    nonisolated private static func weatherFact(from data: Data?, error: Error?) -> String? {
+        guard error == nil,
+              let data,
+              let text = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !text.isEmpty,
+              text.count < 80 else {
             return nil
         }
 
-        let followUp: FollowUp?
-        switch answer.followUp {
-        case .searchWeb(let query):
-            followUp = .webSearch(query)
-        case .openLinkedIn:
-            followUp = .openURL(DeveloperProfileCatalog.linkedInURL)
-        case nil:
-            followUp = nil
+        let parts = text.split(separator: "|").map { String($0).trimmingCharacters(in: .whitespaces) }
+        let temperature = parts.first ?? text
+        if parts.count > 1 {
+            return "Clima atual: \(temperature), \(parts[1].lowercased())."
         }
-
-        return Feedback(message: answer.message, success: true, followUp: followUp)
-    }
-
-    /// Pesquisa na internet e fala o que encontrou quando o comando não foi reconhecido.
-    private func searchInternetAndSpeak(
-        _ rawText: String,
-        completion: @escaping (Feedback) -> Void
-    ) {
-        let normalized = VoiceCommandParser.normalize(rawText)
-        if let assistantIntent = AssistantIntentDetector.detect(normalized: normalized) {
-            completion(localAssistantFeedback(for: assistantIntent))
-            return
-        }
-
-        if let developerFeedback = developerKnowledgeFeedback(for: rawText) {
-            completion(developerFeedback)
-            return
-        }
-
-        guard let query = KnowledgeService.resolveSearchQuery(from: rawText) else {
-            completion(Feedback(
-                message: t("Não entendi.", "I didn't understand."),
-                success: false
-            ))
-            return
-        }
-
-        let languageCode = settings.text(ptBR: "pt", en: "en")
-        knowledgeService.searchInternetForSpeech(
-            query: query,
-            languageCode: languageCode
-        ) { [weak self] answer in
-            guard let self else { return }
-            if let answer, KnowledgeService.isAnswerRelevant(answer, to: query) {
-                completion(Feedback(message: answer, success: true))
-            } else {
-                completion(Feedback(
-                    message: self.t(
-                        "Pesquisei na internet sobre \"\(query)\" mas não encontrei uma resposta clara.",
-                        "I searched the internet for \"\(query)\" but couldn't find a clear answer."
-                    ),
-                    success: false
-                ))
-            }
-        }
+        return "Clima atual: \(temperature)."
     }
 
     private func currentLocale() -> Locale {
@@ -698,68 +741,23 @@ final class VoiceCommandExecutor {
     private func websiteURL(from site: String) -> URL? {
         var address = site.replacingOccurrences(of: " ", with: "")
         guard !address.isEmpty else { return nil }
-
-        if !address.contains("://") {
-            address = "https://" + address
-        }
-        if !address.contains(".") {
-            address += ".com"
-        }
-
+        if !address.contains("://") { address = "https://" + address }
+        if !address.contains(".") { address += ".com" }
         guard let url = URL(string: address), url.host != nil else { return nil }
         return url
     }
 
-    /// Clima atual via wttr.in (gratuito, sem chave; localização por IP).
-    private func fetchWeather(completion: @escaping (Feedback) -> Void) {
-        let lang = settings.text(ptBR: "pt", en: "en")
-        guard let url = URL(string: "https://wttr.in/?format=%t|%C&lang=\(lang)") else {
-            completion(Feedback(message: t("Não consegui consultar o tempo.", "Couldn't check the weather."), success: false))
-            return
-        }
-
-        var request = URLRequest(url: url)
-        request.timeoutInterval = 6
-
-        let failureMessage = t(
-            "Não consegui consultar o tempo agora. Verifique a conexão.",
-            "Couldn't check the weather right now. Check your connection."
-        )
-
-        let task = URLSession.shared.dataTask(with: request) { [weak self] data, _, error in
-            DispatchQueue.main.async {
-                guard let self else { return }
-                guard error == nil,
-                      let data,
-                      let text = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines),
-                      !text.isEmpty, text.count < 80 else {
-                    completion(Feedback(message: failureMessage, success: false))
-                    return
-                }
-
-                let parts = text.split(separator: "|").map { $0.trimmingCharacters(in: .whitespaces) }
-                let temperature = parts.first ?? text
-                let condition = parts.count > 1 ? parts[1].lowercased() : nil
-
-                let message: String
-                if let condition {
-                    message = self.t("Agora faz \(temperature), com \(condition).", "It's \(temperature) right now, \(condition).")
-                } else {
-                    message = self.t("Agora faz \(temperature).", "It's \(temperature) right now.")
-                }
-                completion(Feedback(message: message, success: true))
+    private func itemSpeechContext(_ item: DecodedClipboardItem) -> String {
+        switch item.kind {
+        case .text:
+            guard let text = item.text?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty else {
+                return "texto vazio"
             }
+            if text.count <= 400 { return text }
+            return String(text.prefix(400)) + "…"
+        case .image:
+            return "uma imagem"
         }
-        task.resume()
-    }
-
-    // MARK: - Helpers
-
-    private func itemNotFoundFeedback(_ index: Int) -> Feedback {
-        Feedback(
-            message: t("Item \(index) não existe no histórico.", "Item \(index) doesn't exist in history."),
-            success: false
-        )
     }
 
     private func openApplication(named name: String) -> Bool {
@@ -807,47 +805,12 @@ final class VoiceCommandExecutor {
         return exactMatch ?? prefixMatch ?? containsMatch
     }
 
-    private func t(_ pt: String, _ en: String) -> String {
-        settings.text(ptBR: pt, en: en)
-    }
-
     private var usesPortuguese: Bool {
         switch settings.language {
         case .portuguese: return true
         case .english: return false
         case .system:
             return Locale.preferredLanguages.first?.lowercased().hasPrefix("pt") == true
-        }
-    }
-
-    private func describeItem(_ item: DecodedClipboardItem) -> String {
-        switch item.kind {
-        case .text:
-            guard let text = item.text?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty else {
-                return t("O último item é um texto vazio.", "The last item is empty text.")
-            }
-            let maxLength = 400
-            if text.count <= maxLength {
-                return t("Você copiou: \(text)", "You copied: \(text)")
-            }
-            let prefix = String(text.prefix(maxLength))
-            return t("Você copiou: \(prefix)...", "You copied: \(prefix)...")
-        case .image:
-            return t("O último item é uma imagem.", "The last item is an image.")
-        }
-    }
-
-    private func greetingMessage(for kind: GreetingKind) -> String {
-        let name = settings.userName.isEmpty ? "" : ", \(settings.userName)"
-        switch kind {
-        case .morning:
-            return t("Bom dia\(name)! Como posso ajudar?", "Good morning\(name)! How can I help?")
-        case .afternoon:
-            return t("Boa tarde\(name)! Como posso ajudar?", "Good afternoon\(name)! How can I help?")
-        case .evening:
-            return t("Boa noite\(name)! Como posso ajudar?", "Good evening\(name)! How can I help?")
-        case .generic:
-            return t("Olá\(name)! O que você precisa?", "Hello\(name)! What do you need?")
         }
     }
 

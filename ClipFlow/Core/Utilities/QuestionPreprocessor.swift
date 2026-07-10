@@ -13,8 +13,6 @@ enum QuestionPreprocessor {
         normalized = applySpokenCorrections(normalized)
 
         guard isKnowledgeQuery(normalized) else { return nil }
-        if AssistantIntentDetector.detect(normalized: normalized) != nil { return nil }
-        if DeveloperKnowledgeService.isDeveloperPersonalQuestion(normalized) { return nil }
 
         result = stripWakeWordFromOriginal(result)
         result = stripLeadingFillersFromOriginal(result)

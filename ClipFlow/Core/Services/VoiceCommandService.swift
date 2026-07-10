@@ -25,6 +25,8 @@ final class VoiceCommandService: ObservableObject {
     var onCommandCaptured: ((String) -> Void)?
     /// Nenhum comando falado dentro da janela após a wake word.
     var onCaptureCancelled: (() -> Void)?
+    /// Nível do microfone 0...1 enquanto o engine está ativo (para o HUD).
+    var inputLevelHandler: ((Double) -> Void)?
 
     private let settings: AppSettings
 
@@ -50,10 +52,20 @@ final class VoiceCommandService: ObservableObject {
     /// Microfone pausado enquanto o assistente fala (evita auto-captura da própria voz).
     private var isPausedForSpeechOutput = false
     private var wasListeningBeforeSpeechPause = false
+    /// Throttle do metering do mic (~30 Hz).
+    private var lastInputLevelPublish: CFTimeInterval = 0
+    private var smoothedInputLevel: Double = 0
 
     private let silenceInterval: TimeInterval = 1.2
     private let commandTimeoutInterval: TimeInterval = 8
+    private let followUpTimeoutInterval: TimeInterval = 22
+    private let followUpSilenceInterval: TimeInterval = 1.6
     private let sessionRestartInterval: TimeInterval = 50
+    /// Timeout ativo da captura atual (comando normal vs follow-up).
+    private var activeCaptureTimeout: TimeInterval = 8
+    private var activeSilenceInterval: TimeInterval = 1.2
+    /// Captura de resposta a uma pergunta do Clip (sem wake word).
+    private var isFollowUpCapture = false
 
     init(settings: AppSettings) {
         self.settings = settings
@@ -85,11 +97,13 @@ final class VoiceCommandService: ObservableObject {
     func stop() {
         cancelCommandTimeout()
         isAwaitingCommand = false
+        isFollowUpCapture = false
         isManualSession = false
         isPausedForSpeechOutput = false
         wasListeningBeforeSpeechPause = false
         tearDownRecognition()
         stopAudioEngine()
+        publishInputLevel(0)
         state = .disabled
     }
 
@@ -106,15 +120,26 @@ final class VoiceCommandService: ObservableObject {
         isRestartScheduled = false
         cancelCommandTimeout()
         isAwaitingCommand = false
+        isFollowUpCapture = false
         commandStartOffset = nil
         capturedTranscript = ""
+        activeCaptureTimeout = commandTimeoutInterval
+        activeSilenceInterval = silenceInterval
         tearDownRecognition()
         stopAudioEngine()
+        publishInputLevel(0)
     }
 
     /// Retoma a escuta contínua (wake word) após a resposta falada terminar.
     func resumeAfterSpeechOutput() {
-        guard isPausedForSpeechOutput else { return }
+        guard isPausedForSpeechOutput else {
+            // Já não está pausado (ex.: após follow-up): garante wake word se aplicável.
+            if settings.voiceActivationMode == .wakeWord,
+               state == .disabled || isUnavailable {
+                startRecognitionSession()
+            }
+            return
+        }
 
         isPausedForSpeechOutput = false
         let shouldResume = wasListeningBeforeSpeechPause
@@ -125,29 +150,33 @@ final class VoiceCommandService: ObservableObject {
     }
 
     /// Ouve a resposta a uma pergunta do assistente, sem exigir wake word.
-    /// Em modo contínuo reinicia a sessão em modo captura; em modo atalho
-    /// liga o microfone só para a resposta.
     func beginFollowUpCapture() {
         isPausedForSpeechOutput = false
         wasListeningBeforeSpeechPause = false
+        isFollowUpCapture = true
+        isAwaitingCommand = true
+        activeCaptureTimeout = followUpTimeoutInterval
+        activeSilenceInterval = followUpSilenceInterval
 
-        if state == .disabled || isUnavailable {
-            beginManualCapture()
+        // Hotkey / mic desligado: liga só para a resposta.
+        if state == .disabled || isUnavailable || !isEngineRunning {
+            beginManualCapture(isFollowUp: true)
             return
         }
 
-        guard state == .listening else { return }
-        isAwaitingCommand = true
         startRecognitionSession()
-        guard state == .capturingCommand else { return }
+        guard state == .capturingCommand else {
+            beginManualCapture(isFollowUp: true)
+            return
+        }
         startCommandTimeout()
         onWakeWordDetected?()
     }
 
     /// Push-to-talk: liga o microfone apenas para capturar um comando.
     /// Ao finalizar (ou expirar), o microfone é desligado por completo.
-    func beginManualCapture() {
-        guard state == .disabled || isUnavailable else { return }
+    func beginManualCapture(isFollowUp: Bool = false) {
+        guard state == .disabled || isUnavailable || isFollowUp else { return }
 
         Task {
             let speechGranted = await Self.requestSpeechAuthorization()
@@ -163,8 +192,11 @@ final class VoiceCommandService: ObservableObject {
                 return
             }
 
-            self.isManualSession = true
+            self.isManualSession = self.settings.voiceActivationMode == .hotkey
+            self.isFollowUpCapture = isFollowUp
             self.isAwaitingCommand = true
+            self.activeCaptureTimeout = isFollowUp ? self.followUpTimeoutInterval : self.commandTimeoutInterval
+            self.activeSilenceInterval = isFollowUp ? self.followUpSilenceInterval : self.silenceInterval
             self.startRecognitionSession()
             guard self.state == .capturingCommand else { return }
             self.startCommandTimeout()
@@ -216,9 +248,9 @@ final class VoiceCommandService: ObservableObject {
 
         commandStartOffset = nil
         capturedTranscript = ""
-        // Se a sessão anterior terminou logo após a wake word, a nova sessão
-        // inteira é tratada como o comando (o transcript foi zerado).
-        if isAwaitingCommand {
+        // Follow-up ou sessão que já espera comando: transcript inteiro é a resposta.
+        if isAwaitingCommand || isFollowUpCapture {
+            isAwaitingCommand = true
             commandStartOffset = 0
             state = .capturingCommand
         } else {
@@ -317,7 +349,7 @@ final class VoiceCommandService: ObservableObject {
     private func restartSilenceTimer() {
         guard commandStartOffset != nil else { return }
         silenceTimer?.invalidate()
-        silenceTimer = Timer.scheduledTimer(withTimeInterval: silenceInterval, repeats: false) { [weak self] _ in
+        silenceTimer = Timer.scheduledTimer(withTimeInterval: activeSilenceInterval, repeats: false) { [weak self] _ in
             Task { @MainActor in
                 guard let self else { return }
                 let command = self.pendingCommandText() ?? ""
@@ -338,6 +370,9 @@ final class VoiceCommandService: ObservableObject {
         let trimmed = command.trimmingCharacters(in: .whitespacesAndNewlines)
         commandStartOffset = nil
         isAwaitingCommand = false
+        isFollowUpCapture = false
+        activeCaptureTimeout = commandTimeoutInterval
+        activeSilenceInterval = silenceInterval
 
         if !trimmed.isEmpty {
             onCommandCaptured?(trimmed)
@@ -350,7 +385,8 @@ final class VoiceCommandService: ObservableObject {
 
     private func startCommandTimeout() {
         cancelCommandTimeout()
-        commandTimeoutTimer = Timer.scheduledTimer(withTimeInterval: commandTimeoutInterval, repeats: false) { [weak self] _ in
+        let timeout = activeCaptureTimeout
+        commandTimeoutTimer = Timer.scheduledTimer(withTimeInterval: timeout, repeats: false) { [weak self] _ in
             Task { @MainActor in
                 guard let self, self.isAwaitingCommand else { return }
                 let command = self.pendingCommandText() ?? ""
@@ -359,7 +395,10 @@ final class VoiceCommandService: ObservableObject {
                     return
                 }
                 self.isAwaitingCommand = false
+                self.isFollowUpCapture = false
                 self.commandStartOffset = nil
+                self.activeCaptureTimeout = self.commandTimeoutInterval
+                self.activeSilenceInterval = self.silenceInterval
                 self.onCaptureCancelled?()
                 self.concludeCaptureCycle()
             }
@@ -444,8 +483,9 @@ final class VoiceCommandService: ObservableObject {
 
         inputNode.removeTap(onBus: 0)
         // Captura o request da sessão atual; o tap é reinstalado a cada sessão.
-        inputNode.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak request] buffer, _ in
+        inputNode.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak self, weak request] buffer, _ in
             request?.append(buffer)
+            self?.handleInputBuffer(buffer)
         }
 
         if !isEngineRunning {
@@ -461,12 +501,47 @@ final class VoiceCommandService: ObservableObject {
         return true
     }
 
+    private func handleInputBuffer(_ buffer: AVAudioPCMBuffer) {
+        let raw = Self.normalizedRMS(from: buffer)
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            self.smoothedInputLevel = self.smoothedInputLevel * 0.55 + Double(raw) * 0.45
+            let now = CACurrentMediaTime()
+            guard now - self.lastInputLevelPublish >= (1.0 / 30.0) else { return }
+            self.lastInputLevelPublish = now
+            self.inputLevelHandler?(self.smoothedInputLevel)
+        }
+    }
+
+    private static func normalizedRMS(from buffer: AVAudioPCMBuffer) -> Float {
+        guard let channelData = buffer.floatChannelData?[0] else { return 0 }
+        let frameCount = Int(buffer.frameLength)
+        guard frameCount > 0 else { return 0 }
+
+        var sum: Float = 0
+        let samples = UnsafeBufferPointer(start: channelData, count: frameCount)
+        for sample in samples {
+            sum += sample * sample
+        }
+        let rms = sqrt(sum / Float(frameCount))
+        let db = 20 * log10(max(rms, 1e-7))
+        // Fala típica ~ -50…-8 dBFS
+        return max(0, min(1, (db + 50) / 42))
+    }
+
+    private func publishInputLevel(_ level: Double) {
+        smoothedInputLevel = level
+        lastInputLevelPublish = 0
+        inputLevelHandler?(level)
+    }
+
     private func stopAudioEngine() {
         audioEngine.inputNode.removeTap(onBus: 0)
         if isEngineRunning {
             audioEngine.stop()
             isEngineRunning = false
         }
+        publishInputLevel(0)
     }
 
     private func tearDownRecognition(keepEngine: Bool = false) {

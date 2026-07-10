@@ -11,13 +11,7 @@ enum BrightnessAction: Equatable {
     case down
 }
 
-enum GreetingKind: Equatable {
-    case morning
-    case afternoon
-    case evening
-    case generic
-}
-
+/// Comandos de ação do Mac / ClipFlow. Conversa livre não entra aqui — vai para a IA.
 enum VoiceCommand: Equatable {
     case openApp(String)
     case screenshotFull
@@ -57,22 +51,13 @@ enum VoiceCommand: Equatable {
     case weather
     case calculate(String)
     case setUserName(String)
-    case askUserName
-    case aboutAssistant
-    case aboutDeveloper
     case openDeveloperProfile
-    case help
-    case greeting(GreetingKind)
-    case thanks
-    case goodbye
-    case howAreYou
     case openSettings
     case setVoiceEnabled(Bool)
     case lockScreen
     case openSpotlight
     case volumeAdjust(VolumeAction)
     case brightnessAdjust(BrightnessAction)
-    case question(String)
 }
 
 enum VoiceCommandParser {
@@ -82,65 +67,21 @@ enum VoiceCommandParser {
 
         let normalized = normalize(original)
 
-        // Ditado tem prioridade — evita "digite bom dia" virar cumprimento.
+        // Ditado tem prioridade — evita "digite bom dia" virar conversa.
         if let dictated = extractSuffix(after: ["digite", "escreva", "type", "insira", "cole o texto"], normalized: normalized, original: original) {
             return .dictate(dictated)
         }
 
-        // MARK: Social e cumprimentos
-
-        if matchesPhrase(normalized, "bom dia") || matchesPhrase(normalized, "good morning") {
-            return .greeting(.morning)
-        }
-        if matchesPhrase(normalized, "boa tarde") || matchesPhrase(normalized, "good afternoon") {
-            return .greeting(.afternoon)
-        }
-        if matchesPhrase(normalized, "boa noite") || matchesPhrase(normalized, "good evening") || matchesPhrase(normalized, "good night") {
-            return .greeting(.evening)
-        }
-        if ["ola", "oi", "e ai", "hey", "hello", "hi"].contains(normalized) {
-            return .greeting(.generic)
-        }
-
-        if containsAny(normalized, ["obrigado", "obrigada", "valeu", "brigado", "thanks", "thank you"]) {
-            return .thanks
-        }
-
-        if containsAny(normalized, ["tchau", "ate logo", "até logo", "ate mais", "até mais", "bye", "goodbye", "see you"]) {
-            return .goodbye
-        }
-
-        if containsAny(normalized, ["como voce esta", "como você está", "tudo bem", "how are you", "how are ya"]) {
-            return .howAreYou
-        }
-
-        // MARK: Matemática
+        // MARK: Matemática (ação com resultado real)
 
         if let result = VoiceCommandCatalog.evaluateMath(normalized) {
             return .calculate(result)
         }
 
-        // MARK: Identidade e ajuda
+        // MARK: Ação — abrir LinkedIn do desenvolvedor
 
-        if let assistantIntent = AssistantIntentDetector.detect(normalized: normalized) {
-            switch assistantIntent {
-            case .aboutAssistant:
-                return .aboutAssistant
-            case .aboutDeveloper:
-                return .aboutDeveloper
-            case .openDeveloperProfile:
-                return .openDeveloperProfile
-            case .help:
-                return .help
-            }
-        }
-
-        if containsAny(normalized, ["qual e o meu nome", "qual o meu nome", "qual meu nome", "como eu me chamo", "whats my name", "what is my name"]) {
-            return .askUserName
-        }
-
-        if normalized.contains("linkedin") {
-            return .openWebsite("linkedin.com")
+        if AssistantIntentDetector.isDeveloperProfileRequest(normalized) {
+            return .openDeveloperProfile
         }
 
         if let name = extractSuffix(after: ["meu nome e", "me chame de", "pode me chamar de", "my name is", "call me"], normalized: normalized, original: original) {
@@ -148,6 +89,10 @@ enum VoiceCommandParser {
             if !cleaned.isEmpty {
                 return .setUserName(cleaned)
             }
+        }
+
+        if normalized.contains("linkedin") {
+            return .openWebsite("linkedin.com")
         }
 
         // MARK: Tempo e clima
@@ -428,11 +373,7 @@ enum VoiceCommandParser {
             }
         }
 
-        // Fallback: perguntas em linguagem natural viram consulta de conhecimento.
-        if let prepared = QuestionPreprocessor.prepare(original) {
-            return .question(prepared)
-        }
-
+        // Conversa / perguntas → nil → executor manda para a IA.
         return nil
     }
 

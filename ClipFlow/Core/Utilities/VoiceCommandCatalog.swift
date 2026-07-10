@@ -67,39 +67,6 @@ enum VoiceCommandCatalog {
     }
   }
 
-  // MARK: - Ajuda
-
-  static func helpMessage(pt: Bool) -> String {
-    if pt {
-      return """
-      Sou o Clip! Posso ajudar com:
-
-      Área de transferência: copiar, colar, favoritar, fixar, apagar itens do histórico, ler o último copiado, quantos itens tem, buscar no histórico, snippets e pilha de colagem.
-
-      Texto: digitar por voz, formatar ou minificar JSON, maiúsculas, minúsculas, Base64, camelCase e snake_case.
-
-      Sistema: abrir apps e sites, pastas como Downloads e Documentos, configurações, Spotlight, bloquear tela, volume, brilho, prints e ler a tela.
-
-      Assistente: horas, data, clima, contas simples, perguntas gerais e pesquisa na internet.
-
-      Experimente: "cole o último", "aumente o brilho", "aumente o volume", "abra o Chrome", "veja o que está na tela", "quanto é 15 mais 7" ou "quem foi Santos Dumont".
-      """
-    }
-    return """
-    I'm Clip! I can help with:
-
-    Clipboard: copy, paste, favorite, pin, delete history items, read the last copy, count items, search history, snippets and paste stack.
-
-    Text: voice typing, format or minify JSON, uppercase, lowercase, Base64, camelCase and snake_case.
-
-    System: open apps and websites, folders like Downloads and Documents, settings, Spotlight, lock screen, volume, brightness, screenshots and read the screen.
-
-    Assistant: time, date, weather, simple math, general questions and internet search.
-
-    Try: "paste the last one", "increase brightness", "turn up the volume", "open Chrome", "what's on the screen", "what is 15 plus 7" or "who was Santos Dumont".
-    """
-  }
-
   // MARK: - Matemática simples
 
   /// Converte fala em expressão numérica e avalia.

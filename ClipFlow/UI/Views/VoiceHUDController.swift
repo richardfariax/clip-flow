@@ -5,27 +5,33 @@ import SwiftUI
 final class VoiceHUDModel: ObservableObject {
     enum Phase: Equatable {
         case listening
+        case searchingWeb
+        case thinking
+        case speaking(message: String, success: Bool)
         case feedback(message: String, success: Bool)
     }
 
     @Published var phase: Phase = .listening
     @Published var transcript: String = ""
     @Published var hintText: String = ""
+    @Published var statusText: String = ""
+    /// 0...1 — energia do microfone (usuário falando).
+    @Published var userLevel: Double = 0
+    /// 0...1 — energia do TTS (Clip falando).
+    @Published var assistantLevel: Double = 0
+    /// 0...1 — progresso da leitura do texto pelo TTS.
+    @Published var speechProgress: Double = 0
 }
 
-/// Overlay de tela cheia (transparente e click-through) exibido durante a
-/// interação por voz — estilo "Jarvis": orbe central, brackets de canto,
-/// anéis decorativos e linha de varredura.
+/// Overlay de tela cheia com campo de voz profissional (user vs Clip).
 @MainActor
 final class VoiceHUDController {
-    /// Sons nativos do sistema para feedback audível.
     private enum FeedbackSound: String {
         case wake = "Pop"
         case success = "Glass"
         case failure = "Basso"
     }
 
-    /// Injetado pelo AppDelegate; controlado por settings.voiceSoundFeedback.
     var isSoundEnabled: () -> Bool = { true }
 
     private var panel: NSPanel?
@@ -37,28 +43,104 @@ final class VoiceHUDController {
         model.phase = .listening
         model.transcript = ""
         model.hintText = hint
+        model.statusText = ""
+        model.assistantLevel = 0
+        model.speechProgress = 0
         presentPanel()
         play(.wake)
+        announce(hint)
     }
 
     func updateTranscript(_ transcript: String) {
         model.transcript = transcript
     }
 
-    /// - Parameter autoHide: quando false, o overlay permanece até `hide()`
-    ///   ser chamado (ex.: ao término da resposta falada).
-    func showFeedback(message: String, success: Bool, autoHide: Bool = true) {
-        model.phase = .feedback(message: message, success: success)
+    func showSearching(message: String) {
+        hideWorkItem?.cancel()
+        model.phase = .searchingWeb
+        model.statusText = message
+        model.userLevel = 0
+        model.assistantLevel = 0
+        model.speechProgress = 0
+        presentPanel()
+        announce(message)
+    }
+
+    func showThinking(message: String) {
+        hideWorkItem?.cancel()
+        model.phase = .thinking
+        model.statusText = message
+        model.userLevel = 0
+        model.assistantLevel = 0
+        model.speechProgress = 0
+        presentPanel()
+        announce(message)
+    }
+
+    /// Mostra a resposta. `speaking` só deve ser true quando o áudio já estiver tocando.
+    func showFeedback(message: String, success: Bool, autoHide: Bool = true, speaking: Bool = false) {
+        hideWorkItem?.cancel()
+        if speaking {
+            model.phase = .speaking(message: message, success: success)
+        } else {
+            model.phase = .feedback(message: message, success: success)
+        }
+        model.statusText = ""
+        model.userLevel = 0
+        if !speaking {
+            model.assistantLevel = 0
+            model.speechProgress = 0
+        } else {
+            model.speechProgress = 0
+        }
         presentPanel()
         play(success ? .success : .failure)
+        announce(message)
         if autoHide {
             scheduleHide(after: 2.6)
         }
     }
 
+    func setSpeaking(_ speaking: Bool) {
+        switch model.phase {
+        case .speaking(let message, let success):
+            if !speaking {
+                model.phase = .feedback(message: message, success: success)
+                model.assistantLevel = 0
+                model.speechProgress = 1
+            }
+        case .feedback(let message, let success):
+            if speaking {
+                model.phase = .speaking(message: message, success: success)
+                model.speechProgress = 0
+            }
+        case .thinking, .searchingWeb, .listening:
+            break
+        }
+    }
+
+    func updateUserLevel(_ level: Double) {
+        guard case .listening = model.phase else {
+            model.userLevel = 0
+            return
+        }
+        model.userLevel = max(0, min(1, level))
+    }
+
+    func updateAssistantLevel(_ level: Double) {
+        model.assistantLevel = max(0, min(1, level))
+    }
+
+    func updateSpeechProgress(_ progress: Double) {
+        model.speechProgress = max(0, min(1, progress))
+    }
+
     func hide() {
         hideWorkItem?.cancel()
         hideWorkItem = nil
+        model.userLevel = 0
+        model.assistantLevel = 0
+        model.speechProgress = 0
         guard let panel else { return }
 
         NSAnimationContext.runAnimationGroup({ context in
@@ -67,6 +149,18 @@ final class VoiceHUDController {
         }, completionHandler: {
             panel.orderOut(nil)
         })
+    }
+
+    private func announce(_ message: String) {
+        guard !message.isEmpty else { return }
+        NSAccessibility.post(
+            element: NSApp as Any,
+            notification: .announcementRequested,
+            userInfo: [
+                .announcement: message,
+                .priority: NSAccessibilityPriorityLevel.high.rawValue
+            ]
+        )
     }
 
     private func play(_ sound: FeedbackSound) {
@@ -120,6 +214,8 @@ final class VoiceHUDController {
         panel.hidesOnDeactivate = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
         panel.contentView = hosting
+        panel.setAccessibilityRole(.group)
+        panel.setAccessibilityLabel("Clip")
         return panel
     }
 
@@ -137,286 +233,118 @@ struct VoiceHUDView: View {
     @ObservedObject var model: VoiceHUDModel
 
     var body: some View {
-        ZStack {
-            JarvisBackdropView(color: themeColor, isActive: isListening)
-
-            VStack(spacing: 28) {
-                Spacer()
-
-                JarvisOrbView(color: themeColor, isActive: isListening)
-                    .frame(width: 190, height: 190)
-
-                messageCard
-
-                Spacer()
-                    .frame(height: 90)
-            }
-            .frame(maxWidth: .infinity)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .animation(.easeInOut(duration: 0.35), value: themeColorKey)
-    }
-
-    private var messageCard: some View {
-        Group {
-            switch model.phase {
-            case .listening:
-                Text(model.transcript.isEmpty ? model.hintText : model.transcript)
-                    .font(.title3.weight(.medium))
-                    .foregroundStyle(model.transcript.isEmpty ? .secondary : .primary)
-                    .lineLimit(3)
-            case .feedback(let message, _):
-                Text(message)
-                    .font(.title3.weight(.medium))
-                    .lineLimit(5)
-            }
-        }
-        .multilineTextAlignment(.center)
-        .padding(.horizontal, 26)
-        .padding(.vertical, 16)
-        .frame(maxWidth: 620)
-        .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(.ultraThinMaterial)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .strokeBorder(themeColor.opacity(0.45), lineWidth: 1)
-                )
-                .shadow(color: themeColor.opacity(0.3), radius: 22)
+        VoiceFieldView(
+            phaseLabel: phaseLabel,
+            message: primaryMessage,
+            statusLine: statusLine,
+            speaker: activeSpeaker,
+            userLevel: model.userLevel,
+            assistantLevel: model.assistantLevel,
+            speechProgress: model.speechProgress,
+            isSpeakingCaption: isSpeakingCaption,
+            isProcessing: isProcessing,
+            accent: accent,
+            successTint: successTint
         )
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .animation(.easeInOut(duration: 0.28), value: moodKey)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(primaryMessage)
     }
 
-    private var isListening: Bool {
-        if case .listening = model.phase { return true }
+    private var primaryMessage: String {
+        switch model.phase {
+        case .listening:
+            return model.transcript.isEmpty ? model.hintText : model.transcript
+        case .searchingWeb, .thinking:
+            return model.statusText
+        case .speaking(let message, _), .feedback(let message, _):
+            return message
+        }
+    }
+
+    private var statusLine: String {
+        switch model.phase {
+        case .listening:
+            return model.transcript.isEmpty ? "" : "Transcrição"
+        case .searchingWeb:
+            return "Internet"
+        case .thinking:
+            return "Modelo"
+        case .speaking:
+            return "Resposta"
+        case .feedback(_, let success):
+            return success ? "Concluído" : "Falhou"
+        }
+    }
+
+    private var phaseLabel: String {
+        switch model.phase {
+        case .listening:
+            return activeSpeaker == .user ? "OUVINDO VOCÊ" : "OUVINDO"
+        case .searchingWeb:
+            return "CONSULTANDO"
+        case .thinking:
+            return "PROCESSANDO"
+        case .speaking:
+            return "CLIP FALANDO"
+        case .feedback(_, let success):
+            return success ? "PRONTO" : "ERRO"
+        }
+    }
+
+    private var activeSpeaker: VoiceActiveSpeaker {
+        switch model.phase {
+        case .speaking:
+            return .assistant
+        case .listening:
+            return model.userLevel > 0.08 ? .user : .none
+        case .searchingWeb, .thinking, .feedback:
+            return .none
+        }
+    }
+
+    private var isSpeakingCaption: Bool {
+        if case .speaking = model.phase { return true }
         return false
     }
 
-    private var themeColor: Color {
+    private var isProcessing: Bool {
         switch model.phase {
-        case .listening:
-            return .cyan
-        case .feedback(_, let success):
-            return success ? .green : .orange
+        case .searchingWeb, .thinking:
+            return true
+        default:
+            return false
         }
     }
 
-    private var themeColorKey: Int {
+    private var successTint: Bool? {
+        switch model.phase {
+        case .feedback(_, let success), .speaking(_, let success):
+            return success
+        default:
+            return nil
+        }
+    }
+
+    private var accent: Color {
+        switch model.phase {
+        case .listening, .searchingWeb, .thinking, .speaking:
+            return Color(red: 0.45, green: 0.82, blue: 1.0)
+        case .feedback(_, let success):
+            return success
+                ? Color(red: 0.4, green: 0.92, blue: 0.72)
+                : Color(red: 1.0, green: 0.55, blue: 0.35)
+        }
+    }
+
+    private var moodKey: Int {
         switch model.phase {
         case .listening: return 0
-        case .feedback(_, let success): return success ? 1 : 2
-        }
-    }
-}
-
-// MARK: - Backdrop de tela cheia
-
-/// Elementos decorativos de tela cheia: brackets de canto, anéis laterais
-/// e linha de varredura — tudo transparente e discreto.
-private struct JarvisBackdropView: View {
-    let color: Color
-    let isActive: Bool
-
-    @State private var scan = false
-    @State private var rotate = false
-    @State private var glowPulse = false
-
-    var body: some View {
-        GeometryReader { geometry in
-            let size = geometry.size
-
-            ZStack {
-                // Vinheta sutil nas bordas para dar profundidade
-                RadialGradient(
-                    colors: [.clear, .clear, color.opacity(0.10)],
-                    center: .center,
-                    startRadius: min(size.width, size.height) * 0.25,
-                    endRadius: max(size.width, size.height) * 0.72
-                )
-                .opacity(glowPulse ? 1.0 : 0.55)
-
-                // Brackets nos quatro cantos
-                cornerBrackets(in: size)
-
-                // Anéis decorativos gigantes e tênues atrás do centro
-                Circle()
-                    .stroke(color.opacity(0.10), style: StrokeStyle(lineWidth: 1, dash: [2, 14]))
-                    .frame(width: size.height * 0.85, height: size.height * 0.85)
-                    .position(x: size.width / 2, y: size.height / 2)
-                    .rotationEffect(.degrees(rotate ? 360 : 0))
-
-                Circle()
-                    .stroke(color.opacity(0.16), style: StrokeStyle(lineWidth: 1, dash: [40, 26]))
-                    .frame(width: size.height * 0.58, height: size.height * 0.58)
-                    .position(x: size.width / 2, y: size.height / 2)
-                    .rotationEffect(.degrees(rotate ? -360 : 0))
-
-                // Linha de varredura horizontal
-                LinearGradient(
-                    colors: [.clear, color.opacity(0.35), .clear],
-                    startPoint: .leading,
-                    endPoint: .trailing
-                )
-                .frame(height: 2)
-                .frame(maxWidth: size.width * 0.7)
-                .position(x: size.width / 2, y: scan ? size.height * 0.82 : size.height * 0.18)
-                .opacity(isActive ? 0.9 : 0.35)
-
-                // Marcadores laterais (tique de régua)
-                sideTicks(in: size)
-            }
-        }
-        .allowsHitTesting(false)
-        .onAppear {
-            withAnimation(.linear(duration: 40).repeatForever(autoreverses: false)) {
-                rotate = true
-            }
-            withAnimation(.easeInOut(duration: 3.2).repeatForever(autoreverses: true)) {
-                scan = true
-            }
-            withAnimation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true)) {
-                glowPulse = true
-            }
-        }
-    }
-
-    private func cornerBrackets(in size: CGSize) -> some View {
-        let inset: CGFloat = 42
-        let arm: CGFloat = 56
-
-        return ZStack {
-            bracket(arm: arm)
-                .position(x: inset + arm / 2, y: inset + arm / 2)
-            bracket(arm: arm)
-                .rotationEffect(.degrees(90))
-                .position(x: size.width - inset - arm / 2, y: inset + arm / 2)
-            bracket(arm: arm)
-                .rotationEffect(.degrees(270))
-                .position(x: inset + arm / 2, y: size.height - inset - arm / 2)
-            bracket(arm: arm)
-                .rotationEffect(.degrees(180))
-                .position(x: size.width - inset - arm / 2, y: size.height - inset - arm / 2)
-        }
-        .opacity(glowPulse ? 0.85 : 0.5)
-    }
-
-    /// Bracket em "L" (canto superior esquerdo; os demais são rotações).
-    private func bracket(arm: CGFloat) -> some View {
-        Path { path in
-            path.move(to: CGPoint(x: 0, y: arm))
-            path.addLine(to: CGPoint(x: 0, y: 0))
-            path.addLine(to: CGPoint(x: arm, y: 0))
-        }
-        .stroke(color.opacity(0.8), style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
-        .frame(width: arm, height: arm)
-        .shadow(color: color.opacity(0.7), radius: 6)
-    }
-
-    private func sideTicks(in size: CGSize) -> some View {
-        let tickCount = 9
-
-        return ZStack {
-            VStack(spacing: (size.height * 0.5) / CGFloat(tickCount)) {
-                ForEach(0..<tickCount, id: \.self) { index in
-                    Rectangle()
-                        .fill(color.opacity(index % 3 == 0 ? 0.55 : 0.25))
-                        .frame(width: index % 3 == 0 ? 22 : 12, height: 1.5)
-                }
-            }
-            .position(x: 30, y: size.height / 2)
-
-            VStack(spacing: (size.height * 0.5) / CGFloat(tickCount)) {
-                ForEach(0..<tickCount, id: \.self) { index in
-                    Rectangle()
-                        .fill(color.opacity(index % 3 == 0 ? 0.55 : 0.25))
-                        .frame(width: index % 3 == 0 ? 22 : 12, height: 1.5)
-                }
-            }
-            .position(x: size.width - 30, y: size.height / 2)
-        }
-    }
-}
-
-// MARK: - Orbe central
-
-/// Orbe animado estilo "arc reactor": anéis tracejados contra-rotativos
-/// em volta de um núcleo pulsante com glow.
-private struct JarvisOrbView: View {
-    let color: Color
-    let isActive: Bool
-
-    @State private var rotate = false
-    @State private var pulse = false
-
-    var body: some View {
-        ZStack {
-            // Glow difuso de fundo
-            Circle()
-                .fill(
-                    RadialGradient(
-                        colors: [color.opacity(0.45), color.opacity(0.12), .clear],
-                        center: .center,
-                        startRadius: 4,
-                        endRadius: 95
-                    )
-                )
-                .scaleEffect(pulse ? 1.1 : 0.88)
-
-            // Anel externo tracejado (horário)
-            Circle()
-                .stroke(color.opacity(0.85), style: StrokeStyle(lineWidth: 2.5, lineCap: .round, dash: [26, 14]))
-                .frame(width: 158, height: 158)
-                .rotationEffect(.degrees(rotate ? 360 : 0))
-
-            // Anel intermediário (anti-horário)
-            Circle()
-                .stroke(color.opacity(0.5), style: StrokeStyle(lineWidth: 1.5, lineCap: .round, dash: [6, 16]))
-                .frame(width: 122, height: 122)
-                .rotationEffect(.degrees(rotate ? -360 : 0))
-
-            // Arcos de progresso internos (horário, mais rápido)
-            Circle()
-                .trim(from: 0, to: 0.26)
-                .stroke(color, style: StrokeStyle(lineWidth: 3, lineCap: .round))
-                .frame(width: 92, height: 92)
-                .rotationEffect(.degrees(rotate ? 720 : 0))
-
-            Circle()
-                .trim(from: 0.5, to: 0.68)
-                .stroke(color.opacity(0.7), style: StrokeStyle(lineWidth: 3, lineCap: .round))
-                .frame(width: 92, height: 92)
-                .rotationEffect(.degrees(rotate ? 720 : 0))
-
-            // Núcleo
-            Circle()
-                .fill(
-                    RadialGradient(
-                        colors: [.white, color.opacity(0.9), color.opacity(0.3)],
-                        center: .center,
-                        startRadius: 2,
-                        endRadius: 26
-                    )
-                )
-                .frame(width: 44, height: 44)
-                .scaleEffect(pulse ? 1.18 : 0.86)
-                .shadow(color: color.opacity(0.9), radius: pulse ? 22 : 9)
-        }
-        .drawingGroup()
-        .onAppear {
-            startAnimations()
-        }
-        .onChange(of: isActive, initial: false) { _, _ in
-            startAnimations()
-        }
-    }
-
-    private func startAnimations() {
-        rotate = false
-        pulse = false
-        withAnimation(.linear(duration: isActive ? 5 : 12).repeatForever(autoreverses: false)) {
-            rotate = true
-        }
-        withAnimation(.easeInOut(duration: isActive ? 0.8 : 1.6).repeatForever(autoreverses: true)) {
-            pulse = true
+        case .searchingWeb: return 1
+        case .thinking: return 2
+        case .speaking: return 3
+        case .feedback(_, let success): return success ? 4 : 5
         }
     }
 }

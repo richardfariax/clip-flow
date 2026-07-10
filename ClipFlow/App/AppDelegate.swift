@@ -6,7 +6,8 @@ import SwiftUI
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private let settingsContentSize = NSSize(width: 880, height: 780)
+    private let settingsContentSize = NSSize(width: 920, height: 640)
+    private let settingsMinSize = NSSize(width: 820, height: 560)
     private var modelContainer: ModelContainer?
 
     private var settings = AppSettings()
@@ -199,6 +200,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.voiceHUDController?.hide()
             }
         )
+        executor.onGenerationPhaseChange = { [weak self] phase in
+            guard let self else { return }
+            switch phase {
+            case .fetchingWeb:
+                self.voiceHUDController?.showSearching(
+                    message: self.settings.text(
+                        ptBR: "Consultando a internet…",
+                        en: "Searching the web…"
+                    )
+                )
+            case .generating:
+                self.voiceHUDController?.showThinking(
+                    message: self.settings.text(
+                        ptBR: "Pensando…",
+                        en: "Thinking…"
+                    )
+                )
+            case .idle:
+                break
+            }
+        }
         voiceCommandExecutor = executor
 
         let voiceService = VoiceCommandService(settings: settings)
@@ -211,6 +233,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         voiceService.onPartialCommand = { [weak self] transcript in
             self?.voiceHUDController?.updateTranscript(transcript)
+        }
+        voiceService.inputLevelHandler = { [weak self] level in
+            self?.voiceHUDController?.updateUserLevel(level)
         }
         voiceService.onCommandCaptured = { [weak self] rawText in
             guard let self else { return }
@@ -230,7 +255,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         voiceService.onCaptureCancelled = { [weak self] in
             guard let self else { return }
             if self.pendingFollowUp != nil {
-                // Usuário não respondeu à pergunta: encerra a conversa em silêncio.
+                // Usuário não respondeu à pergunta: encerra e volta à escuta normal.
                 self.pendingFollowUp = nil
                 self.voiceHUDController?.hide()
                 self.voiceCommandService?.resumeAfterSpeechOutput()
@@ -243,6 +268,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 ),
                 success: false
             )
+            self.voiceCommandService?.resumeAfterSpeechOutput()
         }
         voiceCommandService = voiceService
     }
@@ -250,30 +276,52 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Mostra o feedback, fala a resposta e mantém o overlay até o fim da fala.
     /// Se o assistente fez uma pergunta, volta a ouvir a resposta em seguida.
     private func presentFeedback(_ feedback: VoiceCommandExecutor.Feedback) {
-        voiceHUDController?.showFeedback(message: feedback.message, success: feedback.success, autoHide: false)
+        let willSpeak = settings.voiceSpokenResponses
+        // Enquanto o TTS sintetiza, mostra a resposta sem animar a boca.
+        voiceHUDController?.showFeedback(
+            message: feedback.message,
+            success: feedback.success,
+            autoHide: !willSpeak,
+            speaking: false
+        )
 
         let proceed: () -> Void = { [weak self] in
             guard let self else { return }
             if let followUp = feedback.followUp {
                 self.pendingFollowUp = followUp
+                // Mantém o HUD e abre escuta direta (sem wake word).
                 self.voiceCommandService?.beginFollowUpCapture()
             } else {
+                self.voiceCommandService?.resumeAfterSpeechOutput()
                 self.voiceHUDController?.hide()
             }
         }
 
-        if settings.voiceSpokenResponses {
+        if willSpeak {
+            spokenResponseService.playbackStartedHandler = { [weak self] in
+                self?.voiceHUDController?.setSpeaking(true)
+            }
+            spokenResponseService.speechLevelHandler = { [weak self] level in
+                self?.voiceHUDController?.updateAssistantLevel(level)
+            }
+            spokenResponseService.speechProgressHandler = { [weak self] progress in
+                self?.voiceHUDController?.updateSpeechProgress(progress)
+            }
             spokenResponseService.speak(
                 feedback.message,
                 languageCode: settings.text(ptBR: "pt-BR", en: "en-US")
             ) { [weak self] in
-                self?.voiceCommandService?.resumeAfterSpeechOutput()
+                self?.voiceHUDController?.setSpeaking(false)
+                self?.voiceHUDController?.updateAssistantLevel(0)
+                self?.voiceHUDController?.updateSpeechProgress(1)
+                self?.spokenResponseService.playbackStartedHandler = nil
+                self?.spokenResponseService.speechLevelHandler = nil
+                self?.spokenResponseService.speechProgressHandler = nil
                 proceed()
             }
         } else {
             let readingTime = min(max(Double(feedback.message.count) * 0.045, 2.0), 6.0)
-            DispatchQueue.main.asyncAfter(deadline: .now() + readingTime) { [weak self] in
-                self?.voiceCommandService?.resumeAfterSpeechOutput()
+            DispatchQueue.main.asyncAfter(deadline: .now() + readingTime) {
                 proceed()
             }
         }
@@ -458,14 +506,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             existing.showWindow(nil)
             if let window = existing.window {
                 window.setContentSize(settingsContentSize)
-                window.minSize = settingsContentSize
-                window.maxSize = settingsContentSize
+                window.minSize = settingsMinSize
+                window.maxSize = NSSize(width: 1400, height: 1200)
+                configureSettingsWindowChrome(window)
                 positionSettingsWindow(window)
                 window.level = .floating
                 window.orderFrontRegardless()
                 window.makeKey()
             }
-            NotificationCenter.default.post(name: Notification.Name("clipflow.settings.scrollToTop"), object: nil)
             NSApp.activate(ignoringOtherApps: true)
             return
         }
@@ -482,18 +530,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let hosting = NSHostingController(rootView: settingsView)
         let window = NSWindow(contentViewController: hosting)
-        window.title = settings.text(ptBR: "Preferências", en: "Preferences")
-        window.styleMask = [.titled, .closable, .miniaturizable]
-        window.titleVisibility = .hidden
-        window.titlebarAppearsTransparent = false
+        window.styleMask = [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView]
+        configureSettingsWindowChrome(window)
         window.isReleasedWhenClosed = false
         window.isMovable = true
-        window.isMovableByWindowBackground = false
+        window.isMovableByWindowBackground = true
         window.level = .floating
         window.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary]
         window.setContentSize(settingsContentSize)
-        window.minSize = settingsContentSize
-        window.maxSize = settingsContentSize
+        window.minSize = settingsMinSize
+        window.maxSize = NSSize(width: 1400, height: 1200)
         positionSettingsWindow(window)
 
         let controller = NSWindowController(window: window)
@@ -502,8 +548,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         positionSettingsWindow(window)
         window.orderFrontRegardless()
         window.makeKey()
-        NotificationCenter.default.post(name: Notification.Name("clipflow.settings.scrollToTop"), object: nil)
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    private func configureSettingsWindowChrome(_ window: NSWindow) {
+        window.title = settings.text(ptBR: "Ajustes", en: "Settings")
+        window.titleVisibility = .visible
+        window.titlebarAppearsTransparent = true
+        window.toolbarStyle = .unified
+        window.backgroundColor = .clear
+        if #available(macOS 15.0, *) {
+            window.hasShadow = true
+        }
     }
 
     private func positionSettingsWindow(_ window: NSWindow) {
