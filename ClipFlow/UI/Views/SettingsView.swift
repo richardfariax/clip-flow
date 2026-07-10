@@ -101,6 +101,9 @@ struct SettingsView: View {
             loadAvailableAppsIfNeeded()
             generativeAnswers.refreshStatus(userName: settings.userName.isEmpty ? nil : settings.userName)
         }
+        .onReceive(NotificationCenter.default.publisher(for: .openSettingsPermissions)) { _ in
+            selectedPane = .permissions
+        }
         .onChange(of: settings.hotkeyCode, initial: false) { _, _ in
             syncHotkeyPresetState()
         }
@@ -181,9 +184,7 @@ struct SettingsView: View {
     }
 
     private var appVersionLabel: String {
-        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
-        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "—"
-        return "v\(version) (\(build))"
+        AppVersion.displayLabel
     }
 
     private func settingsIcon(symbol: String, tint: Color) -> some View {

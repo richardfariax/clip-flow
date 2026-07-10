@@ -52,6 +52,7 @@
 		BBBB0000000000000000000E /* AssistantIntentDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA0000000000000000000E /* AssistantIntentDetector.swift */; };
 		BBBB0000000000000000000F /* DeveloperProfileCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA0000000000000000000F /* DeveloperProfileCatalog.swift */; };
 		BBBB00000000000000000015 /* ClipAssistantIdentity.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA00000000000000000015 /* ClipAssistantIdentity.swift */; };
+		BBBB00000000000000000017 /* AppVersion.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA00000000000000000017 /* AppVersion.swift */; };
 		BBBB00000000000000000011 /* WebSnippetSearchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA00000000000000000011 /* WebSnippetSearchService.swift */; };
 		BBBB00000000000000000014 /* GenerativeAnswerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA00000000000000000014 /* GenerativeAnswerService.swift */; };
 		EEEE00000000000000000001 /* SwiftEdgeTTS in Frameworks */ = {isa = PBXBuildFile; productRef = DDDD00000000000000000001 /* SwiftEdgeTTS */; };
@@ -126,6 +127,7 @@
 		AAAA0000000000000000000E /* AssistantIntentDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssistantIntentDetector.swift; sourceTree = "<group>"; };
 		AAAA0000000000000000000F /* DeveloperProfileCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeveloperProfileCatalog.swift; sourceTree = "<group>"; };
 		AAAA00000000000000000015 /* ClipAssistantIdentity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipAssistantIdentity.swift; sourceTree = "<group>"; };
+		AAAA00000000000000000017 /* AppVersion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppVersion.swift; sourceTree = "<group>"; };
 		AAAA00000000000000000011 /* WebSnippetSearchService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSnippetSearchService.swift; sourceTree = "<group>"; };
 		AAAA00000000000000000014 /* GenerativeAnswerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GenerativeAnswerService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -145,6 +147,7 @@
 		439C7AE28B7B208F759916C3 /* Utilities */ = {
 			isa = PBXGroup;
 			children = (
+				AAAA00000000000000000017 /* AppVersion.swift */,
 				5919201EAF9BA97D6BA90BC4 /* ClipboardContentClassifier.swift */,
 				B71EC4ADAAA644FB9F54A6C2 /* HotkeySupport.swift */,
 				58C9F49D3E20C1D8EA4E571B /* KeychainHelper.swift */,
@@ -420,6 +423,7 @@
 				BBBB0000000000000000000E /* AssistantIntentDetector.swift in Sources */,
 				BBBB0000000000000000000F /* DeveloperProfileCatalog.swift in Sources */,
 				BBBB00000000000000000015 /* ClipAssistantIdentity.swift in Sources */,
+				BBBB00000000000000000017 /* AppVersion.swift in Sources */,
 				BBBB00000000000000000011 /* WebSnippetSearchService.swift in Sources */,
 				BBBB00000000000000000009 /* SpokenResponseService.swift in Sources */,
 				BBBB00000000000000000002 /* TextTransformer.swift in Sources */,
