@@ -3,8 +3,20 @@ import Foundation
 
 enum ClipboardContentClassifier {
     static func classifyText(_ text: String) -> ClipboardTextSubtype {
+        if looksLikeJSON(text) {
+            return .json
+        }
+
         if text.count >= 500 {
             return .longText
+        }
+
+        if looksLikeHexColor(text) {
+            return .color
+        }
+
+        if looksLikeHash(text) {
+            return .hash
         }
 
         if looksLikeEmail(text) {
@@ -47,6 +59,32 @@ enum ClipboardContentClassifier {
             return false
         }
         return scheme == "http" || scheme == "https"
+    }
+
+    private static func looksLikeJSON(_ text: String) -> Bool {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard (trimmed.hasPrefix("{") && trimmed.hasSuffix("}"))
+                || (trimmed.hasPrefix("[") && trimmed.hasSuffix("]")) else {
+            return false
+        }
+        guard let data = trimmed.data(using: .utf8) else {
+            return false
+        }
+        return (try? JSONSerialization.jsonObject(with: data)) != nil
+    }
+
+    private static func looksLikeHexColor(_ text: String) -> Bool {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.hasPrefix("#") else { return false }
+        let hex = trimmed.dropFirst()
+        guard [3, 4, 6, 8].contains(hex.count) else { return false }
+        return hex.allSatisfy { $0.isHexDigit }
+    }
+
+    private static func looksLikeHash(_ text: String) -> Bool {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard [32, 40, 64].contains(trimmed.count) else { return false }
+        return trimmed.allSatisfy { $0.isHexDigit }
     }
 
     private static func looksLikeCode(_ text: String) -> Bool {
