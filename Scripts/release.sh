@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "${ROOT}"
+
+chmod +x Scripts/version.sh
+./Scripts/version.sh check
+
 SCHEME="${SCHEME:-ClipFlow}"
 CONFIGURATION="${CONFIGURATION:-Release}"
 BUILD_DIR="${BUILD_DIR:-build}"
@@ -40,12 +46,15 @@ elif [[ -n "${XCODE_PROJECT:-}" ]]; then
   )
 fi
 
+echo "Compilando ${SCHEME} $(./Scripts/version.sh read) ($(./Scripts/version.sh read-build))..."
 "${build_cmd[@]}"
 
 if [[ ! -d "${APP_PATH}" ]]; then
   echo "Erro: app não encontrado em ${APP_PATH}" >&2
   exit 1
 fi
+
+./Scripts/version.sh verify-app "${APP_PATH}"
 
 ditto -c -k --sequesterRsrc --keepParent "${APP_PATH}" "${ZIP_PATH}"
 shasum -a 256 "${ZIP_PATH}" > "${SHA_PATH}"
