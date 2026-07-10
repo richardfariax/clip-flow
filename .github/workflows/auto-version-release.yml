@@ -47,9 +47,9 @@ jobs:
           fi
 
           bump_type="none"
-          if printf '%s\n' "${commit_messages}" | rg -iq '^(feat)(\([^)]+\))?!?:'; then
+          if printf '%s\n' "${commit_messages}" | grep -Eiq '^(feat)(\([^)]+\))?!?:'; then
             bump_type="minor"
-          elif printf '%s\n' "${commit_messages}" | rg -iq '^(fix)(\([^)]+\))?!?:'; then
+          elif printf '%s\n' "${commit_messages}" | grep -Eiq '^(fix)(\([^)]+\))?!?:'; then
             bump_type="patch"
           fi
 
@@ -129,12 +129,3 @@ jobs:
           if ! gh release view "${NEXT_VERSION}" >/dev/null 2>&1; then
             gh release create "${NEXT_VERSION}" --title "${NEXT_VERSION}" --generate-notes
           fi
-
-      - name: Trigger release asset build/upload
-        if: steps.semver.outputs.should_release == 'true'
-        env:
-          BASE_REF: ${{ github.event.pull_request.base.ref }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NEXT_VERSION: ${{ steps.semver.outputs.next_version }}
-        run: |
-          gh workflow run release-assets.yml --ref "${BASE_REF}" -f release_tag="${NEXT_VERSION}"
