@@ -48,6 +48,20 @@ struct ClipboardPanelView: View {
 
             Spacer(minLength: 12)
 
+            if !viewModel.pasteStack.isEmpty {
+                HStack(spacing: 4) {
+                    Image(systemName: "square.stack.3d.up.fill")
+                        .font(.caption2)
+                    Text("\(viewModel.pasteStack.count)")
+                        .font(.caption.weight(.semibold))
+                }
+                .padding(.horizontal, 7)
+                .padding(.vertical, 3)
+                .background(Capsule().fill(Color.accentColor.opacity(0.16)))
+                .foregroundStyle(Color.accentColor)
+                .help(t("Itens na pilha de colagem", "Items in paste stack"))
+            }
+
             Text(displayedCountText)
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -128,6 +142,18 @@ struct ClipboardPanelView: View {
                                 },
                                 onDelete: {
                                     viewModel.delete(itemID: item.id)
+                                },
+                                onTransform: { transform in
+                                    _ = viewModel.transformAndCopy(item: item, transform: transform)
+                                },
+                                onSaveSnippet: {
+                                    promptSnippetName(for: item)
+                                },
+                                onRemoveSnippet: {
+                                    viewModel.removeSnippet(itemID: item.id)
+                                },
+                                onAddToStack: {
+                                    viewModel.addToStack(itemID: item.id)
                                 }
                             )
                             .id(item.id)
@@ -153,7 +179,8 @@ struct ClipboardPanelView: View {
 
     private var keyboardHelp: some View {
         HStack(spacing: 10) {
-            Text("⌘1-5")
+            Text("⌘1-6")
+            Text("⌘S")
             Text("⌘D")
             Text("⌘P")
             Text("⌘C")
@@ -184,6 +211,28 @@ struct ClipboardPanelView: View {
 
     private func t(_ pt: String, _ en: String) -> String {
         settings.text(ptBR: pt, en: en)
+    }
+
+    private func promptSnippetName(for item: DecodedClipboardItem) {
+        let alert = NSAlert()
+        alert.messageText = t("Salvar como snippet", "Save as snippet")
+        alert.informativeText = t(
+            "Dê um nome curto. Você poderá colar por voz: \"cole o snippet <nome>\".",
+            "Choose a short name. You can paste it by voice: \"paste snippet <name>\"."
+        )
+        alert.addButton(withTitle: t("Salvar", "Save"))
+        alert.addButton(withTitle: t("Cancelar", "Cancel"))
+
+        let input = NSTextField(frame: NSRect(x: 0, y: 0, width: 240, height: 24))
+        input.placeholderString = t("nome do snippet", "snippet name")
+        alert.accessoryView = input
+        alert.window.initialFirstResponder = input
+
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+
+        let name = input.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { return }
+        viewModel.saveSnippet(named: name, itemID: item.id)
     }
 
     private var displayedCountText: String {
