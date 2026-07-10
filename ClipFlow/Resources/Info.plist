@@ -28,5 +28,11 @@
 	<true/>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>ClipFlow usa o microfone para ouvir comandos de voz como abrir apps, capturar a tela e colar itens do histórico.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>ClipFlow usa reconhecimento de fala (local quando disponível) para entender seus comandos de voz.</string>
+	<key>NSScreenCaptureUsageDescription</key>
+	<string>ClipFlow captura a tela para ler e descrever em voz alto o conteúdo visível quando você pede "veja o que está na tela".</string>
 </dict>
 </plist>
