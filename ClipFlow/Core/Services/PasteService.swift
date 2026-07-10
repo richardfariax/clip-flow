@@ -19,6 +19,37 @@ final class PasteService {
         targetApplication: NSRunningApplication?,
         completion: ((Bool) -> Void)? = nil
     ) {
+        pastePreparingPasteboard(targetApplication: targetApplication, completion: completion) { pasteboard in
+            switch item.kind {
+            case .text:
+                guard let text = item.text else { return false }
+                pasteboard.setString(text, forType: .string)
+            case .image:
+                guard let image = item.image else { return false }
+                pasteboard.writeObjects([image])
+            }
+            return true
+        }
+    }
+
+    /// Cola texto arbitrário (ex.: ditado por voz) no app em foco.
+    func paste(
+        text: String,
+        targetApplication: NSRunningApplication?,
+        completion: ((Bool) -> Void)? = nil
+    ) {
+        pastePreparingPasteboard(targetApplication: targetApplication, completion: completion) { pasteboard in
+            guard !text.isEmpty else { return false }
+            pasteboard.setString(text, forType: .string)
+            return true
+        }
+    }
+
+    private func pastePreparingPasteboard(
+        targetApplication: NSRunningApplication?,
+        completion: ((Bool) -> Void)?,
+        write: (NSPasteboard) -> Bool
+    ) {
         permissionsManager.refresh()
         guard permissionsManager.isAccessibilityGranted else {
             permissionsManager.requestAccessibility()
@@ -29,26 +60,16 @@ final class PasteService {
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
 
-        switch item.kind {
-        case .text:
-            guard let text = item.text else {
-                completion?(false)
-                return
-            }
-            pasteboard.setString(text, forType: .string)
-        case .image:
-            guard let image = item.image else {
-                completion?(false)
-                return
-            }
-            pasteboard.writeObjects([image])
+        guard write(pasteboard) else {
+            completion?(false)
+            return
         }
 
         NotificationCenter.default.post(name: .clipboardDidProgrammaticWrite, object: nil)
 
         let target = resolveTargetApplication(from: targetApplication)
         if let target {
-            target.activate(options: [.activateIgnoringOtherApps, .activateAllWindows])
+            target.activate(options: [.activateAllWindows])
         }
 
         pasteWithFocusRetry(targetApplication: target, attempt: 0, completion: completion)
@@ -89,7 +110,7 @@ final class PasteService {
 
             if !hasFocus, attempt < self.maxFocusRetries {
                 if attempt == 2 || attempt == 5 || attempt == 8 {
-                    targetApplication.activate(options: [.activateIgnoringOtherApps, .activateAllWindows])
+                    targetApplication.activate(options: [.activateAllWindows])
                 }
                 self.pasteWithFocusRetry(
                     targetApplication: targetApplication,
@@ -100,7 +121,7 @@ final class PasteService {
             }
 
             if !hasFocus {
-                targetApplication.activate(options: [.activateIgnoringOtherApps, .activateAllWindows])
+                targetApplication.activate(options: [.activateAllWindows])
                 DispatchQueue.main.asyncAfter(deadline: .now() + self.finalActivationDelay) {
                     completion?(self.triggerCommandV(to: targetApplication.processIdentifier))
                 }

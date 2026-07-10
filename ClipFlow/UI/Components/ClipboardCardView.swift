@@ -9,6 +9,10 @@ struct ClipboardCardView: View {
     let onToggleFavorite: () -> Void
     let onTogglePin: () -> Void
     let onDelete: () -> Void
+    let onTransform: (ClipboardTextTransform) -> Void
+    let onSaveSnippet: () -> Void
+    let onRemoveSnippet: () -> Void
+    let onAddToStack: () -> Void
 
     @State private var isHovering = false
 
@@ -25,6 +29,16 @@ struct ClipboardCardView: View {
                     .lineLimit(1)
 
                 Spacer(minLength: 6)
+
+                if let snippetName = item.snippetName {
+                    Text(snippetName)
+                        .font(.caption2.weight(.semibold))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Capsule().fill(Color.accentColor.opacity(0.16)))
+                        .foregroundStyle(Color.accentColor)
+                        .lineLimit(1)
+                }
 
                 if item.isEncrypted {
                     Image(systemName: "lock.fill")
@@ -62,6 +76,9 @@ struct ClipboardCardView: View {
         }
         .onHover { hovering in
             isHovering = hovering
+        }
+        .contextMenu {
+            contextMenuContent
         }
         .animation(.easeInOut(duration: 0.12), value: isHovering)
         .animation(.easeInOut(duration: 0.12), value: isSelected)
@@ -151,6 +168,41 @@ struct ClipboardCardView: View {
         .help(label)
     }
 
+    @ViewBuilder
+    private var contextMenuContent: some View {
+        if item.kind == .text {
+            Menu(t("Transformar e copiar", "Transform & copy")) {
+                ForEach(ClipboardTextTransform.allCases) { transform in
+                    Button(transform.title(for: language)) {
+                        onTransform(transform)
+                    }
+                }
+            }
+
+            Divider()
+        }
+
+        if item.snippetName == nil {
+            Button(t("Salvar como snippet...", "Save as snippet...")) {
+                onSaveSnippet()
+            }
+        } else {
+            Button(t("Remover snippet", "Remove snippet")) {
+                onRemoveSnippet()
+            }
+        }
+
+        Button(t("Adicionar à pilha de colagem", "Add to paste stack")) {
+            onAddToStack()
+        }
+
+        Divider()
+
+        Button(t("Excluir", "Delete"), role: .destructive) {
+            onDelete()
+        }
+    }
+
     private var leadingIconName: String {
         switch item.kind {
         case .text:
@@ -163,6 +215,12 @@ struct ClipboardCardView: View {
                 return "chevron.left.forwardslash.chevron.right"
             case .longText:
                 return "doc.text"
+            case .json:
+                return "curlybraces"
+            case .color:
+                return "paintpalette"
+            case .hash:
+                return "number"
             case .plain, .none:
                 return "text.alignleft"
             }

@@ -12,6 +12,9 @@ enum ClipboardTextSubtype: String, Codable {
     case email
     case code
     case longText
+    case json
+    case color
+    case hash
 }
 
 struct ClipboardSnapshot {
@@ -34,4 +37,5 @@ struct DecodedClipboardItem: Identifiable {
     let isEncrypted: Bool
     let sourceBundleID: String?
     let sourceApplicationName: String?
+    let snippetName: String?
 }

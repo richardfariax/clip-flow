@@ -38,6 +38,24 @@ ClipFlow gives you a `Windows + V` style clipboard history experience on macOS, 
   - `⌘D` favorite selected item
   - `⌘P` pin selected item
   - `⌘C` copy selected item back to clipboard
+- Voice assistant with two activation modes:
+  - Hotkey (`⌥⇧V`, default): mic turns on only while you speak — the macOS mic indicator stays off otherwise
+  - Always listening with wake word (default `clipe`)
+- Assistant commands: "que horas são", "que dia é hoje", "quantos graus agora" (free wttr.in, no API key), "abra o site github.com", "pesquise <termo>"
+- Spoken responses via native macOS text-to-speech (offline) + system sound feedback — both optional
+- Voice commands via native on-device speech recognition:
+  - "clipe, abra o Xcode" / "clipe, open Xcode"
+  - "clipe, tire um print" (full screen or area) — saved straight to history
+  - "clipe, cole o item 2", "clipe, cole o último", "clipe, copie o item 3"
+  - "clipe, digite <texto>" (voice dictation into the focused app)
+  - "clipe, salve como deploy" / "clipe, cole o snippet deploy"
+  - "clipe, formate o json", "clipe, limpar histórico", "clipe, pausar monitoramento"
+  - Animated on-screen HUD with live transcript and command feedback
+- Developer productivity tools:
+  - Transform & copy from any card: format/minify JSON, Base64 encode/decode, camelCase/snake_case, UPPER/lower, trim
+  - Smart content detection: JSON, hex colors, and hashes get their own icons
+  - Named snippets (voice or context menu) with a dedicated Snippets filter (`⌘6`)
+  - Sequential paste stack: queue items (`⌘S` or context menu) and paste them one by one
 - Automatic paste back to the previously focused app
 - Ignored app list for sensitive software (password managers, etc.)
 - Optional local AES-GCM encryption
@@ -99,6 +117,8 @@ ClipFlow may request:
 
 - Accessibility: required for automatic paste simulation (`Cmd + V`)
 - Input Monitoring: improves reliability for global hotkeys
+- Microphone + Speech Recognition: required only if you enable voice commands (recognition runs on-device when available)
+- Screen Recording: required for voice-triggered screenshots
 
 These permission dialogs are controlled by macOS security and cannot be bypassed by the installer.
 

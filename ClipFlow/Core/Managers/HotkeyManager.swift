@@ -3,14 +3,22 @@ import Foundation
 
 final class HotkeyManager {
     static let hotkeyPressedNotification = Notification.Name("ClipFlowHotkeyPressed")
+    static let voiceHotkeyPressedNotification = Notification.Name("ClipFlowVoiceHotkeyPressed")
+
+    private enum HotkeyID: UInt32 {
+        case panel = 1
+        case voice = 2
+    }
 
     private var hotKeyRef: EventHotKeyRef?
+    private var voiceHotKeyRef: EventHotKeyRef?
     private var eventHandlerRef: EventHandlerRef?
 
     func register(keyCode: UInt32, modifiers: UInt32) {
-        unregister()
+        unregisterPanelHotkey()
+        installEventHandlerIfNeeded()
 
-        let hotKeyID = EventHotKeyID(signature: OSType(0x434C5654), id: 1) // CLVT
+        let hotKeyID = EventHotKeyID(signature: OSType(0x434C5654), id: HotkeyID.panel.rawValue) // CLVT
 
         let status = RegisterEventHotKey(
             keyCode,
@@ -21,10 +29,57 @@ final class HotkeyManager {
             &hotKeyRef
         )
 
-        guard status == noErr else {
+        if status != noErr {
             NSLog("[ClipFlow] Falha ao registrar hotkey global: \(status)")
-            return
         }
+    }
+
+    func registerVoiceHotkey(keyCode: UInt32, modifiers: UInt32) {
+        unregisterVoiceHotkey()
+        installEventHandlerIfNeeded()
+
+        let hotKeyID = EventHotKeyID(signature: OSType(0x434C5654), id: HotkeyID.voice.rawValue)
+
+        let status = RegisterEventHotKey(
+            keyCode,
+            modifiers,
+            hotKeyID,
+            GetEventDispatcherTarget(),
+            0,
+            &voiceHotKeyRef
+        )
+
+        if status != noErr {
+            NSLog("[ClipFlow] Falha ao registrar hotkey de voz: \(status)")
+        }
+    }
+
+    func unregisterVoiceHotkey() {
+        if let voiceHotKeyRef {
+            UnregisterEventHotKey(voiceHotKeyRef)
+            self.voiceHotKeyRef = nil
+        }
+    }
+
+    func unregister() {
+        unregisterPanelHotkey()
+        unregisterVoiceHotkey()
+
+        if let eventHandlerRef {
+            RemoveEventHandler(eventHandlerRef)
+            self.eventHandlerRef = nil
+        }
+    }
+
+    private func unregisterPanelHotkey() {
+        if let hotKeyRef {
+            UnregisterEventHotKey(hotKeyRef)
+            self.hotKeyRef = nil
+        }
+    }
+
+    private func installEventHandlerIfNeeded() {
+        guard eventHandlerRef == nil else { return }
 
         var eventType = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
         InstallEventHandler(GetEventDispatcherTarget(), { _, event, _ in
@@ -41,23 +96,18 @@ final class HotkeyManager {
                 &incomingID
             )
 
-            if eventParamStatus == noErr, incomingID.id == 1 {
+            guard eventParamStatus == noErr else { return noErr }
+
+            switch incomingID.id {
+            case HotkeyID.panel.rawValue:
                 NotificationCenter.default.post(name: HotkeyManager.hotkeyPressedNotification, object: nil)
+            case HotkeyID.voice.rawValue:
+                NotificationCenter.default.post(name: HotkeyManager.voiceHotkeyPressedNotification, object: nil)
+            default:
+                break
             }
             return noErr
         }, 1, &eventType, nil, &eventHandlerRef)
-    }
-
-    func unregister() {
-        if let eventHandlerRef {
-            RemoveEventHandler(eventHandlerRef)
-            self.eventHandlerRef = nil
-        }
-
-        if let hotKeyRef {
-            UnregisterEventHotKey(hotKeyRef)
-            self.hotKeyRef = nil
-        }
     }
 
     deinit {

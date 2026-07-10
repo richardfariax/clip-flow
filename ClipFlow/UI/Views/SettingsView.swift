@@ -42,6 +42,7 @@ struct SettingsView: View {
                         header
 
                         generalSection
+                        voiceSection
                         hotkeySection
                         ignoredAppsSection
                         permissionsSection
@@ -172,6 +173,100 @@ struct SettingsView: View {
                 }
             }
         }
+    }
+
+    private var voiceSection: some View {
+        cardSection(
+            title: t("Comandos de Voz", "Voice Commands"),
+            subtitle: t(
+                "Escuta contínua por palavra-chave usando reconhecimento de fala nativo (local quando disponível)",
+                "Continuous wake-word listening using native speech recognition (on-device when available)"
+            ),
+            fillsWidth: true
+        ) {
+            VStack(alignment: .leading, spacing: 10) {
+                alignedConfigRow(title: t("Ativar comandos de voz", "Enable voice commands")) {
+                    Toggle("", isOn: $settings.voiceControlEnabled)
+                        .labelsHidden()
+                }
+
+                alignedConfigRow(title: t("Modo de ativação", "Activation mode")) {
+                    Picker("", selection: $settings.voiceActivationMode) {
+                        ForEach(VoiceActivationMode.allCases) { mode in
+                            Text(mode.title(for: settings.language)).tag(mode)
+                        }
+                    }
+                    .labelsHidden()
+                }
+
+                alignedConfigNote(
+                    settings.voiceActivationMode == .wakeWord
+                        ? t(
+                            "O microfone fica sempre aberto aguardando a palavra de ativação — o indicador laranja do macOS permanecerá aceso.",
+                            "The microphone stays open waiting for the wake word — the macOS orange indicator will stay on."
+                        )
+                        : t(
+                            "Pressione ⌥⇧V, fale o comando e o microfone desliga sozinho. Discreto: o indicador só acende durante a captura.",
+                            "Press ⌥⇧V, speak the command, and the microphone turns off by itself. Discreet: the indicator lights up only while capturing."
+                        )
+                )
+
+                if settings.voiceActivationMode == .wakeWord {
+                    alignedConfigRow(title: t("Palavra de ativação", "Wake word")) {
+                        TextField("clipe", text: $settings.voiceWakeWord)
+                            .textFieldStyle(.roundedBorder)
+                    }
+                }
+
+                alignedConfigRow(title: t("Som de confirmação", "Sound feedback")) {
+                    Toggle("", isOn: $settings.voiceSoundFeedback)
+                        .labelsHidden()
+                }
+
+                alignedConfigRow(title: t("Respostas faladas", "Spoken responses")) {
+                    Toggle("", isOn: $settings.voiceSpokenResponses)
+                        .labelsHidden()
+                }
+
+                alignedConfigRow(title: t("Seu nome", "Your name")) {
+                    TextField(t("como devo te chamar", "what should I call you"), text: $settings.userName)
+                        .textFieldStyle(.roundedBorder)
+                }
+
+                alignedConfigRow(title: t("Voz do Clip", "Clip's voice")) {
+                    Text(t("Thalita (neural)", "Jenny (neural)"))
+                        .foregroundStyle(.secondary)
+                }
+
+                alignedConfigNote(
+                    t(
+                        "O Clip usa voz neural Microsoft Edge TTS — muito mais natural que as vozes do macOS. Requer internet; se estiver offline, usa a voz do sistema como reserva.",
+                        "Clip uses Microsoft Edge neural TTS — much more natural than macOS voices. Requires internet; falls back to the system voice when offline."
+                    )
+                )
+
+                alignedConfigNote(voiceExamplesText)
+
+                if settings.voiceControlEnabled,
+                   !permissionsManager.isMicrophoneGranted || !permissionsManager.isSpeechRecognitionGranted {
+                    alignedConfigNote(
+                        t(
+                            "Conceda as permissões de Microfone e Reconhecimento de Fala quando solicitado.",
+                            "Grant Microphone and Speech Recognition permissions when prompted."
+                        ),
+                        color: .orange
+                    )
+                }
+            }
+        }
+    }
+
+    private var voiceExamplesText: String {
+        let prefix = settings.voiceActivationMode == .wakeWord ? "\(settings.voiceWakeWord), " : ""
+        return t(
+            "Exemplos: \"\(prefix)abra o Xcode\" · \"\(prefix)o que eu copiei\" · \"\(prefix)cole o item 2\" · \"\(prefix)quanto é 15 mais 7\" · \"\(prefix)veja o que está na tela\" · \"\(prefix)minifique o json\" · \"\(prefix)mostre favoritos\" · \"\(prefix)quem foi Santos Dumont\"",
+            "Examples: \"\(prefix)open Xcode\" · \"\(prefix)what did I copy\" · \"\(prefix)paste item 2\" · \"\(prefix)what is 15 plus 7\" · \"\(prefix)what's on the screen\" · \"\(prefix)minify json\" · \"\(prefix)show favorites\" · \"\(prefix)who was Santos Dumont\""
+        )
     }
 
     private var hotkeySection: some View {

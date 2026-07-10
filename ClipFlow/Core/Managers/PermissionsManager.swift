@@ -1,11 +1,15 @@
 import AppKit
 import ApplicationServices
+import AVFoundation
 import Foundation
+import Speech
 
 @MainActor
 final class PermissionsManager: ObservableObject {
     @Published private(set) var isAccessibilityGranted: Bool = AXIsProcessTrusted()
     @Published private(set) var isInputMonitoringGranted: Bool = CGPreflightListenEventAccess()
+    @Published private(set) var isMicrophoneGranted: Bool = AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
+    @Published private(set) var isSpeechRecognitionGranted: Bool = SFSpeechRecognizer.authorizationStatus() == .authorized
 
     private let defaults = UserDefaults.standard
     private let promptedAccessibilityKey = "clipflow.permissions.prompted.accessibility"
@@ -14,6 +18,19 @@ final class PermissionsManager: ObservableObject {
     func refresh() {
         isAccessibilityGranted = AXIsProcessTrusted()
         isInputMonitoringGranted = CGPreflightListenEventAccess()
+        isMicrophoneGranted = AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
+        isSpeechRecognitionGranted = SFSpeechRecognizer.authorizationStatus() == .authorized
+    }
+
+    func requestVoicePermissions(completion: @escaping (Bool) -> Void) {
+        SFSpeechRecognizer.requestAuthorization { [weak self] speechStatus in
+            AVCaptureDevice.requestAccess(for: .audio) { micGranted in
+                DispatchQueue.main.async {
+                    self?.refresh()
+                    completion(speechStatus == .authorized && micGranted)
+                }
+            }
+        }
     }
 
     func requestAccessibility() {

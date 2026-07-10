@@ -14,6 +14,7 @@ final class ClipboardItemEntity {
     var sourceBundleID: String?
     var isFavorite: Bool
     var isPinned: Bool
+    var snippetName: String?
 
     init(
         id: UUID = UUID(),
@@ -26,7 +27,8 @@ final class ClipboardItemEntity {
         contentHash: String,
         sourceBundleID: String?,
         isFavorite: Bool = false,
-        isPinned: Bool = false
+        isPinned: Bool = false,
+        snippetName: String? = nil
     ) {
         self.id = id
         self.createdAt = createdAt
@@ -39,5 +41,6 @@ final class ClipboardItemEntity {
         self.sourceBundleID = sourceBundleID
         self.isFavorite = isFavorite
         self.isPinned = isPinned
+        self.snippetName = snippetName
     }
 }

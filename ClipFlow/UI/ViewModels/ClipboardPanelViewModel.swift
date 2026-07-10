@@ -8,6 +8,7 @@ enum ClipboardPanelFilter: String, CaseIterable, Identifiable {
     case pinned
     case textOnly
     case imagesOnly
+    case snippets
 
     var id: String { rawValue }
 
@@ -23,6 +24,8 @@ enum ClipboardPanelFilter: String, CaseIterable, Identifiable {
             return language.text(ptBR: "Textos", en: "Text")
         case .imagesOnly:
             return language.text(ptBR: "Imagens", en: "Images")
+        case .snippets:
+            return "Snippets"
         }
     }
 
@@ -38,6 +41,8 @@ enum ClipboardPanelFilter: String, CaseIterable, Identifiable {
             return item.kind == .text
         case .imagesOnly:
             return item.kind == .image
+        case .snippets:
+            return item.snippetName != nil
         }
     }
 }
@@ -52,6 +57,7 @@ final class ClipboardPanelViewModel: ObservableObject {
     }
     @Published private(set) var items: [DecodedClipboardItem] = []
     @Published private(set) var selectedItemID: UUID?
+    @Published private(set) var pasteStack: [UUID] = []
 
     private let storageService: ClipboardStorageService
     private let pasteService: PasteService
@@ -136,18 +142,22 @@ final class ClipboardPanelViewModel: ObservableObject {
         guard let selectedItem = selectedItem else {
             return false
         }
+        return copyToPasteboard(item: selectedItem)
+    }
 
+    @discardableResult
+    func copyToPasteboard(item: DecodedClipboardItem) -> Bool {
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
 
-        switch selectedItem.kind {
+        switch item.kind {
         case .text:
-            guard let text = selectedItem.text else {
+            guard let text = item.text else {
                 return false
             }
             pasteboard.setString(text, forType: .string)
         case .image:
-            guard let image = selectedItem.image else {
+            guard let image = item.image else {
                 return false
             }
             pasteboard.writeObjects([image])
@@ -155,6 +165,112 @@ final class ClipboardPanelViewModel: ObservableObject {
 
         NotificationCenter.default.post(name: .clipboardDidProgrammaticWrite, object: nil)
         return true
+    }
+
+    // MARK: - Acesso por índice/recência (comandos de voz)
+
+    /// Item na posição exibida (1-based), na mesma ordem do painel sem filtro.
+    func item(atDisplayIndex index: Int) -> DecodedClipboardItem? {
+        guard index >= 1, index <= allItems.count else { return nil }
+        return allItems[index - 1]
+    }
+
+    /// Item mais recente por data de cópia (ignora ordenação de pin/favorito).
+    func mostRecentItem() -> DecodedClipboardItem? {
+        allItems.max { $0.createdAt < $1.createdAt }
+    }
+
+    var itemCount: Int { allItems.count }
+
+    func snippetNames() -> [String] {
+        allItems.compactMap(\.snippetName).sorted()
+    }
+
+    @discardableResult
+    func transformMostRecent(_ transform: ClipboardTextTransform) -> Bool {
+        guard let item = mostRecentItem() else { return false }
+        return transformAndCopy(item: item, transform: transform)
+    }
+
+    // MARK: - Transformações de texto
+
+    /// Aplica a transformação e copia o resultado para o clipboard.
+    /// O monitor registra o resultado como novo item do histórico.
+    @discardableResult
+    func transformAndCopy(item: DecodedClipboardItem, transform: ClipboardTextTransform) -> Bool {
+        guard item.kind == .text, let text = item.text,
+              let result = TextTransformer.apply(transform, to: text) else {
+            return false
+        }
+
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(result, forType: .string)
+        // Sem post de .clipboardDidProgrammaticWrite: o monitor deve salvar o resultado.
+        return true
+    }
+
+    @discardableResult
+    func formatMostRecentJSON() -> Bool {
+        guard let item = allItems
+            .filter({ $0.kind == .text })
+            .max(by: { $0.createdAt < $1.createdAt }) else {
+            return false
+        }
+        return transformAndCopy(item: item, transform: .prettyJSON)
+    }
+
+    // MARK: - Snippets
+
+    func saveSnippet(named name: String, itemID: UUID) {
+        storageService.setSnippetName(itemID: itemID, name: name)
+        refresh()
+    }
+
+    func removeSnippet(itemID: UUID) {
+        storageService.setSnippetName(itemID: itemID, name: nil)
+        refresh()
+    }
+
+    @discardableResult
+    func saveMostRecentAsSnippet(named name: String) -> Bool {
+        guard let item = mostRecentItem() else { return false }
+        saveSnippet(named: name, itemID: item.id)
+        return true
+    }
+
+    func snippet(named name: String) -> DecodedClipboardItem? {
+        guard let entity = storageService.snippetItem(named: name) else { return nil }
+        return storageService.decode(entity)
+    }
+
+    // MARK: - Paste stack
+
+    func addToStack(itemID: UUID) {
+        guard !pasteStack.contains(itemID) else { return }
+        pasteStack.append(itemID)
+    }
+
+    func addSelectedToStack() {
+        guard let selectedItemID else { return }
+        addToStack(itemID: selectedItemID)
+    }
+
+    @discardableResult
+    func pasteNextFromStack(targetApplication: NSRunningApplication? = nil) -> Bool {
+        refresh()
+        while !pasteStack.isEmpty {
+            let nextID = pasteStack.removeFirst()
+            if let item = allItems.first(where: { $0.id == nextID }) {
+                paste(item: item, targetApplication: targetApplication)
+                return true
+            }
+        }
+        return false
+    }
+
+    func clearStack() {
+        pasteStack.removeAll()
     }
 
     func toggleFavorite(itemID: UUID) {
@@ -210,6 +326,10 @@ final class ClipboardPanelViewModel: ObservableObject {
             }
 
             if let sourceBundleID = item.sourceBundleID?.lowercased(), sourceBundleID.contains(lowercasedQuery) {
+                return true
+            }
+
+            if let snippetName = item.snippetName, snippetName.contains(lowercasedQuery) {
                 return true
             }
 
