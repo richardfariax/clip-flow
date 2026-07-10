@@ -1,4 +1,5 @@
 import AppKit
+import Carbon
 import SwiftUI
 
 @MainActor
@@ -33,10 +34,18 @@ final class VoiceHUDController {
     }
 
     var isSoundEnabled: () -> Bool = { true }
+    /// Esc: aborta a interação atual (fala, captura, follow-up) e fecha o HUD.
+    var onEscape: (() -> Void)?
 
     private var panel: NSPanel?
     private let model = VoiceHUDModel()
     private var hideWorkItem: DispatchWorkItem?
+    private var localKeyMonitor: Any?
+    private var globalKeyMonitor: Any?
+
+    var isVisible: Bool {
+        panel?.isVisible == true && (panel?.alphaValue ?? 0) > 0.05
+    }
 
     func showListening(hint: String) {
         hideWorkItem?.cancel()
@@ -138,6 +147,7 @@ final class VoiceHUDController {
     func hide() {
         hideWorkItem?.cancel()
         hideWorkItem = nil
+        removeEscapeMonitors()
         model.userLevel = 0
         model.assistantLevel = 0
         model.speechProgress = 0
@@ -149,6 +159,42 @@ final class VoiceHUDController {
         }, completionHandler: {
             panel.orderOut(nil)
         })
+    }
+
+    private func handleEscape() {
+        onEscape?()
+    }
+
+    private func installEscapeMonitorsIfNeeded() {
+        if localKeyMonitor == nil {
+            localKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+                guard let self, self.isVisible, Int(event.keyCode) == kVK_Escape else {
+                    return event
+                }
+                self.handleEscape()
+                return nil
+            }
+        }
+
+        if globalKeyMonitor == nil {
+            globalKeyMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
+                guard let self, self.isVisible, Int(event.keyCode) == kVK_Escape else { return }
+                DispatchQueue.main.async {
+                    self.handleEscape()
+                }
+            }
+        }
+    }
+
+    private func removeEscapeMonitors() {
+        if let localKeyMonitor {
+            NSEvent.removeMonitor(localKeyMonitor)
+            self.localKeyMonitor = nil
+        }
+        if let globalKeyMonitor {
+            NSEvent.removeMonitor(globalKeyMonitor)
+            self.globalKeyMonitor = nil
+        }
     }
 
     private func announce(_ message: String) {
@@ -184,6 +230,7 @@ final class VoiceHUDController {
         guard let panel else { return }
 
         panel.setFrame(activeScreenFrame(), display: true)
+        installEscapeMonitorsIfNeeded()
 
         if !panel.isVisible {
             panel.alphaValue = 0
@@ -224,6 +271,15 @@ final class VoiceHUDController {
         let screen = NSScreen.screens.first(where: { NSMouseInRect(mouseLocation, $0.frame, false) })
             ?? NSScreen.main
         return screen?.frame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
+    }
+
+    deinit {
+        if let localKeyMonitor {
+            NSEvent.removeMonitor(localKeyMonitor)
+        }
+        if let globalKeyMonitor {
+            NSEvent.removeMonitor(globalKeyMonitor)
+        }
     }
 }
 

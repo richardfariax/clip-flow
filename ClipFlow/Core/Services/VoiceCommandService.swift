@@ -204,6 +204,31 @@ final class VoiceCommandService: ObservableObject {
         }
     }
 
+    /// Aborta captura/follow-up em andamento (ex.: Esc no HUD) sem disparar comando.
+    func cancelActiveInteraction() {
+        cancelCommandTimeout()
+        isAwaitingCommand = false
+        isFollowUpCapture = false
+        commandStartOffset = nil
+        capturedTranscript = ""
+        isPausedForSpeechOutput = false
+        wasListeningBeforeSpeechPause = false
+        publishInputLevel(0)
+
+        if isManualSession || settings.voiceActivationMode == .hotkey {
+            isManualSession = false
+            tearDownRecognition()
+            stopAudioEngine()
+            state = .disabled
+            return
+        }
+
+        // Wake word: volta a escutar a palavra de ativação.
+        if state != .disabled {
+            startRecognitionSession()
+        }
+    }
+
     private var isUnavailable: Bool {
         if case .unavailable = state { return true }
         return false

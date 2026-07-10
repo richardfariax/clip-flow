@@ -30,6 +30,7 @@ final class SpokenResponseService: NSObject, AVSpeechSynthesizerDelegate, AVAudi
 
     private var fallbackSpeechStartedAt: TimeInterval?
     private var fallbackEstimatedDuration: TimeInterval = 0
+    private var speakGeneration = 0
 
     override init() {
         super.init()
@@ -45,6 +46,8 @@ final class SpokenResponseService: NSObject, AVSpeechSynthesizerDelegate, AVAudi
             return
         }
 
+        speakGeneration += 1
+        let generation = speakGeneration
         onFinish = completion
         didNotifyPlaybackStarted = false
         speechLevel = 0
@@ -54,11 +57,12 @@ final class SpokenResponseService: NSObject, AVSpeechSynthesizerDelegate, AVAudi
         fallbackEstimatedDuration = 0
 
         Task {
-            await speakWithNeuralVoice(text, languageCode: languageCode)
+            await speakWithNeuralVoice(text, languageCode: languageCode, generation: generation)
         }
     }
 
     func stop() {
+        speakGeneration += 1
         stopMetering()
         onFinish = nil
         onPlaybackStarted = nil
@@ -78,7 +82,7 @@ final class SpokenResponseService: NSObject, AVSpeechSynthesizerDelegate, AVAudi
 
     // MARK: - Edge TTS (voz neural)
 
-    private func speakWithNeuralVoice(_ text: String, languageCode: String) async {
+    private func speakWithNeuralVoice(_ text: String, languageCode: String, generation: Int) async {
         let voice = Self.neuralVoice(for: languageCode)
         let outputURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("clipflow-tts-\(UUID().uuidString).mp3")
@@ -92,9 +96,14 @@ final class SpokenResponseService: NSObject, AVSpeechSynthesizerDelegate, AVAudi
                 volume: nil,
                 pitch: nil
             )
+            guard generation == speakGeneration else {
+                try? FileManager.default.removeItem(at: outputURL)
+                return
+            }
             currentAudioURL = outputURL
             playAudio(at: outputURL)
         } catch {
+            guard generation == speakGeneration else { return }
             NSLog("[ClipFlow] Edge TTS falhou, usando voz do sistema: \(error.localizedDescription)")
             speakWithSystemVoice(text, languageCode: languageCode)
         }
