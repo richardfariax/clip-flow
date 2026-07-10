@@ -15,6 +15,7 @@
 		618E7E44471E799B542ECC14 /* VisualEffectBlur.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52AE6F0279D382AA3FAF24FF /* VisualEffectBlur.swift */; };
 		6B7C5FBA5B9764073E282FD7 /* NotificationNames.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA1E8764EA0AFA05812D6B69 /* NotificationNames.swift */; };
 		752C1FD4FCCA412B0D21BFDD /* BrandLogoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12FF65EDC63FD6159919728A /* BrandLogoView.swift */; };
+		BBBB00000000000000000016 /* VoiceFieldView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA00000000000000000016 /* VoiceFieldView.swift */; };
 		7A6FFF53B7ECE30CADBE7727 /* ClipboardContentClassifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5919201EAF9BA97D6BA90BC4 /* ClipboardContentClassifier.swift */; };
 		7BFA9BE66C101557405B7674 /* PermissionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4F410C746C751DE4CDA5A6E /* PermissionsView.swift */; };
 		8833C074EF8DBA038ED1C901 /* ClipboardTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13B04ECA29B204A863C8DAF4 /* ClipboardTypes.swift */; };
@@ -50,9 +51,9 @@
 		BBBB0000000000000000000D /* VoiceCommandCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA0000000000000000000D /* VoiceCommandCatalog.swift */; };
 		BBBB0000000000000000000E /* AssistantIntentDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA0000000000000000000E /* AssistantIntentDetector.swift */; };
 		BBBB0000000000000000000F /* DeveloperProfileCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA0000000000000000000F /* DeveloperProfileCatalog.swift */; };
-		BBBB00000000000000000010 /* DeveloperKnowledgeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA00000000000000000010 /* DeveloperKnowledgeService.swift */; };
+		BBBB00000000000000000015 /* ClipAssistantIdentity.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA00000000000000000015 /* ClipAssistantIdentity.swift */; };
 		BBBB00000000000000000011 /* WebSnippetSearchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA00000000000000000011 /* WebSnippetSearchService.swift */; };
-		BBBB00000000000000000012 /* DeveloperKnowledgeServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA00000000000000000012 /* DeveloperKnowledgeServiceTests.swift */; };
+		BBBB00000000000000000014 /* GenerativeAnswerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA00000000000000000014 /* GenerativeAnswerService.swift */; };
 		EEEE00000000000000000001 /* SwiftEdgeTTS in Frameworks */ = {isa = PBXBuildFile; productRef = DDDD00000000000000000001 /* SwiftEdgeTTS */; };
 /* End PBXBuildFile section */
 
@@ -80,6 +81,7 @@
 /* Begin PBXFileReference section */
 		0787EF158E8204251B95C8BB /* ClipboardPanelController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardPanelController.swift; sourceTree = "<group>"; };
 		12FF65EDC63FD6159919728A /* BrandLogoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrandLogoView.swift; sourceTree = "<group>"; };
+		AAAA00000000000000000016 /* VoiceFieldView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceFieldView.swift; sourceTree = "<group>"; };
 		13B04ECA29B204A863C8DAF4 /* ClipboardTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardTypes.swift; sourceTree = "<group>"; };
 		33E5EEDA6E627A96A84C1DF1 /* ClipboardPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardPanelView.swift; sourceTree = "<group>"; };
 		3E05A95FCBA4678B58E3BEE5 /* PasteService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasteService.swift; sourceTree = "<group>"; };
@@ -123,9 +125,9 @@
 		AAAA0000000000000000000D /* VoiceCommandCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceCommandCatalog.swift; sourceTree = "<group>"; };
 		AAAA0000000000000000000E /* AssistantIntentDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssistantIntentDetector.swift; sourceTree = "<group>"; };
 		AAAA0000000000000000000F /* DeveloperProfileCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeveloperProfileCatalog.swift; sourceTree = "<group>"; };
-		AAAA00000000000000000010 /* DeveloperKnowledgeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeveloperKnowledgeService.swift; sourceTree = "<group>"; };
+		AAAA00000000000000000015 /* ClipAssistantIdentity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipAssistantIdentity.swift; sourceTree = "<group>"; };
 		AAAA00000000000000000011 /* WebSnippetSearchService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSnippetSearchService.swift; sourceTree = "<group>"; };
-		AAAA00000000000000000012 /* DeveloperKnowledgeServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeveloperKnowledgeServiceTests.swift; sourceTree = "<group>"; };
+		AAAA00000000000000000014 /* GenerativeAnswerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GenerativeAnswerService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -135,6 +137,7 @@
 				A628C074D7A6C3713B13F1F0 /* ClipboardItemEntity.swift */,
 				13B04ECA29B204A863C8DAF4 /* ClipboardTypes.swift */,
 				AAAA0000000000000000000F /* DeveloperProfileCatalog.swift */,
+				AAAA00000000000000000015 /* ClipAssistantIdentity.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -197,6 +200,7 @@
 			isa = PBXGroup;
 			children = (
 				12FF65EDC63FD6159919728A /* BrandLogoView.swift */,
+				AAAA00000000000000000016 /* VoiceFieldView.swift */,
 				8A4C8566F8D1077C219FD8B3 /* ClipboardCardView.swift */,
 				52AE6F0279D382AA3FAF24FF /* VisualEffectBlur.swift */,
 			);
@@ -209,7 +213,6 @@
 				4DB3ADE9DDA4C061AB08C841 /* ClipboardContentClassifierTests.swift */,
 				AAAA00000000000000000008 /* TextTransformerTests.swift */,
 				AAAA00000000000000000007 /* VoiceCommandParserTests.swift */,
-				AAAA00000000000000000012 /* DeveloperKnowledgeServiceTests.swift */,
 			);
 			path = ClipFlowTests;
 			sourceTree = "<group>";
@@ -229,7 +232,7 @@
 				5EA96B11110C919E9F3BFFE7 /* ClipboardMonitorService.swift */,
 				737526EA96019B263A97750E /* ClipboardStorageService.swift */,
 				AAAA0000000000000000000A /* KnowledgeService.swift */,
-				AAAA00000000000000000010 /* DeveloperKnowledgeService.swift */,
+				AAAA00000000000000000014 /* GenerativeAnswerService.swift */,
 				AAAA00000000000000000011 /* WebSnippetSearchService.swift */,
 				C650AFC928162EBED6627D1C /* LocalCryptoService.swift */,
 				3E05A95FCBA4678B58E3BEE5 /* PasteService.swift */,
@@ -387,6 +390,7 @@
 				A676EEDD45AFBD34937484B4 /* AppDelegate.swift in Sources */,
 				C40894AEEAEF63A41EB3E8A3 /* AppSettings.swift in Sources */,
 				752C1FD4FCCA412B0D21BFDD /* BrandLogoView.swift in Sources */,
+				BBBB00000000000000000016 /* VoiceFieldView.swift in Sources */,
 				FDA4C4F3404E357912A7BD3A /* ClipFlowApp.swift in Sources */,
 				2E14F68FE257D81A298796E1 /* ClipboardCardView.swift in Sources */,
 				7A6FFF53B7ECE30CADBE7727 /* ClipboardContentClassifier.swift in Sources */,
@@ -409,12 +413,13 @@
 				7BFA9BE66C101557405B7674 /* PermissionsView.swift in Sources */,
 				9690F84E791581A54FEEDAE6 /* SettingsView.swift in Sources */,
 				BBBB0000000000000000000A /* KnowledgeService.swift in Sources */,
+				BBBB00000000000000000014 /* GenerativeAnswerService.swift in Sources */,
 				BBBB00000000000000000004 /* ScreenshotService.swift in Sources */,
 				BBBB0000000000000000000C /* ScreenAnalysisService.swift in Sources */,
 				BBBB0000000000000000000D /* VoiceCommandCatalog.swift in Sources */,
 				BBBB0000000000000000000E /* AssistantIntentDetector.swift in Sources */,
 				BBBB0000000000000000000F /* DeveloperProfileCatalog.swift in Sources */,
-				BBBB00000000000000000010 /* DeveloperKnowledgeService.swift in Sources */,
+				BBBB00000000000000000015 /* ClipAssistantIdentity.swift in Sources */,
 				BBBB00000000000000000011 /* WebSnippetSearchService.swift in Sources */,
 				BBBB00000000000000000009 /* SpokenResponseService.swift in Sources */,
 				BBBB00000000000000000002 /* TextTransformer.swift in Sources */,
@@ -435,7 +440,6 @@
 				4E44BD4C7855CCD133C2FDC5 /* ClipboardContentClassifierTests.swift in Sources */,
 				BBBB00000000000000000008 /* TextTransformerTests.swift in Sources */,
 				BBBB00000000000000000007 /* VoiceCommandParserTests.swift in Sources */,
-				BBBB00000000000000000012 /* DeveloperKnowledgeServiceTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
