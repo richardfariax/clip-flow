@@ -88,7 +88,8 @@ final class ClipboardStorageService {
                     isPinned: entity.isPinned,
                     isEncrypted: entity.isEncrypted,
                     sourceBundleID: entity.sourceBundleID,
-                    sourceApplicationName: resolveApplicationName(bundleID: entity.sourceBundleID)
+                    sourceApplicationName: resolveApplicationName(bundleID: entity.sourceBundleID),
+                    snippetName: entity.snippetName
                 )
             case .image:
                 let image = NSImage(data: rawPayload)
@@ -103,7 +104,8 @@ final class ClipboardStorageService {
                     isPinned: entity.isPinned,
                     isEncrypted: entity.isEncrypted,
                     sourceBundleID: entity.sourceBundleID,
-                    sourceApplicationName: resolveApplicationName(bundleID: entity.sourceBundleID)
+                    sourceApplicationName: resolveApplicationName(bundleID: entity.sourceBundleID),
+                    snippetName: entity.snippetName
                 )
             }
         } catch {
@@ -122,6 +124,48 @@ final class ClipboardStorageService {
         update(itemID: itemID) { item in
             item.isPinned.toggle()
             item.updatedAt = Date()
+        }
+    }
+
+    /// Define/remove o nome de snippet. Nomes são únicos: remove o nome de outro item se já estiver em uso.
+    func setSnippetName(itemID: UUID, name: String?) {
+        do {
+            if let name {
+                let normalized = name.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !normalized.isEmpty else { return }
+
+                let existingDescriptor = FetchDescriptor<ClipboardItemEntity>(
+                    predicate: #Predicate { $0.snippetName == normalized }
+                )
+                for existing in try modelContext.fetch(existingDescriptor) where existing.id != itemID {
+                    existing.snippetName = nil
+                }
+
+                update(itemID: itemID) { item in
+                    item.snippetName = normalized
+                }
+            } else {
+                update(itemID: itemID) { item in
+                    item.snippetName = nil
+                }
+            }
+        } catch {
+            NSLog("[ClipFlow] Falha ao definir snippet \(itemID): \(error.localizedDescription)")
+        }
+    }
+
+    func snippetItem(named name: String) -> ClipboardItemEntity? {
+        let normalized = name.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalized.isEmpty else { return nil }
+
+        do {
+            let descriptor = FetchDescriptor<ClipboardItemEntity>(
+                predicate: #Predicate { $0.snippetName == normalized }
+            )
+            return try modelContext.fetch(descriptor).first
+        } catch {
+            NSLog("[ClipFlow] Falha ao buscar snippet \"\(name)\": \(error.localizedDescription)")
+            return nil
         }
     }
 
@@ -192,7 +236,7 @@ final class ClipboardStorageService {
         }
 
         var overflow = allItems.count - limit
-        let removable = allItems.reversed().filter { !$0.isPinned }
+        let removable = allItems.reversed().filter { !$0.isPinned && $0.snippetName == nil }
 
         for item in removable where overflow > 0 {
             modelContext.delete(item)
