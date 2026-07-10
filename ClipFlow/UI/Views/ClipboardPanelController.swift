@@ -16,6 +16,7 @@ final class ClipboardPanelController {
     private let onTogglePinSelection: () -> Void
     private let onCopySelection: () -> Void
     private let onSelectFilter: (ClipboardPanelFilter) -> Void
+    private let onStackSelection: () -> Void
     private var keyMonitor: Any?
 
     var isVisible: Bool {
@@ -29,7 +30,8 @@ final class ClipboardPanelController {
         onToggleFavoriteSelection: @escaping () -> Void,
         onTogglePinSelection: @escaping () -> Void,
         onCopySelection: @escaping () -> Void,
-        onSelectFilter: @escaping (ClipboardPanelFilter) -> Void
+        onSelectFilter: @escaping (ClipboardPanelFilter) -> Void,
+        onStackSelection: @escaping () -> Void
     ) {
         self.onMoveSelection = onMoveSelection
         self.onConfirmSelection = onConfirmSelection
@@ -37,6 +39,7 @@ final class ClipboardPanelController {
         self.onTogglePinSelection = onTogglePinSelection
         self.onCopySelection = onCopySelection
         self.onSelectFilter = onSelectFilter
+        self.onStackSelection = onStackSelection
 
         let hosting = NSHostingView(rootView: rootView)
 
@@ -121,6 +124,12 @@ final class ClipboardPanelController {
                     return nil
                 case kVK_ANSI_5:
                     self.onSelectFilter(.imagesOnly)
+                    return nil
+                case kVK_ANSI_6:
+                    self.onSelectFilter(.snippets)
+                    return nil
+                case kVK_ANSI_S:
+                    self.onStackSelection()
                     return nil
                 case kVK_ANSI_D:
                     self.onToggleFavoriteSelection()
