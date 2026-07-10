@@ -27,6 +27,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var voiceHUDController: VoiceHUDController?
     private var spokenResponseService = SpokenResponseService()
     private var pendingFollowUp: VoiceCommandExecutor.FollowUp?
+    private var feedbackSessionID = 0
+    private var feedbackContinueWorkItem: DispatchWorkItem?
+    /// Invalida callbacks assíncronos do executor após Esc.
+    private var voiceInteractionGeneration = 0
+    private var activeCommandGeneration = 0
 
     private var hotkeyManager = HotkeyManager()
     private var panelViewModel: ClipboardPanelViewModel?
@@ -179,6 +184,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         hud.isSoundEnabled = { [weak self] in
             self?.settings.voiceSoundFeedback ?? true
         }
+        hud.onEscape = { [weak self] in
+            self?.abortVoiceHUDInteraction()
+        }
         voiceHUDController = hud
 
         let executor = VoiceCommandExecutor(
@@ -205,6 +213,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         executor.onGenerationPhaseChange = { [weak self] phase in
             guard let self else { return }
+            guard self.voiceInteractionGeneration == self.activeCommandGeneration else { return }
             switch phase {
             case .fetchingWeb:
                 self.voiceHUDController?.showSearching(
@@ -229,6 +238,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let voiceService = VoiceCommandService(settings: settings)
         voiceService.onWakeWordDetected = { [weak self] in
             guard let self else { return }
+            self.voiceInteractionGeneration += 1
             let hint = self.pendingFollowUp != nil
                 ? self.settings.text(ptBR: "Pode responder...", en: "Go ahead...")
                 : self.settings.text(ptBR: "Ouvindo... diga um comando", en: "Listening... say a command")
@@ -242,16 +252,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         voiceService.onCommandCaptured = { [weak self] rawText in
             guard let self else { return }
+            self.voiceInteractionGeneration += 1
+            let generation = self.voiceInteractionGeneration
+            self.activeCommandGeneration = generation
             // Silencia o microfone imediatamente para não captar a própria resposta falada.
             self.voiceCommandService?.pauseForSpeechOutput()
             if let followUp = self.pendingFollowUp {
                 self.pendingFollowUp = nil
                 self.voiceCommandExecutor?.handleFollowUpResponse(followUp, answer: rawText) { [weak self] feedback in
-                    self?.presentFeedback(feedback)
+                    guard let self, self.voiceInteractionGeneration == generation else { return }
+                    self.presentFeedback(feedback)
                 }
             } else {
                 self.voiceCommandExecutor?.execute(rawText: rawText) { [weak self] feedback in
-                    self?.presentFeedback(feedback)
+                    guard let self, self.voiceInteractionGeneration == generation else { return }
+                    self.presentFeedback(feedback)
                 }
             }
         }
@@ -276,9 +291,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         voiceCommandService = voiceService
     }
 
+    /// Esc no HUD: para fala, cancela captura/follow-up e fecha o overlay.
+    private func abortVoiceHUDInteraction() {
+        voiceInteractionGeneration += 1
+        feedbackSessionID += 1
+        feedbackContinueWorkItem?.cancel()
+        feedbackContinueWorkItem = nil
+        pendingFollowUp = nil
+
+        spokenResponseService.stop()
+        spokenResponseService.playbackStartedHandler = nil
+        spokenResponseService.speechLevelHandler = nil
+        spokenResponseService.speechProgressHandler = nil
+
+        voiceCommandService?.cancelActiveInteraction()
+        voiceHUDController?.hide()
+    }
+
     /// Mostra o feedback, fala a resposta e mantém o overlay até o fim da fala.
     /// Se o assistente fez uma pergunta, volta a ouvir a resposta em seguida.
     private func presentFeedback(_ feedback: VoiceCommandExecutor.Feedback) {
+        feedbackSessionID += 1
+        let sessionID = feedbackSessionID
+        feedbackContinueWorkItem?.cancel()
+        feedbackContinueWorkItem = nil
+
         let willSpeak = settings.voiceSpokenResponses
         // Enquanto o TTS sintetiza, mostra a resposta sem animar a boca.
         voiceHUDController?.showFeedback(
@@ -289,7 +326,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
 
         let proceed: () -> Void = { [weak self] in
-            guard let self else { return }
+            guard let self, self.feedbackSessionID == sessionID else { return }
             if let followUp = feedback.followUp {
                 self.pendingFollowUp = followUp
                 // Mantém o HUD e abre escuta direta (sem wake word).
@@ -302,31 +339,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         if willSpeak {
             spokenResponseService.playbackStartedHandler = { [weak self] in
-                self?.voiceHUDController?.setSpeaking(true)
+                guard let self, self.feedbackSessionID == sessionID else { return }
+                self.voiceHUDController?.setSpeaking(true)
             }
             spokenResponseService.speechLevelHandler = { [weak self] level in
-                self?.voiceHUDController?.updateAssistantLevel(level)
+                guard let self, self.feedbackSessionID == sessionID else { return }
+                self.voiceHUDController?.updateAssistantLevel(level)
             }
             spokenResponseService.speechProgressHandler = { [weak self] progress in
-                self?.voiceHUDController?.updateSpeechProgress(progress)
+                guard let self, self.feedbackSessionID == sessionID else { return }
+                self.voiceHUDController?.updateSpeechProgress(progress)
             }
             spokenResponseService.speak(
                 feedback.message,
                 languageCode: settings.text(ptBR: "pt-BR", en: "en-US")
             ) { [weak self] in
-                self?.voiceHUDController?.setSpeaking(false)
-                self?.voiceHUDController?.updateAssistantLevel(0)
-                self?.voiceHUDController?.updateSpeechProgress(1)
-                self?.spokenResponseService.playbackStartedHandler = nil
-                self?.spokenResponseService.speechLevelHandler = nil
-                self?.spokenResponseService.speechProgressHandler = nil
+                guard let self, self.feedbackSessionID == sessionID else { return }
+                self.voiceHUDController?.setSpeaking(false)
+                self.voiceHUDController?.updateAssistantLevel(0)
+                self.voiceHUDController?.updateSpeechProgress(1)
+                self.spokenResponseService.playbackStartedHandler = nil
+                self.spokenResponseService.speechLevelHandler = nil
+                self.spokenResponseService.speechProgressHandler = nil
                 proceed()
             }
         } else {
             let readingTime = min(max(Double(feedback.message.count) * 0.045, 2.0), 6.0)
-            DispatchQueue.main.asyncAfter(deadline: .now() + readingTime) {
-                proceed()
-            }
+            let workItem = DispatchWorkItem { proceed() }
+            feedbackContinueWorkItem = workItem
+            DispatchQueue.main.asyncAfter(deadline: .now() + readingTime, execute: workItem)
         }
     }
 
