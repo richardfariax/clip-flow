@@ -1,6 +1,7 @@
 import AppKit
 import CoreGraphics
 import Foundation
+import ScreenCaptureKit
 import Vision
 
 enum ScreenAnalysisError: Error {
@@ -24,31 +25,28 @@ final class ScreenAnalysisService {
         onPrepareCapture: @escaping () -> Void,
         completion: @escaping (Result<String, Error>) -> Void
     ) {
-        if #available(macOS 10.15, *) {
-            guard CGPreflightScreenCaptureAccess() else {
-                _ = CGRequestScreenCaptureAccess()
-                completion(.failure(ScreenAnalysisError.permissionDenied))
-                return
-            }
-        }
-
         onPrepareCapture()
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) { [weak self] in
+        // Aguarda o HUD sumir antes de capturar.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
             guard let self else { return }
 
-            guard let image = Self.captureMainDisplayImage() else {
-                completion(.failure(ScreenAnalysisError.captureFailed))
-                return
-            }
+            Task {
+                guard let image = await Self.captureMainDisplayImage() else {
+                    Self.requestScreenCaptureAccessIfNeeded()
+                    completion(.failure(ScreenAnalysisError.permissionDenied))
+                    return
+                }
 
-            let appName = Self.frontmostApplicationName()
-            let ocrLanguages = Self.ocrLanguages(for: languageCode)
-            let maxLines = self.maxLines
-            let maxCharacters = self.maxSpokenCharacters
+                let appName = Self.frontmostApplicationName()
+                let ocrLanguages = Self.ocrLanguages(for: languageCode)
+                let maxLines = self.maxLines
+                let maxCharacters = self.maxSpokenCharacters
 
-            Task.detached(priority: .userInitiated) {
-                let lines = Self.recognizeText(in: image, languages: ocrLanguages)
+                let lines = await Task.detached(priority: .userInitiated) {
+                    Self.recognizeText(in: image, languages: ocrLanguages)
+                }.value
+
                 let description = Self.buildDescription(
                     appName: appName,
                     lines: lines,
@@ -57,26 +55,86 @@ final class ScreenAnalysisService {
                     maxCharacters: maxCharacters
                 )
 
-                await MainActor.run {
-                    if let description {
-                        completion(.success(description))
-                    } else {
-                        completion(.failure(ScreenAnalysisError.noTextFound))
-                    }
+                if let description {
+                    completion(.success(description))
+                } else {
+                    completion(.failure(ScreenAnalysisError.noTextFound))
                 }
             }
         }
     }
 
+    static func requestScreenCaptureAccessIfNeeded() {
+        if #available(macOS 10.15, *) {
+            _ = CGRequestScreenCaptureAccess()
+        }
+    }
+
     // MARK: - Capture
 
-    private static func captureMainDisplayImage() -> CGImage? {
+    private static func captureMainDisplayImage() async -> CGImage? {
+        if let image = await captureWithScreenCaptureKit() {
+            return image
+        }
+        if let image = captureWithWindowListAPI() {
+            return image
+        }
+        return captureWithScreencaptureCLI()
+    }
+
+    private static func captureWithScreenCaptureKit() async -> CGImage? {
+        do {
+            let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
+            guard let display = content.displays.first else { return nil }
+
+            let filter = SCContentFilter(display: display, excludingApplications: [], exceptingWindows: [])
+            let config = SCStreamConfiguration()
+            config.width = Int(display.width) * 2
+            config.height = Int(display.height) * 2
+            config.showsCursor = false
+
+            return try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: config)
+        } catch {
+            NSLog("[ClipFlow] ScreenCaptureKit falhou: \(error.localizedDescription)")
+            return nil
+        }
+    }
+
+    private static func captureWithWindowListAPI() -> CGImage? {
         CGWindowListCreateImage(
             CGRect.infinite,
             .optionOnScreenOnly,
             kCGNullWindowID,
             .bestResolution
         )
+    }
+
+    /// Fallback via utilitário do sistema — útil quando CGPreflight falha mas a permissão existe.
+    private static func captureWithScreencaptureCLI() -> CGImage? {
+        let tempURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("clipflow-screen-\(UUID().uuidString).png")
+
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
+        process.arguments = ["-x", "-t", "png", tempURL.path]
+
+        do {
+            try process.run()
+            process.waitUntilExit()
+        } catch {
+            NSLog("[ClipFlow] screencapture falhou: \(error.localizedDescription)")
+            return nil
+        }
+
+        defer { try? FileManager.default.removeItem(at: tempURL) }
+
+        guard process.terminationStatus == 0,
+              let nsImage = NSImage(contentsOf: tempURL),
+              let cgImage = nsImage.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
+            return nil
+        }
+
+        return cgImage
     }
 
     private static func frontmostApplicationName() -> String? {
@@ -123,7 +181,7 @@ final class ScreenAnalysisService {
         var lines: [RecognizedLine] = []
         for observation in observations {
             guard let candidate = observation.topCandidates(1).first,
-                  candidate.confidence > 0.25 else { continue }
+                  candidate.confidence > 0.2 else { continue }
 
             let trimmed = candidate.string.trimmingCharacters(in: .whitespacesAndNewlines)
             guard trimmed.count >= 2 else { continue }

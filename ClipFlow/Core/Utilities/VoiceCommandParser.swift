@@ -6,6 +6,11 @@ enum VolumeAction: Equatable {
     case mute
 }
 
+enum BrightnessAction: Equatable {
+    case up
+    case down
+}
+
 enum GreetingKind: Equatable {
     case morning
     case afternoon
@@ -66,6 +71,7 @@ enum VoiceCommand: Equatable {
     case lockScreen
     case openSpotlight
     case volumeAdjust(VolumeAction)
+    case brightnessAdjust(BrightnessAction)
     case question(String)
 }
 
@@ -177,22 +183,26 @@ enum VoiceCommandParser {
 
         // MARK: Sistema
 
-        if containsAny(normalized, ["bloqueie a tela", "bloquear tela", "trave a tela", "lock screen", "lock the screen"]) {
+        if containsAny(normalized, [
+            "bloqueie a tela", "bloquear tela", "trave a tela", "bloquear o mac", "bloqueie o mac",
+            "lock screen", "lock the screen", "lock mac"
+        ]) {
             return .lockScreen
         }
 
-        if containsAny(normalized, ["abra o spotlight", "abrir spotlight", "open spotlight", "pesquisa do mac"]) {
+        if containsAny(normalized, [
+            "abra o spotlight", "abrir spotlight", "open spotlight", "pesquisa do mac",
+            "abrir busca", "abra a busca", "busca do sistema", "open search"
+        ]) {
             return .openSpotlight
         }
 
-        if containsAny(normalized, ["aumente o volume", "aumentar volume", "volume mais alto", "volume up", "louder"]) {
-            return .volumeAdjust(.up)
+        if let brightness = parseBrightnessAction(normalized) {
+            return .brightnessAdjust(brightness)
         }
-        if containsAny(normalized, ["diminua o volume", "diminuir volume", "abaixe o volume", "volume mais baixo", "volume down", "quieter"]) {
-            return .volumeAdjust(.down)
-        }
-        if containsAny(normalized, ["mute", "silencie", "silenciar", "sem som", "mutar"]) {
-            return .volumeAdjust(.mute)
+
+        if let volume = parseVolumeAction(normalized) {
+            return .volumeAdjust(volume)
         }
 
         if let folder = VoiceCommandCatalog.Folder.match(normalized),
@@ -527,6 +537,45 @@ enum VoiceCommandParser {
                 return mapped
             }
         }
+        return nil
+    }
+
+    private static func parseBrightnessAction(_ normalized: String) -> BrightnessAction? {
+        let terms = ["brilho", "luminosidade", "brightness", "claridade", "luz da tela", "luz do monitor", "tela mais clara", "tela mais escura"]
+        let mentionsScreen = normalized.contains("tela") || normalized.contains("monitor") || normalized.contains("screen")
+        guard terms.contains(where: { normalized.contains($0) }) || mentionsScreen else { return nil }
+
+        let upSignals = ["aument", "sub", "mais alto", "mais claro", "mais clara", "clare", "brighter", "up", "sobe", "suba"]
+        let downSignals = ["diminu", "abaix", "menos", "mais baixo", "mais escuro", "mais escura", "escurec", "darker", "down", "desce", "desça"]
+
+        if upSignals.contains(where: { normalized.contains($0) }) { return .up }
+        if downSignals.contains(where: { normalized.contains($0) }) { return .down }
+        return nil
+    }
+
+    private static func parseVolumeAction(_ normalized: String) -> VolumeAction? {
+        if containsAny(normalized, ["mute", "silencie", "silenciar", "sem som", "mutar", "desligue o som", "desliga o som"]) {
+            return .mute
+        }
+
+        let exactUp = [
+            "aumente o volume", "aumentar volume", "volume mais alto", "volume up", "louder",
+            "suba o volume", "sobe o volume", "coloque mais volume", "mais volume", "aumenta o som"
+        ]
+        let exactDown = [
+            "diminua o volume", "diminuir volume", "abaixe o volume", "volume mais baixo", "volume down", "quieter",
+            "baixe o volume", "menos volume", "abaixa o som", "diminui o som"
+        ]
+        if containsAny(normalized, exactUp) { return .up }
+        if containsAny(normalized, exactDown) { return .down }
+
+        let volumeTerms = ["volume", "som", "audio", "sound"]
+        guard volumeTerms.contains(where: { normalized.contains($0) }) else { return nil }
+
+        let upSignals = ["aument", "sub", "mais alto", "louder", "up", "sobe", "suba"]
+        let downSignals = ["diminu", "abaix", "menos", "mais baixo", "quieter", "down", "desce", "baix"]
+        if upSignals.contains(where: { normalized.contains($0) }) { return .up }
+        if downSignals.contains(where: { normalized.contains($0) }) { return .down }
         return nil
     }
 

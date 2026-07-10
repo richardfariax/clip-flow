@@ -113,8 +113,8 @@ final class VoiceCommandExecutor {
                 case .failure(ScreenAnalysisError.permissionDenied):
                     completion(Feedback(
                         message: self.t(
-                            "Preciso de permissão de Gravação de Tela. Ative em Ajustes do Sistema → Privacidade e Segurança → Gravação de Tela.",
-                            "I need Screen Recording permission. Enable it in System Settings → Privacy & Security → Screen Recording."
+                            "Não consegui capturar a tela. Confirme a permissão de Gravação de Tela para o ClipFlow nos Ajustes do Sistema e, se já estiver ativa, feche e abra o app novamente.",
+                            "I couldn't capture the screen. Confirm Screen Recording permission for ClipFlow in System Settings and, if it's already enabled, quit and reopen the app."
                         ),
                         success: false
                     ))
@@ -389,8 +389,8 @@ final class VoiceCommandExecutor {
                 : settings.text(ptBR: "Oi, \(settings.userName)! ", en: "Hi, \(settings.userName)! ")
             completion(Feedback(
                 message: greeting + t(
-                    "Eu sou o Clip, o assistente de voz do ClipFlow — um gerenciador de área de transferência nativo para macOS. Eu abro apps e sites, tiro prints, colo itens do seu histórico, respondo perguntas, digo as horas e o clima. É só pedir!",
-                    "I'm Clip, ClipFlow's voice assistant — a native clipboard manager for macOS. I open apps and websites, take screenshots, paste items from your history, answer questions, and tell you the time and weather. Just ask!"
+                    "Eu sou o Clip, o assistente de voz do ClipFlow. Controlo volume e brilho, abro apps e sites, leio a tela, colo do histórico, tiro prints, respondo perguntas, digo horas e clima. Diga 'o que você pode fazer' para a lista completa.",
+                    "I'm Clip, ClipFlow's voice assistant. I control volume and brightness, open apps and websites, read the screen, paste from history, take screenshots, answer questions, and tell time and weather. Say 'what can you do' for the full list."
                 ),
                 success: true
             ))
@@ -459,7 +459,7 @@ final class VoiceCommandExecutor {
             completion(Feedback(message: t("Tela bloqueada.", "Screen locked."), success: true))
 
         case .openSpotlight:
-            runAppleScript("tell application \"System Events\" to keystroke space using command down")
+            SystemKeySimulator.openSpotlight()
             completion(Feedback(message: t("Abrindo Spotlight...", "Opening Spotlight..."), success: true))
 
         case .volumeAdjust(let action):
@@ -469,6 +469,15 @@ final class VoiceCommandExecutor {
             case .up: message = t("Volume aumentado.", "Volume increased.")
             case .down: message = t("Volume diminuído.", "Volume decreased.")
             case .mute: message = t("Som silenciado.", "Sound muted.")
+            }
+            completion(Feedback(message: message, success: true))
+
+        case .brightnessAdjust(let action):
+            adjustBrightness(action)
+            let message: String
+            switch action {
+            case .up: message = t("Brilho aumentado.", "Brightness increased.")
+            case .down: message = t("Brilho diminuído.", "Brightness decreased.")
             }
             completion(Feedback(message: message, success: true))
 
@@ -590,8 +599,8 @@ final class VoiceCommandExecutor {
                 : settings.text(ptBR: "Oi, \(settings.userName)! ", en: "Hi, \(settings.userName)! ")
             return Feedback(
                 message: greeting + t(
-                    "Eu sou o Clip, o assistente de voz do ClipFlow — um gerenciador de área de transferência nativo para macOS. Eu abro apps e sites, tiro prints, colo itens do seu histórico, respondo perguntas, digo as horas e o clima. É só pedir!",
-                    "I'm Clip, ClipFlow's voice assistant — a native clipboard manager for macOS. I open apps and websites, take screenshots, paste items from your history, answer questions, and tell you the time and weather. Just ask!"
+                    "Eu sou o Clip, o assistente de voz do ClipFlow. Controlo volume e brilho, abro apps e sites, leio a tela, colo do histórico, tiro prints, respondo perguntas, digo horas e clima. Diga 'o que você pode fazer' para a lista completa.",
+                    "I'm Clip, ClipFlow's voice assistant. I control volume and brightness, open apps and websites, read the screen, paste from history, take screenshots, answer questions, and tell time and weather. Say 'what can you do' for the full list."
                 ),
                 success: true
             )
@@ -849,20 +858,18 @@ final class VoiceCommandExecutor {
         try? process.run()
     }
 
-    private func runAppleScript(_ script: String) {
-        runShellCommand("/usr/bin/osascript", arguments: ["-e", script])
+    private func adjustVolume(_ action: VolumeAction) {
+        switch action {
+        case .up: SystemKeySimulator.volumeUp()
+        case .down: SystemKeySimulator.volumeDown()
+        case .mute: SystemKeySimulator.mute()
+        }
     }
 
-    private func adjustVolume(_ action: VolumeAction) {
-        let script: String
+    private func adjustBrightness(_ action: BrightnessAction) {
         switch action {
-        case .up:
-            script = "set volume output volume ((output volume of (get volume settings)) + 10)"
-        case .down:
-            script = "set volume output volume ((output volume of (get volume settings)) - 10)"
-        case .mute:
-            script = "set volume with output muted"
+        case .up: SystemKeySimulator.brightnessUp()
+        case .down: SystemKeySimulator.brightnessDown()
         }
-        runAppleScript(script)
     }
 }

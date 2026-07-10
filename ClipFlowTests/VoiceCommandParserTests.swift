@@ -205,10 +205,19 @@ final class VoiceCommandParserTests: XCTestCase {
         XCTAssertEqual(VoiceCommandParser.parse("bloqueie a tela"), .lockScreen)
         XCTAssertEqual(VoiceCommandParser.parse("abra o spotlight"), .openSpotlight)
         XCTAssertEqual(VoiceCommandParser.parse("aumente o volume"), .volumeAdjust(.up))
+        XCTAssertEqual(VoiceCommandParser.parse("suba o volume"), .volumeAdjust(.up))
+        XCTAssertEqual(VoiceCommandParser.parse("aumente o brilho da tela"), .brightnessAdjust(.up))
+        XCTAssertEqual(VoiceCommandParser.parse("diminua o brilho"), .brightnessAdjust(.down))
+        XCTAssertEqual(VoiceCommandParser.parse("deixe a tela mais clara"), .brightnessAdjust(.up))
         XCTAssertEqual(VoiceCommandParser.parse("abra downloads"), .openFolder(.downloads))
         XCTAssertEqual(VoiceCommandParser.parse("mostre favoritos"), .showFilter(.favorites))
         XCTAssertEqual(VoiceCommandParser.parse("liste os snippets"), .listSnippets)
         XCTAssertEqual(VoiceCommandParser.parse("que dia da semana é hoje"), .dayOfWeek)
+    }
+
+    func testHelpPhrases() {
+        XCTAssertEqual(VoiceCommandParser.parse("o que você pode fazer por mim"), .help)
+        XCTAssertEqual(VoiceCommandParser.parse("o que você faz por mim"), .help)
     }
 
     func testWebsiteAliases() {
