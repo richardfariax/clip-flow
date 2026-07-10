@@ -50,21 +50,55 @@ jobs:
           fi
 
           tag_name="${RAW_TAG}"
-          if ! gh release view "${tag_name}" >/dev/null 2>&1; then
-            if [[ "${tag_name}" == v* ]]; then
-              alt_tag="${tag_name#v}"
-            else
-              alt_tag="v${tag_name}"
+          if [[ "${tag_name}" == v* ]]; then
+            alt_tag="${tag_name#v}"
+          else
+            alt_tag="v${tag_name}"
+          fi
+
+          resolve_release_tag() {
+            local candidate="$1"
+            if gh release view "${candidate}" >/dev/null 2>&1; then
+              echo "${candidate}"
+              return 0
+            fi
+            return 1
+          }
+
+          find_release_tag() {
+            local primary="$1"
+            local alternate="$2"
+            local candidate=""
+
+            if candidate="$(resolve_release_tag "${primary}")"; then
+              echo "${candidate}"
+              return 0
+            fi
+            if candidate="$(resolve_release_tag "${alternate}")"; then
+              echo "${candidate}"
+              return 0
             fi
 
-            if gh release view "${alt_tag}" >/dev/null 2>&1; then
-              tag_name="${alt_tag}"
-            else
-              echo "Erro: release não encontrada para '${RAW_TAG}' (também testado '${alt_tag}')." >&2
-              echo "Releases disponíveis:" >&2
-              gh release list --limit 20 >&2
-              exit 1
-            fi
+            echo "Aguardando publicação da release '${primary}'..." >&2
+            for _ in $(seq 1 24); do
+              sleep 5
+              if candidate="$(resolve_release_tag "${primary}")"; then
+                echo "${candidate}"
+                return 0
+              fi
+              if candidate="$(resolve_release_tag "${alternate}")"; then
+                echo "${candidate}"
+                return 0
+              fi
+            done
+            return 1
+          }
+
+          if ! tag_name="$(find_release_tag "${tag_name}" "${alt_tag}")"; then
+            echo "Erro: release não encontrada para '${RAW_TAG}' (também testado '${alt_tag}')." >&2
+            echo "Releases disponíveis:" >&2
+            gh release list --limit 20 >&2
+            exit 1
           fi
 
           echo "resolved_tag=${tag_name}" >> "${GITHUB_OUTPUT}"
