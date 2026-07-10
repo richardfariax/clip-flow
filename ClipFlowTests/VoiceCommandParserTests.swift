@@ -56,7 +56,7 @@ final class VoiceCommandParserTests: XCTestCase {
         XCTAssertEqual(VoiceCommandParser.parse("formate o json"), .formatJSONLast)
     }
 
-    func testAssistantCommands() {
+    func testUtilityActions() {
         XCTAssertEqual(VoiceCommandParser.parse("que horas são"), .currentTime)
         XCTAssertEqual(VoiceCommandParser.parse("que dia é hoje"), .currentDate)
         XCTAssertEqual(VoiceCommandParser.parse("quantos graus agora"), .weather)
@@ -66,18 +66,21 @@ final class VoiceCommandParserTests: XCTestCase {
         XCTAssertEqual(VoiceCommandParser.parse("pesquise swift concurrency"), .webSearch("swift concurrency"))
     }
 
-    func testUserName() {
+    func testSetUserName() {
         XCTAssertEqual(VoiceCommandParser.parse("meu nome é Richard"), .setUserName("Richard"))
-        XCTAssertEqual(VoiceCommandParser.parse("qual é o meu nome"), .askUserName)
     }
 
-    func testQuestionFallback() {
-        XCTAssertEqual(VoiceCommandParser.parse("quem é o presidente do Brasil"), .question("quem é o presidente do Brasil"))
-        XCTAssertEqual(VoiceCommandParser.parse("o que é fotossíntese"), .question("o que é fotossíntese"))
-        XCTAssertEqual(VoiceCommandParser.parse("qual a capital do Brasil"), .question("qual a capital do Brasil"))
-        XCTAssertEqual(VoiceCommandParser.parse("sabe me dizer quem inventou o avião"), .question("quem inventou o avião"))
-        XCTAssertEqual(VoiceCommandParser.parse("me explica fotossíntese"), .question("me explica fotossíntese"))
-        XCTAssertEqual(VoiceCommandParser.parse("capital do brasil"), .question("capital do brasil"))
+    func testConversationGoesToAI() {
+        // Conversa / perguntas não são comandos fixos — o executor manda para a IA.
+        XCTAssertNil(VoiceCommandParser.parse("quem é o presidente do Brasil"))
+        XCTAssertNil(VoiceCommandParser.parse("o que é fotossíntese"))
+        XCTAssertNil(VoiceCommandParser.parse("bom dia"))
+        XCTAssertNil(VoiceCommandParser.parse("oi"))
+        XCTAssertNil(VoiceCommandParser.parse("obrigado"))
+        XCTAssertNil(VoiceCommandParser.parse("quem é você"))
+        XCTAssertNil(VoiceCommandParser.parse("quem te criou"))
+        XCTAssertNil(VoiceCommandParser.parse("o que você sabe fazer"))
+        XCTAssertNil(VoiceCommandParser.parse("qual é o meu nome"))
     }
 
     func testQuestionPreprocessor() {
@@ -86,98 +89,14 @@ final class VoiceCommandParserTests: XCTestCase {
         XCTAssertNil(QuestionPreprocessor.prepare("bom dia"))
     }
 
-    func testKnowledgeSearchTerms() {
-        XCTAssertEqual(KnowledgeService.searchTerms(from: "quem é o presidente do Brasil"), "presidente do brasil")
-        XCTAssertEqual(KnowledgeService.searchTerms(from: "qual presidente do Brasil"), "presidente do brasil")
-        XCTAssertEqual(KnowledgeService.searchTerms(from: "o que é fotossíntese?"), "fotossintese")
-    }
-
-    func testKnowledgeAnalysis() {
-        let who = KnowledgeService.analyze(question: "quem é o presidente do Brasil")
-        XCTAssertEqual(who.intent, .who)
-        XCTAssertTrue(who.searchQueries.contains("presidente do brasil atual"))
-
-        let qual = KnowledgeService.analyze(question: "qual presidente do Brasil")
-        XCTAssertEqual(qual.intent, .who)
-
-        let what = KnowledgeService.analyze(question: "o que é fotossíntese")
-        XCTAssertEqual(what.intent, .what)
-
-        let capital = KnowledgeService.analyze(question: "qual a capital do brasil")
-        XCTAssertEqual(capital.intent, .whereLocation)
-    }
-
-    func testKnowledgeScoring() {
-        let analysis = KnowledgeService.analyze(question: "quem é o presidente do Brasil")
-        let good = KnowledgeService.scoreAnswer(
-            "O presidente do Brasil é Luiz Inácio Lula da Silva.",
-            analysis: analysis
-        )
-        let bad = KnowledgeService.scoreAnswer(
-            "Lista de presidentes do Brasil ao longo da história.",
-            analysis: analysis
-        )
-        XCTAssertGreaterThan(good, bad)
-    }
-
-    func testKnowledgeAnswerFormatting() {
-        let text = "Luiz Inácio Lula da Silva é o atual presidente do Brasil desde 2023. Ele foi eleito em outubro de 2022."
-        let answer = KnowledgeService.formatAnswer(
-            from: text,
-            question: "quem é o presidente do Brasil",
-            intent: .who,
-            languageCode: "pt"
-        )
-        XCTAssertTrue(answer.lowercased().contains("lula") || answer.lowercased().contains("atual"))
-    }
-
-    func testAssistantIdentity() {
-        XCTAssertEqual(VoiceCommandParser.parse("quem é você"), .aboutAssistant)
-        XCTAssertEqual(VoiceCommandParser.parse("quem desenvolveu você"), .aboutDeveloper)
-        XCTAssertEqual(VoiceCommandParser.parse("quem te criou"), .aboutDeveloper)
-        XCTAssertEqual(VoiceCommandParser.parse("você foi desenvolvido por quem"), .aboutDeveloper)
-        XCTAssertEqual(VoiceCommandParser.parse("por quem você foi criado"), .aboutDeveloper)
-        XCTAssertEqual(VoiceCommandParser.parse("quem é o seu desenvolvedor"), .aboutDeveloper)
+    func testOpenDeveloperProfileAction() {
         XCTAssertEqual(VoiceCommandParser.parse("abra o linkedin do dono"), .openDeveloperProfile)
         XCTAssertEqual(VoiceCommandParser.parse("abra o linkedin"), .openWebsite("linkedin.com"))
-        XCTAssertEqual(VoiceCommandParser.parse("o que você sabe fazer"), .help)
-    }
-
-    func testAssistantIntentDetector() {
-        XCTAssertEqual(
-            AssistantIntentDetector.detect(normalized: "voce foi desenvolvido por quem"),
-            .aboutDeveloper
-        )
-        XCTAssertNil(QuestionPreprocessor.prepare("você foi desenvolvido por quem"))
-    }
-
-    func testAnswerRelevance() {
-        let relevant = KnowledgeService.isAnswerRelevant(
-            "A fotossíntese é o processo pelo qual plantas convertem luz em energia.",
-            to: "o que é fotossíntese"
-        )
-        let irrelevant = KnowledgeService.isAnswerRelevant(
-            "Lista de presidentes do Brasil ao longo da história.",
-            to: "o que é fotossíntese"
-        )
-        XCTAssertTrue(relevant)
-        XCTAssertFalse(irrelevant)
+        XCTAssertTrue(AssistantIntentDetector.isDeveloperProfileRequest("abra o linkedin do dono"))
     }
 
     func testUnknownReturnsNil() {
         XCTAssertNil(VoiceCommandParser.parse(""))
-    }
-
-    func testGreeting() {
-        XCTAssertEqual(VoiceCommandParser.parse("bom dia"), .greeting(.morning))
-        XCTAssertEqual(VoiceCommandParser.parse("boa tarde"), .greeting(.afternoon))
-        XCTAssertEqual(VoiceCommandParser.parse("oi"), .greeting(.generic))
-    }
-
-    func testSocialCommands() {
-        XCTAssertEqual(VoiceCommandParser.parse("obrigado"), .thanks)
-        XCTAssertEqual(VoiceCommandParser.parse("tchau"), .goodbye)
-        XCTAssertEqual(VoiceCommandParser.parse("como você está"), .howAreYou)
     }
 
     func testMath() {
@@ -213,11 +132,6 @@ final class VoiceCommandParserTests: XCTestCase {
         XCTAssertEqual(VoiceCommandParser.parse("mostre favoritos"), .showFilter(.favorites))
         XCTAssertEqual(VoiceCommandParser.parse("liste os snippets"), .listSnippets)
         XCTAssertEqual(VoiceCommandParser.parse("que dia da semana é hoje"), .dayOfWeek)
-    }
-
-    func testHelpPhrases() {
-        XCTAssertEqual(VoiceCommandParser.parse("o que você pode fazer por mim"), .help)
-        XCTAssertEqual(VoiceCommandParser.parse("o que você faz por mim"), .help)
     }
 
     func testWebsiteAliases() {
