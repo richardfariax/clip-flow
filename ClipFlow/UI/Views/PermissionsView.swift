@@ -16,8 +16,8 @@ struct PermissionsView: View {
 
             if isRunningFromDerivedData {
                 Text(t(
-                    "Você está rodando via Xcode/DerivedData. Para permissões estáveis de Accessibility/Input Monitoring, use o app instalado em /Applications (.dmg).",
-                    "You are running from Xcode/DerivedData. For stable Accessibility/Input Monitoring permissions, use the app installed in /Applications (.dmg)."
+                    "Você está rodando via Xcode/DerivedData. Permissões (incluindo Gravação de Tela) valem só para este build — use o app em /Applications (.dmg) para permissões estáveis.",
+                    "You are running from Xcode/DerivedData. Permissions (including Screen Recording) apply only to this build — use the app in /Applications (.dmg) for stable permissions."
                 ))
                 .font(.caption)
                 .foregroundStyle(.orange)
@@ -38,9 +38,16 @@ struct PermissionsView: View {
                 openAction: permissionsManager.openInputMonitoringSettings
             )
 
+            permissionRow(
+                title: t("Gravação de Tela", "Screen Recording"),
+                granted: permissionsManager.isScreenCaptureGranted,
+                requestAction: permissionsManager.requestScreenCapture,
+                openAction: permissionsManager.openScreenCaptureSettings
+            )
+
             Text(t(
-                "Depois de conceder, volte ao app para atualizar o status.",
-                "After granting, return to the app to refresh status."
+                "Depois de conceder, volte ao app para atualizar o status. Para Gravação de Tela, pode ser necessário fechar e abrir o ClipFlow novamente.",
+                "After granting, return to the app to refresh status. For Screen Recording, you may need to quit and reopen ClipFlow."
             ))
             .font(.caption)
             .foregroundStyle(.tertiary)

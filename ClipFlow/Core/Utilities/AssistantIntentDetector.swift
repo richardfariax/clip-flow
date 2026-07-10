@@ -82,9 +82,11 @@ enum AssistantIntentDetector {
 
     static func isHelp(_ normalized: String) -> Bool {
         let phrases = [
-            "o que voce sabe fazer", "o que voce pode fazer", "o que voce faz",
-            "quais comandos", "lista de comandos", "listar comandos",
-            "me ajude", "me ajuda", "ajuda", "help", "what can you do", "list commands"
+            "o que voce sabe fazer", "o que voce pode fazer", "o que voce pode fazer por mim",
+            "o que pode fazer por mim", "o que voce faz", "o que voce faz por mim",
+            "quais comandos", "lista de comandos", "listar comandos", "quais suas funcoes",
+            "me ajude", "me ajuda", "ajuda", "help", "what can you do", "what can you do for me",
+            "list commands"
         ]
         return phrases.contains { normalized.contains($0) }
     }

@@ -36,6 +36,7 @@
 		FDA4C4F3404E357912A7BD3A /* ClipFlowApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C15D178C01595FBC0A1B4DDD /* ClipFlowApp.swift */; };
 		BBBB00000000000000000001 /* VoiceCommandParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA00000000000000000001 /* VoiceCommandParser.swift */; };
 		BBBB00000000000000000002 /* TextTransformer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA00000000000000000002 /* TextTransformer.swift */; };
+		BBBB00000000000000000013 /* SystemKeySimulator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA00000000000000000013 /* SystemKeySimulator.swift */; };
 		BBBB00000000000000000003 /* VoiceCommandService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA00000000000000000003 /* VoiceCommandService.swift */; };
 		BBBB00000000000000000004 /* ScreenshotService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA00000000000000000004 /* ScreenshotService.swift */; };
 		BBBB00000000000000000005 /* VoiceCommandExecutor.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA00000000000000000005 /* VoiceCommandExecutor.swift */; };
@@ -108,6 +109,7 @@
 		F30C66EE46E7AB8910A68F84 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
 		AAAA00000000000000000001 /* VoiceCommandParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceCommandParser.swift; sourceTree = "<group>"; };
 		AAAA00000000000000000002 /* TextTransformer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextTransformer.swift; sourceTree = "<group>"; };
+		AAAA00000000000000000013 /* SystemKeySimulator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemKeySimulator.swift; sourceTree = "<group>"; };
 		AAAA00000000000000000003 /* VoiceCommandService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceCommandService.swift; sourceTree = "<group>"; };
 		AAAA00000000000000000004 /* ScreenshotService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotService.swift; sourceTree = "<group>"; };
 		AAAA00000000000000000005 /* VoiceCommandExecutor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceCommandExecutor.swift; sourceTree = "<group>"; };
@@ -145,6 +147,7 @@
 				58C9F49D3E20C1D8EA4E571B /* KeychainHelper.swift */,
 				EA1E8764EA0AFA05812D6B69 /* NotificationNames.swift */,
 				AAAA00000000000000000002 /* TextTransformer.swift */,
+				AAAA00000000000000000013 /* SystemKeySimulator.swift */,
 				AAAA00000000000000000001 /* VoiceCommandParser.swift */,
 				AAAA0000000000000000000D /* VoiceCommandCatalog.swift */,
 				AAAA0000000000000000000E /* AssistantIntentDetector.swift */,
@@ -415,6 +418,7 @@
 				BBBB00000000000000000011 /* WebSnippetSearchService.swift in Sources */,
 				BBBB00000000000000000009 /* SpokenResponseService.swift in Sources */,
 				BBBB00000000000000000002 /* TextTransformer.swift in Sources */,
+				BBBB00000000000000000013 /* SystemKeySimulator.swift in Sources */,
 				618E7E44471E799B542ECC14 /* VisualEffectBlur.swift in Sources */,
 				BBBB00000000000000000005 /* VoiceCommandExecutor.swift in Sources */,
 				BBBB00000000000000000001 /* VoiceCommandParser.swift in Sources */,

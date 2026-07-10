@@ -10,6 +10,7 @@ final class PermissionsManager: ObservableObject {
     @Published private(set) var isInputMonitoringGranted: Bool = CGPreflightListenEventAccess()
     @Published private(set) var isMicrophoneGranted: Bool = AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
     @Published private(set) var isSpeechRecognitionGranted: Bool = SFSpeechRecognizer.authorizationStatus() == .authorized
+    @Published private(set) var isScreenCaptureGranted: Bool = false
 
     private let defaults = UserDefaults.standard
     private let promptedAccessibilityKey = "clipflow.permissions.prompted.accessibility"
@@ -20,6 +21,32 @@ final class PermissionsManager: ObservableObject {
         isInputMonitoringGranted = CGPreflightListenEventAccess()
         isMicrophoneGranted = AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
         isSpeechRecognitionGranted = SFSpeechRecognizer.authorizationStatus() == .authorized
+        isScreenCaptureGranted = screenCaptureAccessGranted()
+    }
+
+    func requestScreenCapture() {
+        ScreenAnalysisService.requestScreenCaptureAccessIfNeeded()
+        scheduleRefreshes()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            guard let self, !self.isScreenCaptureGranted else { return }
+            self.openScreenCaptureSettings()
+        }
+    }
+
+    func openScreenCaptureSettings() {
+        openSettings(urls: [
+            "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_ScreenCapture",
+            "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture",
+            "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension"
+        ])
+        scheduleRefreshes()
+    }
+
+    private func screenCaptureAccessGranted() -> Bool {
+        if #available(macOS 10.15, *) {
+            return CGPreflightScreenCaptureAccess()
+        }
+        return false
     }
 
     func requestVoicePermissions(completion: @escaping (Bool) -> Void) {

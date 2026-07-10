@@ -78,11 +78,11 @@ enum VoiceCommandCatalog {
 
       Texto: digitar por voz, formatar ou minificar JSON, maiúsculas, minúsculas, Base64, camelCase e snake_case.
 
-      Sistema: abrir apps e sites, pastas como Downloads e Documentos, configurações, Spotlight, bloquear tela, volume, prints e ler a tela.
+      Sistema: abrir apps e sites, pastas como Downloads e Documentos, configurações, Spotlight, bloquear tela, volume, brilho, prints e ler a tela.
 
       Assistente: horas, data, clima, contas simples, perguntas gerais e pesquisa na internet.
 
-      Experimente: "cole o último", "o que eu copiei", "abra o Chrome", "veja o que está na tela", "quanto é 15 mais 7" ou "quem foi Santos Dumont".
+      Experimente: "cole o último", "aumente o brilho", "aumente o volume", "abra o Chrome", "veja o que está na tela", "quanto é 15 mais 7" ou "quem foi Santos Dumont".
       """
     }
     return """
@@ -92,11 +92,11 @@ enum VoiceCommandCatalog {
 
     Text: voice typing, format or minify JSON, uppercase, lowercase, Base64, camelCase and snake_case.
 
-    System: open apps and websites, folders like Downloads and Documents, settings, Spotlight, lock screen, volume, screenshots and read the screen.
+    System: open apps and websites, folders like Downloads and Documents, settings, Spotlight, lock screen, volume, brightness, screenshots and read the screen.
 
     Assistant: time, date, weather, simple math, general questions and internet search.
 
-    Try: "paste the last one", "what did I copy", "open Chrome", "what's on the screen", "what is 15 plus 7" or "who was Santos Dumont".
+    Try: "paste the last one", "increase brightness", "turn up the volume", "open Chrome", "what's on the screen", "what is 15 plus 7" or "who was Santos Dumont".
     """
   }
 
