@@ -247,6 +247,7 @@ final class MenuBarController: NSObject {
 @MainActor
 final class MenuBarMetricsController: NSObject {
     private let settings: AppSettings
+    private let menuBarAppearanceProvider: () -> NSAppearance?
     private let onPresentPopover: (NSView, MenuBarMetric) -> Void
     private var statusItems: [MenuBarMetric: NSStatusItem] = [:]
     private var configuredStyles: [MenuBarMetric: MenuBarMetricStyle] = [:]
@@ -257,9 +258,11 @@ final class MenuBarMetricsController: NSObject {
 
     init(
         settings: AppSettings,
+        menuBarAppearanceProvider: @escaping () -> NSAppearance?,
         onPresentPopover: @escaping (NSView, MenuBarMetric) -> Void
     ) {
         self.settings = settings
+        self.menuBarAppearanceProvider = menuBarAppearanceProvider
         self.onPresentPopover = onPresentPopover
         super.init()
         NotificationCenter.default.addObserver(
@@ -377,7 +380,11 @@ final class MenuBarMetricsController: NSObject {
         presentations[metric] = presentation
 
         guard let item = statusItems[metric], let button = item.button else { return }
-        MenuBarMetricChrome.apply(presentation, to: button)
+        MenuBarMetricChrome.apply(
+            presentation,
+            to: button,
+            appearance: menuBarAppearanceProvider()
+        )
         button.toolTip = presentation.toolTip
         button.setAccessibilityLabel(presentation.toolTip)
         item.length = MenuBarMetricLayout.compactStatusItemLength(
@@ -495,9 +502,10 @@ final class MenuBarMetricsController: NSObject {
         let targetScreen = screen
             ?? NSScreen.screens.first(where: { $0.auxiliaryTopLeftArea != nil })
             ?? NSScreen.main
-        let menuBarAppearance = statusItems.values.compactMap { item in
-            item.button?.window?.effectiveAppearance ?? item.button?.effectiveAppearance
-        }.first
+        let menuBarAppearance = menuBarAppearanceProvider()
+            ?? statusItems.values.compactMap { item in
+                item.button?.window?.effectiveAppearance ?? item.button?.effectiveAppearance
+            }.first
         overflowPanel.update(
             presentations: Array(content),
             appearance: menuBarAppearance,
