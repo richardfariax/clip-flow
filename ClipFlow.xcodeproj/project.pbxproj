@@ -73,6 +73,7 @@
 		F1000000000000000000000B /* MetricsPopoverController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2000000000000000000000B /* MetricsPopoverController.swift */; };
 		F1000000000000000000000C /* MetricsPopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2000000000000000000000C /* MetricsPopoverView.swift */; };
 		F1000000000000000000000D /* ActivityMonitorLauncher.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2000000000000000000000D /* ActivityMonitorLauncher.swift */; };
+		F1000000000000000000000E /* FanMetricsSampler.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2000000000000000000000E /* FanMetricsSampler.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -128,6 +129,7 @@
 		F2000000000000000000000B /* MetricsPopoverController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetricsPopoverController.swift; sourceTree = "<group>"; };
 		F2000000000000000000000C /* MetricsPopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetricsPopoverView.swift; sourceTree = "<group>"; };
 		F2000000000000000000000D /* ActivityMonitorLauncher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityMonitorLauncher.swift; sourceTree = "<group>"; };
+		F2000000000000000000000E /* FanMetricsSampler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FanMetricsSampler.swift; sourceTree = "<group>"; };
 		D5EB1FAFD466C4B3D85F8658 /* ClipFlow.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ClipFlow.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E736CAFC1F72981E9024BC0C /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		EA1E8764EA0AFA05812D6B69 /* NotificationNames.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationNames.swift; sourceTree = "<group>"; };
@@ -289,6 +291,7 @@
 					AAAA00000000000000000003 /* VoiceCommandService.swift */,
 					F20000000000000000000002 /* SystemMetricsSampler.swift */,
 					F20000000000000000000003 /* ThermalMetricsSampler.swift */,
+					F2000000000000000000000E /* FanMetricsSampler.swift */,
 					F20000000000000000000004 /* SystemMetricsService.swift */,
 					F20000000000000000000007 /* CacheMaintenanceService.swift */,
 			);
@@ -492,6 +495,7 @@
 					F10000000000000000000001 /* SystemMetricsModels.swift in Sources */,
 					F10000000000000000000002 /* SystemMetricsSampler.swift in Sources */,
 					F10000000000000000000003 /* ThermalMetricsSampler.swift in Sources */,
+					F1000000000000000000000E /* FanMetricsSampler.swift in Sources */,
 					F10000000000000000000004 /* SystemMetricsService.swift in Sources */,
 					F10000000000000000000005 /* SystemDashboardView.swift in Sources */,
 					F10000000000000000000007 /* CacheMaintenanceService.swift in Sources */,

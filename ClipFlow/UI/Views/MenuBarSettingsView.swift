@@ -79,6 +79,7 @@ struct MenuBarSettingsView: View {
         case .gpu: "GPU"
         case .memory: t("Memória", "Memory")
         case .temperature: t("Temperatura", "Temperature")
+        case .fans: t("Ventoinhas", "Fans")
         case .storage: t("Armazenamento", "Storage")
         case .network: t("Rede", "Network")
         case .power: t("Energia", "Power")
@@ -91,6 +92,7 @@ struct MenuBarSettingsView: View {
         case .gpu: "square.3.layers.3d"
         case .memory: "memorychip"
         case .temperature: "thermometer.medium"
+        case .fans: "fan"
         case .storage: "internaldrive"
         case .network: "network"
         case .power: "bolt.fill"
@@ -103,6 +105,7 @@ struct MenuBarSettingsView: View {
         case .gpu: .cyan
         case .memory: .purple
         case .temperature: .orange
+        case .fans: .mint
         case .storage: .indigo
         case .network: .teal
         case .power: .yellow
@@ -115,6 +118,7 @@ struct MenuBarSettingsView: View {
         case .gpu: "GPU 12%"
         case .memory: "RAM 68%"
         case .temperature: "58°C"
+        case .fans: "2.340 RPM"
         case .storage: "SSD 41%"
         case .network: "↓1,2 MB/s ↑240 KB/s"
         case .power: "⚡︎84% 9,4W"

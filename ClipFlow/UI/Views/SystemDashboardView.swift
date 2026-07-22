@@ -22,6 +22,7 @@ struct SystemDashboardView: View {
                 gpuCard
                 memoryCard
                 thermalCard
+                fanCard
                 storageCard
                 networkCard
                 powerCard
@@ -177,6 +178,35 @@ struct SystemDashboardView: View {
         }
     }
 
+    private var fanCard: some View {
+        let fans = metrics.snapshot.fans
+        return MetricCard(
+            metric: .fans,
+            activityMonitorHint: activityMonitorHint(for: .fans),
+            title: t("Ventoinhas", "Fans"),
+            symbol: "fan",
+            accent: .mint,
+            value: fans.averageRPM.map(rpm) ?? unavailable,
+            subtitle: fans.fans.isEmpty
+                ? t("Sensores de RPM não expostos neste Mac", "RPM sensors not exposed on this Mac")
+                : "\(fans.fans.count) \(t("ventoinhas detectadas", "detected fans"))",
+            history: metrics.fanHistory,
+            chartMaximum: fans.chartMaximum
+        ) {
+            if fans.fans.isEmpty {
+                unavailableRow
+            } else {
+                ForEach(fans.fans) { fan in
+                    MetricLegendRow(
+                        color: .mint,
+                        label: "\(t("Ventoinha", "Fan")) \(fan.id + 1)",
+                        value: rpm(fan.currentRPM)
+                    )
+                }
+            }
+        }
+    }
+
     private var networkCard: some View {
         let network = metrics.snapshot.network
         return MetricCard(
@@ -295,6 +325,10 @@ struct SystemDashboardView: View {
         return "\(formatter.string(fromByteCount: Int64(max(bytesPerSecond, 0))))/s"
     }
 
+    private func rpm(_ value: Double) -> String {
+        "\(value.formatted(.number.grouping(.automatic).precision(.fractionLength(0)))) RPM"
+    }
+
     private func adaptiveMaximum(_ history: [MetricHistoryPoint]) -> Double {
         max(history.suffix(90).map(\.value).max() ?? 1, 1)
     }
@@ -311,6 +345,11 @@ struct SystemDashboardView: View {
         case .gpu:
             return t("Abrir Histórico da GPU", "Open GPU History")
         case .temperature:
+            return t(
+                "Abrir CPU no Monitor de Atividade",
+                "Open CPU in Activity Monitor"
+            )
+        case .fans:
             return t(
                 "Abrir CPU no Monitor de Atividade",
                 "Open CPU in Activity Monitor"

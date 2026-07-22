@@ -8,11 +8,13 @@ final class SystemMetricsService: ObservableObject {
     @Published private(set) var memoryHistory: [MetricHistoryPoint] = []
     @Published private(set) var gpuHistory: [MetricHistoryPoint] = []
     @Published private(set) var temperatureHistory: [MetricHistoryPoint] = []
+    @Published private(set) var fanHistory: [MetricHistoryPoint] = []
     @Published private(set) var storageHistory: [MetricHistoryPoint] = []
     @Published private(set) var diskHistory: [MetricHistoryPoint] = []
     @Published private(set) var networkHistory: [MetricHistoryPoint] = []
     @Published private(set) var powerHistory: [MetricHistoryPoint] = []
     @Published private(set) var thermalSensorHistories: [String: [MetricHistoryPoint]] = [:]
+    @Published private(set) var fanHistories: [Int: [MetricHistoryPoint]] = [:]
 
     let hardware: SystemHardwareInfo
     private(set) var isRunning = false
@@ -21,6 +23,7 @@ final class SystemMetricsService: ObservableObject {
     private let memorySampler = MemoryMetricsSampler()
     private let gpuSampler: GPUMetricsSampler
     private let thermalSampler = ThermalMetricsSampler()
+    private let fanSampler = FanMetricsSampler()
     private let storageSampler = StorageMetricsSampler()
     private let networkSampler = NetworkMetricsSampler()
     private let powerSampler = PowerMetricsSampler()
@@ -65,7 +68,7 @@ final class SystemMetricsService: ObservableObject {
         isSampling = true
         let previousSnapshot = snapshot
 
-        let samplingTask = Task.detached(priority: .utility) { [cpuSampler, memorySampler, gpuSampler, thermalSampler, storageSampler, networkSampler, powerSampler] in
+        let samplingTask = Task.detached(priority: .utility) { [cpuSampler, memorySampler, gpuSampler, thermalSampler, fanSampler, storageSampler, networkSampler, powerSampler] in
             let now = Date()
             return SystemMetricsSnapshot(
                 timestamp: now,
@@ -73,6 +76,7 @@ final class SystemMetricsService: ObservableObject {
                 memory: memorySampler.sample() ?? previousSnapshot.memory,
                 gpu: gpuSampler.sample(),
                 thermal: thermalSampler.sample(),
+                fans: fanSampler.sample(),
                 storage: storageSampler.sample(at: now),
                 network: networkSampler.sample(at: now),
                 power: powerSampler.sample()
@@ -102,6 +106,14 @@ final class SystemMetricsService: ObservableObject {
             var history = thermalSensorHistories[sensor.id] ?? []
             append(sensor.temperature, at: updatedSnapshot.timestamp, to: &history)
             thermalSensorHistories[sensor.id] = history
+        }
+        if let averageRPM = updatedSnapshot.fans.averageRPM {
+            append(averageRPM, at: updatedSnapshot.timestamp, to: &fanHistory)
+        }
+        for fan in updatedSnapshot.fans.fans {
+            var history = fanHistories[fan.id] ?? []
+            append(fan.currentRPM, at: updatedSnapshot.timestamp, to: &history)
+            fanHistories[fan.id] = history
         }
         append(updatedSnapshot.storage.usedFraction, at: updatedSnapshot.timestamp, to: &storageHistory)
         append(

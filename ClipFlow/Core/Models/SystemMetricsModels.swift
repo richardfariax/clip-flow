@@ -97,6 +97,29 @@ struct ThermalMetrics: Equatable {
     static let unavailable = ThermalMetrics(sensors: [])
 }
 
+struct FanReading: Identifiable, Equatable {
+    let id: Int
+    let currentRPM: Double
+    let minimumRPM: Double?
+    let maximumRPM: Double?
+}
+
+struct FanMetrics: Equatable {
+    let fans: [FanReading]
+
+    var averageRPM: Double? {
+        guard !fans.isEmpty else { return nil }
+        return fans.map(\.currentRPM).reduce(0, +) / Double(fans.count)
+    }
+
+    var peakRPM: Double? { fans.map(\.currentRPM).max() }
+    var chartMaximum: Double {
+        max(fans.compactMap(\.maximumRPM).max() ?? peakRPM ?? 1, 1)
+    }
+
+    static let unavailable = FanMetrics(fans: [])
+}
+
 struct StorageMetrics: Equatable {
     let volumeName: String
     let totalBytes: UInt64
@@ -158,6 +181,7 @@ enum MenuBarMetric: String, CaseIterable, Identifiable, Codable {
     case gpu
     case memory
     case temperature
+    case fans
     case storage
     case network
     case power
@@ -187,6 +211,7 @@ struct SystemMetricsSnapshot: Equatable {
     let memory: MemoryUsage
     let gpu: GPUUsage?
     let thermal: ThermalMetrics
+    let fans: FanMetrics
     let storage: StorageMetrics
     let network: NetworkMetrics
     let power: PowerMetrics
@@ -197,6 +222,7 @@ struct SystemMetricsSnapshot: Equatable {
         memory: .zero,
         gpu: nil,
         thermal: .unavailable,
+        fans: .unavailable,
         storage: .unavailable,
         network: .zero,
         power: .unavailable
