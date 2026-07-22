@@ -48,6 +48,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var cancellables: Set<AnyCancellable> = []
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Unit tests use ClipFlow as a host process. Starting status items, TCC
+        // validation and global monitors here can display modal system UI before
+        // XCTest has attached, preventing the test worker from materializing.
+        guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else {
+            return
+        }
+
         NSApp.setActivationPolicy(.accessory)
 
         guard configurePersistence() else {
