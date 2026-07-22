@@ -74,6 +74,27 @@
 		F1000000000000000000000C /* MetricsPopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2000000000000000000000C /* MetricsPopoverView.swift */; };
 		F1000000000000000000000D /* ActivityMonitorLauncher.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2000000000000000000000D /* ActivityMonitorLauncher.swift */; };
 		F1000000000000000000000E /* FanMetricsSampler.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2000000000000000000000E /* FanMetricsSampler.swift */; };
+		C10000000000000000000001 /* CleanSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20000000000000000000001 /* CleanSupport.swift */; };
+		C10000000000000000000002 /* JunkScanService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20000000000000000000002 /* JunkScanService.swift */; };
+		C10000000000000000000003 /* StartupItemsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20000000000000000000003 /* StartupItemsService.swift */; };
+		C10000000000000000000004 /* AppInventoryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20000000000000000000004 /* AppInventoryService.swift */; };
+		C10000000000000000000005 /* DuplicateFinderService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20000000000000000000005 /* DuplicateFinderService.swift */; };
+		C10000000000000000000006 /* LargeOldFilesService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20000000000000000000006 /* LargeOldFilesService.swift */; };
+		C10000000000000000000007 /* DiskMapService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20000000000000000000007 /* DiskMapService.swift */; };
+		C10000000000000000000008 /* ProtectionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20000000000000000000008 /* ProtectionService.swift */; };
+		C10000000000000000000009 /* CleanCenterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20000000000000000000009 /* CleanCenterView.swift */; };
+		C1000000000000000000000A /* SmartScanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2000000000000000000000A /* SmartScanView.swift */; };
+		C1000000000000000000000B /* JunkCleanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2000000000000000000000B /* JunkCleanView.swift */; };
+		C1000000000000000000000C /* SpeedupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2000000000000000000000C /* SpeedupView.swift */; };
+		C1000000000000000000000D /* AppsManagerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2000000000000000000000D /* AppsManagerView.swift */; };
+		C1000000000000000000000E /* DuplicatesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2000000000000000000000E /* DuplicatesView.swift */; };
+		C1000000000000000000000F /* LargeFilesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2000000000000000000000F /* LargeFilesView.swift */; };
+		C10000000000000000000010 /* DiskMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20000000000000000000010 /* DiskMapView.swift */; };
+		C10000000000000000000011 /* ProtectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20000000000000000000011 /* ProtectionView.swift */; };
+		C10000000000000000000012 /* CleanCenterWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20000000000000000000012 /* CleanCenterWindowController.swift */; };
+		C10000000000000000000013 /* CleanupRuleCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20000000000000000000013 /* CleanupRuleCatalog.swift */; };
+		C10000000000000000000014 /* MaintenanceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20000000000000000000014 /* MaintenanceService.swift */; };
+		C10000000000000000000015 /* SimilarImagesService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20000000000000000000015 /* SimilarImagesService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -166,6 +187,27 @@
 		F20000000000000000000007 /* CacheMaintenanceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheMaintenanceService.swift; sourceTree = "<group>"; };
 		F20000000000000000000008 /* MenuBarSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarSettingsView.swift; sourceTree = "<group>"; };
 		F20000000000000000000009 /* MaintenanceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MaintenanceView.swift; sourceTree = "<group>"; };
+		C20000000000000000000001 /* CleanSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Clean/CleanSupport.swift; sourceTree = "<group>"; };
+		C20000000000000000000002 /* JunkScanService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Clean/JunkScanService.swift; sourceTree = "<group>"; };
+		C20000000000000000000003 /* StartupItemsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Clean/StartupItemsService.swift; sourceTree = "<group>"; };
+		C20000000000000000000004 /* AppInventoryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Clean/AppInventoryService.swift; sourceTree = "<group>"; };
+		C20000000000000000000005 /* DuplicateFinderService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Clean/DuplicateFinderService.swift; sourceTree = "<group>"; };
+		C20000000000000000000006 /* LargeOldFilesService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Clean/LargeOldFilesService.swift; sourceTree = "<group>"; };
+		C20000000000000000000007 /* DiskMapService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Clean/DiskMapService.swift; sourceTree = "<group>"; };
+		C20000000000000000000008 /* ProtectionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Clean/ProtectionService.swift; sourceTree = "<group>"; };
+		C20000000000000000000009 /* CleanCenterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Clean/CleanCenterView.swift; sourceTree = "<group>"; };
+		C2000000000000000000000A /* SmartScanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Clean/SmartScanView.swift; sourceTree = "<group>"; };
+		C2000000000000000000000B /* JunkCleanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Clean/JunkCleanView.swift; sourceTree = "<group>"; };
+		C2000000000000000000000C /* SpeedupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Clean/SpeedupView.swift; sourceTree = "<group>"; };
+		C2000000000000000000000D /* AppsManagerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Clean/AppsManagerView.swift; sourceTree = "<group>"; };
+		C2000000000000000000000E /* DuplicatesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Clean/DuplicatesView.swift; sourceTree = "<group>"; };
+		C2000000000000000000000F /* LargeFilesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Clean/LargeFilesView.swift; sourceTree = "<group>"; };
+		C20000000000000000000010 /* DiskMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Clean/DiskMapView.swift; sourceTree = "<group>"; };
+		C20000000000000000000011 /* ProtectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Clean/ProtectionView.swift; sourceTree = "<group>"; };
+		C20000000000000000000012 /* CleanCenterWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Clean/CleanCenterWindowController.swift; sourceTree = "<group>"; };
+		C20000000000000000000013 /* CleanupRuleCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Clean/CleanupRuleCatalog.swift; sourceTree = "<group>"; };
+		C20000000000000000000014 /* MaintenanceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Clean/MaintenanceService.swift; sourceTree = "<group>"; };
+		C20000000000000000000015 /* SimilarImagesService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Clean/SimilarImagesService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -294,6 +336,17 @@
 					F2000000000000000000000E /* FanMetricsSampler.swift */,
 					F20000000000000000000004 /* SystemMetricsService.swift */,
 					F20000000000000000000007 /* CacheMaintenanceService.swift */,
+				C20000000000000000000001 /* CleanSupport.swift */,
+				C20000000000000000000015 /* SimilarImagesService.swift */,
+				C20000000000000000000014 /* MaintenanceService.swift */,
+				C20000000000000000000013 /* CleanupRuleCatalog.swift */,
+				C20000000000000000000002 /* JunkScanService.swift */,
+				C20000000000000000000003 /* StartupItemsService.swift */,
+				C20000000000000000000004 /* AppInventoryService.swift */,
+				C20000000000000000000005 /* DuplicateFinderService.swift */,
+				C20000000000000000000006 /* LargeOldFilesService.swift */,
+				C20000000000000000000007 /* DiskMapService.swift */,
+				C20000000000000000000008 /* ProtectionService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -332,6 +385,16 @@
 					F20000000000000000000009 /* MaintenanceView.swift */,
 					F2000000000000000000000C /* MetricsPopoverView.swift */,
 				AAAA00000000000000000006 /* VoiceHUDController.swift */,
+				C20000000000000000000009 /* CleanCenterView.swift */,
+				C2000000000000000000000A /* SmartScanView.swift */,
+				C2000000000000000000000B /* JunkCleanView.swift */,
+				C2000000000000000000000C /* SpeedupView.swift */,
+				C2000000000000000000000D /* AppsManagerView.swift */,
+				C2000000000000000000000E /* DuplicatesView.swift */,
+				C2000000000000000000000F /* LargeFilesView.swift */,
+				C20000000000000000000010 /* DiskMapView.swift */,
+				C20000000000000000000011 /* ProtectionView.swift */,
+				C20000000000000000000012 /* CleanCenterWindowController.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -446,6 +509,27 @@
 			buildActionMask = 2147483647;
 			files = (
 				A676EEDD45AFBD34937484B4 /* AppDelegate.swift in Sources */,
+				C10000000000000000000001 /* CleanSupport.swift in Sources */,
+				C10000000000000000000015 /* SimilarImagesService.swift in Sources */,
+				C10000000000000000000014 /* MaintenanceService.swift in Sources */,
+				C10000000000000000000013 /* CleanupRuleCatalog.swift in Sources */,
+				C10000000000000000000002 /* JunkScanService.swift in Sources */,
+				C10000000000000000000003 /* StartupItemsService.swift in Sources */,
+				C10000000000000000000004 /* AppInventoryService.swift in Sources */,
+				C10000000000000000000005 /* DuplicateFinderService.swift in Sources */,
+				C10000000000000000000006 /* LargeOldFilesService.swift in Sources */,
+				C10000000000000000000007 /* DiskMapService.swift in Sources */,
+				C10000000000000000000008 /* ProtectionService.swift in Sources */,
+				C10000000000000000000009 /* CleanCenterView.swift in Sources */,
+				C1000000000000000000000A /* SmartScanView.swift in Sources */,
+				C1000000000000000000000B /* JunkCleanView.swift in Sources */,
+				C1000000000000000000000C /* SpeedupView.swift in Sources */,
+				C1000000000000000000000D /* AppsManagerView.swift in Sources */,
+				C1000000000000000000000E /* DuplicatesView.swift in Sources */,
+				C1000000000000000000000F /* LargeFilesView.swift in Sources */,
+				C10000000000000000000010 /* DiskMapView.swift in Sources */,
+				C10000000000000000000011 /* ProtectionView.swift in Sources */,
+				C10000000000000000000012 /* CleanCenterWindowController.swift in Sources */,
 				C40894AEEAEF63A41EB3E8A3 /* AppSettings.swift in Sources */,
 				752C1FD4FCCA412B0D21BFDD /* BrandLogoView.swift in Sources */,
 				BBBB00000000000000000016 /* VoiceFieldView.swift in Sources */,
