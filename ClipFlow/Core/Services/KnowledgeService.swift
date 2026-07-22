@@ -985,9 +985,6 @@ final class KnowledgeService {
         if greetings.contains(normalized) || nonSearchablePhrases.contains(normalized) {
             return nil
         }
-        if DeveloperKnowledgeService.isDeveloperPersonalQuestion(normalized) {
-            return nil
-        }
 
         let terms = searchTerms(from: trimmed)
         if !terms.isEmpty, !greetings.contains(terms) {

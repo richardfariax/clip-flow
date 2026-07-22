@@ -11,7 +11,6 @@ enum ScreenAnalysisError: Error {
 }
 
 /// Captura a tela principal e extrai texto visível com Vision (OCR local).
-@MainActor
 final class ScreenAnalysisService {
     private let maxSpokenCharacters = 420
     private let maxLines = 10
@@ -76,9 +75,6 @@ final class ScreenAnalysisService {
         if let image = await captureWithScreenCaptureKit() {
             return image
         }
-        if let image = captureWithWindowListAPI() {
-            return image
-        }
         return captureWithScreencaptureCLI()
     }
 
@@ -98,15 +94,6 @@ final class ScreenAnalysisService {
             NSLog("[ClipFlow] ScreenCaptureKit falhou: \(error.localizedDescription)")
             return nil
         }
-    }
-
-    private static func captureWithWindowListAPI() -> CGImage? {
-        CGWindowListCreateImage(
-            CGRect.infinite,
-            .optionOnScreenOnly,
-            kCGNullWindowID,
-            .bestResolution
-        )
     }
 
     /// Fallback via utilitário do sistema — útil quando CGPreflight falha mas a permissão existe.
@@ -174,7 +161,7 @@ final class ScreenAnalysisService {
             return []
         }
 
-        guard let observations = request.results as? [VNRecognizedTextObservation] else {
+        guard let observations = request.results else {
             return []
         }
 

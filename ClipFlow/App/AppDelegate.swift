@@ -6,13 +6,16 @@ import SwiftUI
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private let settingsContentSize = NSSize(width: 880, height: 780)
+    private let settingsContentSize = NSSize(width: 920, height: 640)
+    private let settingsMinSize = NSSize(width: 820, height: 560)
     private var modelContainer: ModelContainer?
 
     private var settings = AppSettings()
     private var cryptoService = LocalCryptoService()
     private var permissionsManager = PermissionsManager()
     private var launchAtLoginManager = LaunchAtLoginManager()
+    private lazy var appUpdateService = AppUpdateService(settings: settings)
+    private var systemMetrics = SystemMetricsService()
 
     private var storageService: ClipboardStorageService?
     private var monitorService: ClipboardMonitorService?
@@ -25,11 +28,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var voiceHUDController: VoiceHUDController?
     private var spokenResponseService = SpokenResponseService()
     private var pendingFollowUp: VoiceCommandExecutor.FollowUp?
+    private var feedbackSessionID = 0
+    private var feedbackContinueWorkItem: DispatchWorkItem?
+    /// Invalida callbacks assíncronos do executor após Esc.
+    private var voiceInteractionGeneration = 0
+    private var activeCommandGeneration = 0
 
     private var hotkeyManager = HotkeyManager()
     private var panelViewModel: ClipboardPanelViewModel?
     private var panelController: ClipboardPanelController?
     private var menuBarController: MenuBarController?
+    private var menuBarMetricsController: MenuBarMetricsController?
+    private var metricsPopoverController: MetricsPopoverController?
     private var lastExternalApplication: NSRunningApplication?
     private var panelTargetApplication: NSRunningApplication?
 
@@ -38,6 +48,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var cancellables: Set<AnyCancellable> = []
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Unit tests use ClipFlow as a host process. Starting status items, TCC
+        // validation and global monitors here can display modal system UI before
+        // XCTest has attached, preventing the test worker from materializing.
+        guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else {
+            return
+        }
+
         NSApp.setActivationPolicy(.accessory)
 
         guard configurePersistence() else {
@@ -49,13 +66,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         configurePanel()
         configureVoiceControl()
         configureMenuBar()
+        systemMetrics.start()
         configureHotkey()
         configureApplicationActivationTracking()
         bindSettings()
 
         monitorService?.start()
         permissionsManager.refresh()
-        permissionsManager.promptOnFirstLaunchIfNeeded()
+        permissionsManager.validatePermissionsOnLaunch()
+        presentPermissionRegrantAlertIfNeeded()
+        scheduleLaunchUpdateCheck()
         // O bind de settings.$voiceControlEnabled inicia o serviço de voz se habilitado.
 
         if settings.launchAtLogin {
@@ -71,8 +91,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         hotkeyManager.unregister()
         monitorService?.stop()
         voiceCommandService?.stop()
+        systemMetrics.stop()
         NotificationCenter.default.removeObserver(self)
         NSWorkspace.shared.notificationCenter.removeObserver(self)
+    }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        openSettingsWindow()
+        return true
     }
 
     private func configurePersistence() -> Bool {
@@ -175,6 +201,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         hud.isSoundEnabled = { [weak self] in
             self?.settings.voiceSoundFeedback ?? true
         }
+        hud.onEscape = { [weak self] in
+            self?.abortVoiceHUDInteraction()
+        }
         voiceHUDController = hud
 
         let executor = VoiceCommandExecutor(
@@ -199,11 +228,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.voiceHUDController?.hide()
             }
         )
+        executor.onGenerationPhaseChange = { [weak self] phase in
+            guard let self else { return }
+            guard self.voiceInteractionGeneration == self.activeCommandGeneration else { return }
+            switch phase {
+            case .fetchingWeb:
+                self.voiceHUDController?.showSearching(
+                    message: self.settings.text(
+                        ptBR: "Consultando a internet…",
+                        en: "Searching the web…"
+                    )
+                )
+            case .generating:
+                self.voiceHUDController?.showThinking(
+                    message: self.settings.text(
+                        ptBR: "Pensando…",
+                        en: "Thinking…"
+                    )
+                )
+            case .idle:
+                break
+            }
+        }
         voiceCommandExecutor = executor
 
         let voiceService = VoiceCommandService(settings: settings)
         voiceService.onWakeWordDetected = { [weak self] in
             guard let self else { return }
+            self.voiceInteractionGeneration += 1
             let hint = self.pendingFollowUp != nil
                 ? self.settings.text(ptBR: "Pode responder...", en: "Go ahead...")
                 : self.settings.text(ptBR: "Ouvindo... diga um comando", en: "Listening... say a command")
@@ -212,25 +264,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         voiceService.onPartialCommand = { [weak self] transcript in
             self?.voiceHUDController?.updateTranscript(transcript)
         }
+        voiceService.inputLevelHandler = { [weak self] level in
+            self?.voiceHUDController?.updateUserLevel(level)
+        }
         voiceService.onCommandCaptured = { [weak self] rawText in
             guard let self else { return }
+            self.voiceInteractionGeneration += 1
+            let generation = self.voiceInteractionGeneration
+            self.activeCommandGeneration = generation
             // Silencia o microfone imediatamente para não captar a própria resposta falada.
             self.voiceCommandService?.pauseForSpeechOutput()
             if let followUp = self.pendingFollowUp {
                 self.pendingFollowUp = nil
                 self.voiceCommandExecutor?.handleFollowUpResponse(followUp, answer: rawText) { [weak self] feedback in
-                    self?.presentFeedback(feedback)
+                    guard let self, self.voiceInteractionGeneration == generation else { return }
+                    self.presentFeedback(feedback)
                 }
             } else {
                 self.voiceCommandExecutor?.execute(rawText: rawText) { [weak self] feedback in
-                    self?.presentFeedback(feedback)
+                    guard let self, self.voiceInteractionGeneration == generation else { return }
+                    self.presentFeedback(feedback)
                 }
             }
         }
         voiceService.onCaptureCancelled = { [weak self] in
             guard let self else { return }
             if self.pendingFollowUp != nil {
-                // Usuário não respondeu à pergunta: encerra a conversa em silêncio.
+                // Usuário não respondeu à pergunta: encerra e volta à escuta normal.
                 self.pendingFollowUp = nil
                 self.voiceHUDController?.hide()
                 self.voiceCommandService?.resumeAfterSpeechOutput()
@@ -243,39 +303,88 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 ),
                 success: false
             )
+            self.voiceCommandService?.resumeAfterSpeechOutput()
         }
         voiceCommandService = voiceService
+    }
+
+    /// Esc no HUD: para fala, cancela captura/follow-up e fecha o overlay.
+    private func abortVoiceHUDInteraction() {
+        voiceInteractionGeneration += 1
+        feedbackSessionID += 1
+        feedbackContinueWorkItem?.cancel()
+        feedbackContinueWorkItem = nil
+        pendingFollowUp = nil
+
+        spokenResponseService.stop()
+        spokenResponseService.playbackStartedHandler = nil
+        spokenResponseService.speechLevelHandler = nil
+        spokenResponseService.speechProgressHandler = nil
+
+        voiceCommandService?.cancelActiveInteraction()
+        voiceHUDController?.hide()
     }
 
     /// Mostra o feedback, fala a resposta e mantém o overlay até o fim da fala.
     /// Se o assistente fez uma pergunta, volta a ouvir a resposta em seguida.
     private func presentFeedback(_ feedback: VoiceCommandExecutor.Feedback) {
-        voiceHUDController?.showFeedback(message: feedback.message, success: feedback.success, autoHide: false)
+        feedbackSessionID += 1
+        let sessionID = feedbackSessionID
+        feedbackContinueWorkItem?.cancel()
+        feedbackContinueWorkItem = nil
+
+        let willSpeak = settings.voiceSpokenResponses
+        // Enquanto o TTS sintetiza, mostra a resposta sem animar a boca.
+        voiceHUDController?.showFeedback(
+            message: feedback.message,
+            success: feedback.success,
+            autoHide: !willSpeak,
+            speaking: false
+        )
 
         let proceed: () -> Void = { [weak self] in
-            guard let self else { return }
+            guard let self, self.feedbackSessionID == sessionID else { return }
             if let followUp = feedback.followUp {
                 self.pendingFollowUp = followUp
+                // Mantém o HUD e abre escuta direta (sem wake word).
                 self.voiceCommandService?.beginFollowUpCapture()
             } else {
+                self.voiceCommandService?.resumeAfterSpeechOutput()
                 self.voiceHUDController?.hide()
             }
         }
 
-        if settings.voiceSpokenResponses {
+        if willSpeak {
+            spokenResponseService.playbackStartedHandler = { [weak self] in
+                guard let self, self.feedbackSessionID == sessionID else { return }
+                self.voiceHUDController?.setSpeaking(true)
+            }
+            spokenResponseService.speechLevelHandler = { [weak self] level in
+                guard let self, self.feedbackSessionID == sessionID else { return }
+                self.voiceHUDController?.updateAssistantLevel(level)
+            }
+            spokenResponseService.speechProgressHandler = { [weak self] progress in
+                guard let self, self.feedbackSessionID == sessionID else { return }
+                self.voiceHUDController?.updateSpeechProgress(progress)
+            }
             spokenResponseService.speak(
                 feedback.message,
                 languageCode: settings.text(ptBR: "pt-BR", en: "en-US")
             ) { [weak self] in
-                self?.voiceCommandService?.resumeAfterSpeechOutput()
+                guard let self, self.feedbackSessionID == sessionID else { return }
+                self.voiceHUDController?.setSpeaking(false)
+                self.voiceHUDController?.updateAssistantLevel(0)
+                self.voiceHUDController?.updateSpeechProgress(1)
+                self.spokenResponseService.playbackStartedHandler = nil
+                self.spokenResponseService.speechLevelHandler = nil
+                self.spokenResponseService.speechProgressHandler = nil
                 proceed()
             }
         } else {
             let readingTime = min(max(Double(feedback.message.count) * 0.045, 2.0), 6.0)
-            DispatchQueue.main.asyncAfter(deadline: .now() + readingTime) { [weak self] in
-                self?.voiceCommandService?.resumeAfterSpeechOutput()
-                proceed()
-            }
+            let workItem = DispatchWorkItem { proceed() }
+            feedbackContinueWorkItem = workItem
+            DispatchQueue.main.asyncAfter(deadline: .now() + readingTime, execute: workItem)
         }
     }
 
@@ -287,7 +396,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func configureMenuBar() {
+        let openDashboard: () -> Void = { [weak self] in
+            self?.openSettingsWindow()
+            DispatchQueue.main.async {
+                NotificationCenter.default.post(name: .openSettingsDashboard, object: nil)
+            }
+        }
         menuBarController = MenuBarController(
+            onOpenDashboard: openDashboard,
             onOpenPanel: { [weak self] in
                 self?.captureFrontmostExternalApplication()
                 self?.panelTargetApplication = self?.lastExternalApplication
@@ -296,6 +412,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             },
             onOpenSettings: { [weak self] in
                 self?.openSettingsWindow()
+            },
+            onCheckForUpdates: { [weak self] in
+                self?.handleCheckForUpdatesFromMenu()
             },
             onTogglePause: { [weak self] newValue in
                 self?.settings.pauseMonitoring = newValue
@@ -314,8 +433,75 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             },
             languageProvider: { [weak self] in
                 self?.settings.language ?? .system
+            },
+            updateAvailableProvider: { [weak self] in
+                self?.appUpdateService.hasUpdateAvailable ?? false
             }
         )
+        metricsPopoverController = MetricsPopoverController(
+            metrics: systemMetrics,
+            settings: settings,
+            onOpenDashboard: openDashboard
+        )
+        menuBarMetricsController = MenuBarMetricsController(
+            settings: settings,
+            onPresentPopover: { [weak self] button, metric in
+                self?.metricsPopoverController?.toggle(relativeTo: button, preferredMetric: metric)
+            }
+        )
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(showMetricsPopoverPreview),
+            name: .showMetricsPopover,
+            object: nil
+        )
+
+        appUpdateService.$phase
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.menuBarController?.refreshUpdateItem()
+            }
+            .store(in: &cancellables)
+
+        systemMetrics.$snapshot
+            .receive(on: RunLoop.main)
+            .sink { [weak self] snapshot in
+                self?.menuBarController?.refreshSystemMetrics(snapshot)
+                guard let self else { return }
+                DispatchQueue.main.async {
+                    self.menuBarMetricsController?.update(
+                        snapshot: snapshot,
+                        cpuHistory: self.systemMetrics.cpuHistory,
+                        memoryHistory: self.systemMetrics.memoryHistory,
+                        gpuHistory: self.systemMetrics.gpuHistory,
+                        temperatureHistory: self.systemMetrics.temperatureHistory,
+                        storageHistory: self.systemMetrics.storageHistory,
+                        networkHistory: self.systemMetrics.networkHistory,
+                        powerHistory: self.systemMetrics.powerHistory
+                    )
+                }
+            }
+            .store(in: &cancellables)
+    }
+
+    private func scheduleLaunchUpdateCheck() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) { [weak self] in
+            self?.appUpdateService.checkForUpdatesIfNeededOnLaunch()
+        }
+    }
+
+    @objc private func showMetricsPopoverPreview() {
+        guard let button = menuBarController?.statusBarButton else { return }
+        metricsPopoverController?.toggle(relativeTo: button, preferredMetric: .cpu)
+    }
+
+    private func handleCheckForUpdatesFromMenu() {
+        openSettingsWindow()
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(name: .openSettingsUpdates, object: nil)
+        }
+        Task { await appUpdateService.checkForUpdates(userInitiated: true) }
     }
 
     private func configureHotkey() {
@@ -363,6 +549,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func bindSettings() {
+        settings.$menuBarMetricStyles
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.menuBarMetricsController?.refreshConfiguration()
+                self?.systemMetrics.refresh()
+            }
+            .store(in: &cancellables)
+
+        settings.$useNotchLeftOverflow
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.menuBarMetricsController?.refreshConfiguration()
+                self?.systemMetrics.refresh()
+            }
+            .store(in: &cancellables)
+
         settings.$pauseMonitoring
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
@@ -451,6 +653,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    private func presentPermissionRegrantAlertIfNeeded() {
+        guard permissionsManager.requiresRegrantAfterUpdate else { return }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) { [weak self] in
+            guard let self, self.permissionsManager.requiresRegrantAfterUpdate else { return }
+
+            let alert = NSAlert()
+            alert.alertStyle = .warning
+            alert.messageText = self.settings.text(
+                ptBR: "Permissões após o update",
+                en: "Permissions after update"
+            )
+            alert.informativeText = self.settings.text(
+                ptBR: "O macOS pode ter invalidado Accessibility e Input Monitoring para este binário do ClipFlow. Reconceda as permissões para hotkeys e colagem voltarem a funcionar.",
+                en: "macOS may have invalidated Accessibility and Input Monitoring for this ClipFlow binary. Re-grant permissions so hotkeys and paste keep working."
+            )
+            alert.addButton(withTitle: self.settings.text(ptBR: "Abrir Permissões", en: "Open Permissions"))
+            alert.addButton(withTitle: self.settings.text(ptBR: "Agora não", en: "Not now"))
+
+            NSApp.activate(ignoringOtherApps: true)
+            let response = alert.runModal()
+            if response == .alertFirstButtonReturn {
+                self.openSettingsWindow()
+                // Aguarda a SettingsView montar o onReceive antes de trocar o pane.
+                DispatchQueue.main.async {
+                    NotificationCenter.default.post(name: .openSettingsPermissions, object: nil)
+                }
+            }
+        }
+    }
+
     private func openSettingsWindow() {
         panelController?.close()
 
@@ -458,14 +691,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             existing.showWindow(nil)
             if let window = existing.window {
                 window.setContentSize(settingsContentSize)
-                window.minSize = settingsContentSize
-                window.maxSize = settingsContentSize
+                window.minSize = settingsMinSize
+                window.maxSize = NSSize(width: 1400, height: 1200)
+                configureSettingsWindowChrome(window)
                 positionSettingsWindow(window)
                 window.level = .floating
                 window.orderFrontRegardless()
                 window.makeKey()
             }
-            NotificationCenter.default.post(name: Notification.Name("clipflow.settings.scrollToTop"), object: nil)
             NSApp.activate(ignoringOtherApps: true)
             return
         }
@@ -473,6 +706,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let settingsView = SettingsView(
             settings: settings,
             permissionsManager: permissionsManager,
+            appUpdateService: appUpdateService,
+            systemMetrics: systemMetrics,
             launchManager: launchAtLoginManager,
             onRebindHotkey: { [weak self] in
                 guard let self else { return }
@@ -482,18 +717,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let hosting = NSHostingController(rootView: settingsView)
         let window = NSWindow(contentViewController: hosting)
-        window.title = settings.text(ptBR: "Preferências", en: "Preferences")
-        window.styleMask = [.titled, .closable, .miniaturizable]
-        window.titleVisibility = .hidden
-        window.titlebarAppearsTransparent = false
+        window.styleMask = [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView]
+        configureSettingsWindowChrome(window)
         window.isReleasedWhenClosed = false
         window.isMovable = true
-        window.isMovableByWindowBackground = false
+        window.isMovableByWindowBackground = true
         window.level = .floating
         window.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary]
         window.setContentSize(settingsContentSize)
-        window.minSize = settingsContentSize
-        window.maxSize = settingsContentSize
+        window.minSize = settingsMinSize
+        window.maxSize = NSSize(width: 1400, height: 1200)
         positionSettingsWindow(window)
 
         let controller = NSWindowController(window: window)
@@ -502,8 +735,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         positionSettingsWindow(window)
         window.orderFrontRegardless()
         window.makeKey()
-        NotificationCenter.default.post(name: Notification.Name("clipflow.settings.scrollToTop"), object: nil)
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    private func configureSettingsWindowChrome(_ window: NSWindow) {
+        window.title = settings.text(ptBR: "Ajustes", en: "Settings")
+        window.titleVisibility = .visible
+        window.titlebarAppearsTransparent = true
+        window.toolbarStyle = .unified
+        window.backgroundColor = .clear
+        if #available(macOS 15.0, *) {
+            window.hasShadow = true
+        }
     }
 
     private func positionSettingsWindow(_ window: NSWindow) {

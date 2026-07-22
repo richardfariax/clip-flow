@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: "Existing release tag to upload assets to (e.g. 1.1.0)"
+        description: "Existing release tag to upload assets to (e.g. 2.0.0)"
         required: true
         type: string
   release:
@@ -19,8 +19,27 @@ jobs:
     runs-on: macos-15
 
     steps:
+      - name: Resolve checkout ref
+        id: ref
+        env:
+          RAW_TAG: ${{ github.event.release.tag_name || inputs.release_tag }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${RAW_TAG:-}" ]]; then
+            echo "Erro: nenhuma tag foi informada." >&2
+            exit 1
+          fi
+          # Tags do ClipFlow usam X.Y.Z (sem prefixo v).
+          tag="${RAW_TAG#v}"
+          echo "checkout_ref=${tag}" >> "${GITHUB_OUTPUT}"
+          echo "raw_tag=${RAW_TAG}" >> "${GITHUB_OUTPUT}"
+          echo "Checkout/build na tag: ${tag}"
+
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.ref.outputs.checkout_ref }}
+          fetch-depth: 0
 
       - name: Select Xcode (latest stable)
         uses: maxim-lobanov/setup-xcode@v1
@@ -30,24 +49,31 @@ jobs:
       - name: Show Xcode version
         run: xcodebuild -version
 
+      - name: Validate project version matches release tag
+        env:
+          RAW_TAG: ${{ steps.ref.outputs.raw_tag }}
+        run: |
+          set -euo pipefail
+          chmod +x Scripts/version.sh Scripts/bump_versions.sh Scripts/release.sh Scripts/release_dmg.sh
+          ./Scripts/version.sh check
+          ./Scripts/version.sh compare-tag "${RAW_TAG}"
+
       - name: Build release artifacts
         run: |
-          chmod +x Scripts/release.sh Scripts/release_dmg.sh
           ./Scripts/release.sh
           ./Scripts/release_dmg.sh
+
+      - name: Verify built app version
+        run: |
+          ./Scripts/version.sh verify-app "build/ClipFlow.xcarchive/Products/Applications/ClipFlow.app"
 
       - name: Resolve target release tag
         id: resolve_tag
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RAW_TAG: ${{ github.event.release.tag_name || inputs.release_tag }}
+          RAW_TAG: ${{ steps.ref.outputs.raw_tag }}
         run: |
           set -euo pipefail
-
-          if [[ -z "${RAW_TAG:-}" ]]; then
-            echo "Erro: nenhuma tag foi informada para upload." >&2
-            exit 1
-          fi
 
           tag_name="${RAW_TAG}"
           if [[ "${tag_name}" == v* ]]; then

@@ -15,6 +15,8 @@
 		618E7E44471E799B542ECC14 /* VisualEffectBlur.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52AE6F0279D382AA3FAF24FF /* VisualEffectBlur.swift */; };
 		6B7C5FBA5B9764073E282FD7 /* NotificationNames.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA1E8764EA0AFA05812D6B69 /* NotificationNames.swift */; };
 		752C1FD4FCCA412B0D21BFDD /* BrandLogoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12FF65EDC63FD6159919728A /* BrandLogoView.swift */; };
+		BBBB00000000000000000016 /* VoiceFieldView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA00000000000000000016 /* VoiceFieldView.swift */; };
+		BBBB0000000000000000001B /* AppUpdatePanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA0000000000000000001B /* AppUpdatePanel.swift */; };
 		7A6FFF53B7ECE30CADBE7727 /* ClipboardContentClassifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5919201EAF9BA97D6BA90BC4 /* ClipboardContentClassifier.swift */; };
 		7BFA9BE66C101557405B7674 /* PermissionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4F410C746C751DE4CDA5A6E /* PermissionsView.swift */; };
 		8833C074EF8DBA038ED1C901 /* ClipboardTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13B04ECA29B204A863C8DAF4 /* ClipboardTypes.swift */; };
@@ -31,6 +33,7 @@
 		C40894AEEAEF63A41EB3E8A3 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30C66EE46E7AB8910A68F84 /* AppSettings.swift */; };
 		CA8E4CACF78987509D700A73 /* ClipboardPanelViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43D40023EDCDE14E7D7CC8D9 /* ClipboardPanelViewModel.swift */; };
 		D173B62134B0C244E591043A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CDFB76DD7564B5DCD9A3A092 /* Assets.xcassets */; };
+		F1000000000000000000000A /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = F2000000000000000000000A /* PrivacyInfo.xcprivacy */; };
 		E33C6C2FD27FD546494A8FE7 /* HotkeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 527AF5D4E2DBC694676EAD70 /* HotkeyManager.swift */; };
 		E3A6F965A7760C85FCD6828F /* ClipboardStorageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 737526EA96019B263A97750E /* ClipboardStorageService.swift */; };
 		FDA4C4F3404E357912A7BD3A /* ClipFlowApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C15D178C01595FBC0A1B4DDD /* ClipFlowApp.swift */; };
@@ -42,6 +45,7 @@
 		BBBB00000000000000000005 /* VoiceCommandExecutor.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA00000000000000000005 /* VoiceCommandExecutor.swift */; };
 		BBBB00000000000000000006 /* VoiceHUDController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA00000000000000000006 /* VoiceHUDController.swift */; };
 		BBBB00000000000000000007 /* VoiceCommandParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA00000000000000000007 /* VoiceCommandParserTests.swift */; };
+		BBBB0000000000000000001A /* AppVersionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA0000000000000000001A /* AppVersionTests.swift */; };
 		BBBB00000000000000000008 /* TextTransformerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA00000000000000000008 /* TextTransformerTests.swift */; };
 		BBBB00000000000000000009 /* SpokenResponseService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA00000000000000000009 /* SpokenResponseService.swift */; };
 		BBBB0000000000000000000A /* KnowledgeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA0000000000000000000A /* KnowledgeService.swift */; };
@@ -50,10 +54,25 @@
 		BBBB0000000000000000000D /* VoiceCommandCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA0000000000000000000D /* VoiceCommandCatalog.swift */; };
 		BBBB0000000000000000000E /* AssistantIntentDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA0000000000000000000E /* AssistantIntentDetector.swift */; };
 		BBBB0000000000000000000F /* DeveloperProfileCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA0000000000000000000F /* DeveloperProfileCatalog.swift */; };
-		BBBB00000000000000000010 /* DeveloperKnowledgeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA00000000000000000010 /* DeveloperKnowledgeService.swift */; };
+		BBBB00000000000000000015 /* ClipAssistantIdentity.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA00000000000000000015 /* ClipAssistantIdentity.swift */; };
+		BBBB00000000000000000017 /* AppVersion.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA00000000000000000017 /* AppVersion.swift */; };
+		BBBB00000000000000000018 /* AppUpdateModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA00000000000000000018 /* AppUpdateModels.swift */; };
+		BBBB00000000000000000019 /* AppUpdateService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA00000000000000000019 /* AppUpdateService.swift */; };
 		BBBB00000000000000000011 /* WebSnippetSearchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA00000000000000000011 /* WebSnippetSearchService.swift */; };
-		BBBB00000000000000000012 /* DeveloperKnowledgeServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA00000000000000000012 /* DeveloperKnowledgeServiceTests.swift */; };
+		BBBB00000000000000000014 /* GenerativeAnswerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA00000000000000000014 /* GenerativeAnswerService.swift */; };
 		EEEE00000000000000000001 /* SwiftEdgeTTS in Frameworks */ = {isa = PBXBuildFile; productRef = DDDD00000000000000000001 /* SwiftEdgeTTS */; };
+		F10000000000000000000001 /* SystemMetricsModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20000000000000000000001 /* SystemMetricsModels.swift */; };
+		F10000000000000000000002 /* SystemMetricsSampler.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20000000000000000000002 /* SystemMetricsSampler.swift */; };
+		F10000000000000000000003 /* ThermalMetricsSampler.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20000000000000000000003 /* ThermalMetricsSampler.swift */; };
+		F10000000000000000000004 /* SystemMetricsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20000000000000000000004 /* SystemMetricsService.swift */; };
+		F10000000000000000000005 /* SystemDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20000000000000000000005 /* SystemDashboardView.swift */; };
+		F10000000000000000000006 /* SystemMetricsSamplerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20000000000000000000006 /* SystemMetricsSamplerTests.swift */; };
+		F10000000000000000000007 /* CacheMaintenanceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20000000000000000000007 /* CacheMaintenanceService.swift */; };
+		F10000000000000000000008 /* MenuBarSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20000000000000000000008 /* MenuBarSettingsView.swift */; };
+		F10000000000000000000009 /* MaintenanceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20000000000000000000009 /* MaintenanceView.swift */; };
+		F1000000000000000000000B /* MetricsPopoverController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2000000000000000000000B /* MetricsPopoverController.swift */; };
+		F1000000000000000000000C /* MetricsPopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2000000000000000000000C /* MetricsPopoverView.swift */; };
+		F1000000000000000000000D /* ActivityMonitorLauncher.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2000000000000000000000D /* ActivityMonitorLauncher.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -80,6 +99,8 @@
 /* Begin PBXFileReference section */
 		0787EF158E8204251B95C8BB /* ClipboardPanelController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardPanelController.swift; sourceTree = "<group>"; };
 		12FF65EDC63FD6159919728A /* BrandLogoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrandLogoView.swift; sourceTree = "<group>"; };
+		AAAA00000000000000000016 /* VoiceFieldView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceFieldView.swift; sourceTree = "<group>"; };
+		AAAA0000000000000000001B /* AppUpdatePanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppUpdatePanel.swift; sourceTree = "<group>"; };
 		13B04ECA29B204A863C8DAF4 /* ClipboardTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardTypes.swift; sourceTree = "<group>"; };
 		33E5EEDA6E627A96A84C1DF1 /* ClipboardPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardPanelView.swift; sourceTree = "<group>"; };
 		3E05A95FCBA4678B58E3BEE5 /* PasteService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasteService.swift; sourceTree = "<group>"; };
@@ -103,6 +124,10 @@
 		C650AFC928162EBED6627D1C /* LocalCryptoService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCryptoService.swift; sourceTree = "<group>"; };
 		C88C99EFAB0E2F9A33873A3B /* PermissionsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsManager.swift; sourceTree = "<group>"; };
 		CDFB76DD7564B5DCD9A3A092 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		F2000000000000000000000A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		F2000000000000000000000B /* MetricsPopoverController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetricsPopoverController.swift; sourceTree = "<group>"; };
+		F2000000000000000000000C /* MetricsPopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetricsPopoverView.swift; sourceTree = "<group>"; };
+		F2000000000000000000000D /* ActivityMonitorLauncher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityMonitorLauncher.swift; sourceTree = "<group>"; };
 		D5EB1FAFD466C4B3D85F8658 /* ClipFlow.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ClipFlow.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E736CAFC1F72981E9024BC0C /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		EA1E8764EA0AFA05812D6B69 /* NotificationNames.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationNames.swift; sourceTree = "<group>"; };
@@ -115,6 +140,7 @@
 		AAAA00000000000000000005 /* VoiceCommandExecutor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceCommandExecutor.swift; sourceTree = "<group>"; };
 		AAAA00000000000000000006 /* VoiceHUDController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceHUDController.swift; sourceTree = "<group>"; };
 		AAAA00000000000000000007 /* VoiceCommandParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceCommandParserTests.swift; sourceTree = "<group>"; };
+		AAAA0000000000000000001A /* AppVersionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppVersionTests.swift; sourceTree = "<group>"; };
 		AAAA00000000000000000008 /* TextTransformerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextTransformerTests.swift; sourceTree = "<group>"; };
 		AAAA00000000000000000009 /* SpokenResponseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpokenResponseService.swift; sourceTree = "<group>"; };
 		AAAA0000000000000000000A /* KnowledgeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KnowledgeService.swift; sourceTree = "<group>"; };
@@ -123,9 +149,21 @@
 		AAAA0000000000000000000D /* VoiceCommandCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceCommandCatalog.swift; sourceTree = "<group>"; };
 		AAAA0000000000000000000E /* AssistantIntentDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssistantIntentDetector.swift; sourceTree = "<group>"; };
 		AAAA0000000000000000000F /* DeveloperProfileCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeveloperProfileCatalog.swift; sourceTree = "<group>"; };
-		AAAA00000000000000000010 /* DeveloperKnowledgeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeveloperKnowledgeService.swift; sourceTree = "<group>"; };
+		AAAA00000000000000000015 /* ClipAssistantIdentity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipAssistantIdentity.swift; sourceTree = "<group>"; };
+		AAAA00000000000000000017 /* AppVersion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppVersion.swift; sourceTree = "<group>"; };
+		AAAA00000000000000000018 /* AppUpdateModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppUpdateModels.swift; sourceTree = "<group>"; };
+		AAAA00000000000000000019 /* AppUpdateService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppUpdateService.swift; sourceTree = "<group>"; };
 		AAAA00000000000000000011 /* WebSnippetSearchService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSnippetSearchService.swift; sourceTree = "<group>"; };
-		AAAA00000000000000000012 /* DeveloperKnowledgeServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeveloperKnowledgeServiceTests.swift; sourceTree = "<group>"; };
+		AAAA00000000000000000014 /* GenerativeAnswerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GenerativeAnswerService.swift; sourceTree = "<group>"; };
+		F20000000000000000000001 /* SystemMetricsModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemMetricsModels.swift; sourceTree = "<group>"; };
+		F20000000000000000000002 /* SystemMetricsSampler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemMetricsSampler.swift; sourceTree = "<group>"; };
+		F20000000000000000000003 /* ThermalMetricsSampler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThermalMetricsSampler.swift; sourceTree = "<group>"; };
+		F20000000000000000000004 /* SystemMetricsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemMetricsService.swift; sourceTree = "<group>"; };
+		F20000000000000000000005 /* SystemDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemDashboardView.swift; sourceTree = "<group>"; };
+		F20000000000000000000006 /* SystemMetricsSamplerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemMetricsSamplerTests.swift; sourceTree = "<group>"; };
+		F20000000000000000000007 /* CacheMaintenanceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheMaintenanceService.swift; sourceTree = "<group>"; };
+		F20000000000000000000008 /* MenuBarSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarSettingsView.swift; sourceTree = "<group>"; };
+		F20000000000000000000009 /* MaintenanceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MaintenanceView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -135,6 +173,8 @@
 				A628C074D7A6C3713B13F1F0 /* ClipboardItemEntity.swift */,
 				13B04ECA29B204A863C8DAF4 /* ClipboardTypes.swift */,
 				AAAA0000000000000000000F /* DeveloperProfileCatalog.swift */,
+					AAAA00000000000000000015 /* ClipAssistantIdentity.swift */,
+					F20000000000000000000001 /* SystemMetricsModels.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -142,6 +182,7 @@
 		439C7AE28B7B208F759916C3 /* Utilities */ = {
 			isa = PBXGroup;
 			children = (
+				AAAA00000000000000000017 /* AppVersion.swift */,
 				5919201EAF9BA97D6BA90BC4 /* ClipboardContentClassifier.swift */,
 				B71EC4ADAAA644FB9F54A6C2 /* HotkeySupport.swift */,
 				58C9F49D3E20C1D8EA4E571B /* KeychainHelper.swift */,
@@ -163,6 +204,7 @@
 				527AF5D4E2DBC694676EAD70 /* HotkeyManager.swift */,
 				6FCD66D775598A55AB29B789 /* LaunchAtLoginManager.swift */,
 				84EBF289F3415C8261A3EDF0 /* MenuBarController.swift */,
+				F2000000000000000000000B /* MetricsPopoverController.swift */,
 				C88C99EFAB0E2F9A33873A3B /* PermissionsManager.swift */,
 			);
 			path = Managers;
@@ -172,6 +214,7 @@
 			isa = PBXGroup;
 			children = (
 				CDFB76DD7564B5DCD9A3A092 /* Assets.xcassets */,
+				F2000000000000000000000A /* PrivacyInfo.xcprivacy */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -197,6 +240,8 @@
 			isa = PBXGroup;
 			children = (
 				12FF65EDC63FD6159919728A /* BrandLogoView.swift */,
+				AAAA0000000000000000001B /* AppUpdatePanel.swift */,
+				AAAA00000000000000000016 /* VoiceFieldView.swift */,
 				8A4C8566F8D1077C219FD8B3 /* ClipboardCardView.swift */,
 				52AE6F0279D382AA3FAF24FF /* VisualEffectBlur.swift */,
 			);
@@ -206,10 +251,11 @@
 		9A9C2EF000ED12F34D390AF1 /* ClipFlowTests */ = {
 			isa = PBXGroup;
 			children = (
+				AAAA0000000000000000001A /* AppVersionTests.swift */,
 				4DB3ADE9DDA4C061AB08C841 /* ClipboardContentClassifierTests.swift */,
 				AAAA00000000000000000008 /* TextTransformerTests.swift */,
-				AAAA00000000000000000007 /* VoiceCommandParserTests.swift */,
-				AAAA00000000000000000012 /* DeveloperKnowledgeServiceTests.swift */,
+					AAAA00000000000000000007 /* VoiceCommandParserTests.swift */,
+					F20000000000000000000006 /* SystemMetricsSamplerTests.swift */,
 			);
 			path = ClipFlowTests;
 			sourceTree = "<group>";
@@ -226,10 +272,13 @@
 		A5F33029D944294588E1DC10 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				F2000000000000000000000D /* ActivityMonitorLauncher.swift */,
+				AAAA00000000000000000018 /* AppUpdateModels.swift */,
+				AAAA00000000000000000019 /* AppUpdateService.swift */,
 				5EA96B11110C919E9F3BFFE7 /* ClipboardMonitorService.swift */,
 				737526EA96019B263A97750E /* ClipboardStorageService.swift */,
 				AAAA0000000000000000000A /* KnowledgeService.swift */,
-				AAAA00000000000000000010 /* DeveloperKnowledgeService.swift */,
+				AAAA00000000000000000014 /* GenerativeAnswerService.swift */,
 				AAAA00000000000000000011 /* WebSnippetSearchService.swift */,
 				C650AFC928162EBED6627D1C /* LocalCryptoService.swift */,
 				3E05A95FCBA4678B58E3BEE5 /* PasteService.swift */,
@@ -237,7 +286,11 @@
 				AAAA0000000000000000000C /* ScreenAnalysisService.swift */,
 				AAAA00000000000000000009 /* SpokenResponseService.swift */,
 				AAAA00000000000000000005 /* VoiceCommandExecutor.swift */,
-				AAAA00000000000000000003 /* VoiceCommandService.swift */,
+					AAAA00000000000000000003 /* VoiceCommandService.swift */,
+					F20000000000000000000002 /* SystemMetricsSampler.swift */,
+					F20000000000000000000003 /* ThermalMetricsSampler.swift */,
+					F20000000000000000000004 /* SystemMetricsService.swift */,
+					F20000000000000000000007 /* CacheMaintenanceService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -270,7 +323,11 @@
 				0787EF158E8204251B95C8BB /* ClipboardPanelController.swift */,
 				33E5EEDA6E627A96A84C1DF1 /* ClipboardPanelView.swift */,
 				C4F410C746C751DE4CDA5A6E /* PermissionsView.swift */,
-				E736CAFC1F72981E9024BC0C /* SettingsView.swift */,
+					E736CAFC1F72981E9024BC0C /* SettingsView.swift */,
+					F20000000000000000000005 /* SystemDashboardView.swift */,
+					F20000000000000000000008 /* MenuBarSettingsView.swift */,
+					F20000000000000000000009 /* MaintenanceView.swift */,
+					F2000000000000000000000C /* MetricsPopoverView.swift */,
 				AAAA00000000000000000006 /* VoiceHUDController.swift */,
 			);
 			path = Views;
@@ -374,6 +431,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				D173B62134B0C244E591043A /* Assets.xcassets in Resources */,
+				F1000000000000000000000A /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -387,6 +445,8 @@
 				A676EEDD45AFBD34937484B4 /* AppDelegate.swift in Sources */,
 				C40894AEEAEF63A41EB3E8A3 /* AppSettings.swift in Sources */,
 				752C1FD4FCCA412B0D21BFDD /* BrandLogoView.swift in Sources */,
+				BBBB00000000000000000016 /* VoiceFieldView.swift in Sources */,
+				BBBB0000000000000000001B /* AppUpdatePanel.swift in Sources */,
 				FDA4C4F3404E357912A7BD3A /* ClipFlowApp.swift in Sources */,
 				2E14F68FE257D81A298796E1 /* ClipboardCardView.swift in Sources */,
 				7A6FFF53B7ECE30CADBE7727 /* ClipboardContentClassifier.swift in Sources */,
@@ -409,12 +469,16 @@
 				7BFA9BE66C101557405B7674 /* PermissionsView.swift in Sources */,
 				9690F84E791581A54FEEDAE6 /* SettingsView.swift in Sources */,
 				BBBB0000000000000000000A /* KnowledgeService.swift in Sources */,
+				BBBB00000000000000000014 /* GenerativeAnswerService.swift in Sources */,
 				BBBB00000000000000000004 /* ScreenshotService.swift in Sources */,
 				BBBB0000000000000000000C /* ScreenAnalysisService.swift in Sources */,
 				BBBB0000000000000000000D /* VoiceCommandCatalog.swift in Sources */,
 				BBBB0000000000000000000E /* AssistantIntentDetector.swift in Sources */,
 				BBBB0000000000000000000F /* DeveloperProfileCatalog.swift in Sources */,
-				BBBB00000000000000000010 /* DeveloperKnowledgeService.swift in Sources */,
+				BBBB00000000000000000015 /* ClipAssistantIdentity.swift in Sources */,
+				BBBB00000000000000000017 /* AppVersion.swift in Sources */,
+				BBBB00000000000000000018 /* AppUpdateModels.swift in Sources */,
+				BBBB00000000000000000019 /* AppUpdateService.swift in Sources */,
 				BBBB00000000000000000011 /* WebSnippetSearchService.swift in Sources */,
 				BBBB00000000000000000009 /* SpokenResponseService.swift in Sources */,
 				BBBB00000000000000000002 /* TextTransformer.swift in Sources */,
@@ -424,7 +488,18 @@
 				BBBB00000000000000000001 /* VoiceCommandParser.swift in Sources */,
 				BBBB0000000000000000000B /* QuestionPreprocessor.swift in Sources */,
 				BBBB00000000000000000003 /* VoiceCommandService.swift in Sources */,
-				BBBB00000000000000000006 /* VoiceHUDController.swift in Sources */,
+					BBBB00000000000000000006 /* VoiceHUDController.swift in Sources */,
+					F10000000000000000000001 /* SystemMetricsModels.swift in Sources */,
+					F10000000000000000000002 /* SystemMetricsSampler.swift in Sources */,
+					F10000000000000000000003 /* ThermalMetricsSampler.swift in Sources */,
+					F10000000000000000000004 /* SystemMetricsService.swift in Sources */,
+					F10000000000000000000005 /* SystemDashboardView.swift in Sources */,
+					F10000000000000000000007 /* CacheMaintenanceService.swift in Sources */,
+					F10000000000000000000008 /* MenuBarSettingsView.swift in Sources */,
+					F10000000000000000000009 /* MaintenanceView.swift in Sources */,
+					F1000000000000000000000B /* MetricsPopoverController.swift in Sources */,
+					F1000000000000000000000C /* MetricsPopoverView.swift in Sources */,
+					F1000000000000000000000D /* ActivityMonitorLauncher.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -432,10 +507,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BBBB0000000000000000001A /* AppVersionTests.swift in Sources */,
 				4E44BD4C7855CCD133C2FDC5 /* ClipboardContentClassifierTests.swift in Sources */,
 				BBBB00000000000000000008 /* TextTransformerTests.swift in Sources */,
-				BBBB00000000000000000007 /* VoiceCommandParserTests.swift in Sources */,
-				BBBB00000000000000000012 /* DeveloperKnowledgeServiceTests.swift in Sources */,
+					BBBB00000000000000000007 /* VoiceCommandParserTests.swift in Sources */,
+					F10000000000000000000006 /* SystemMetricsSamplerTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -503,7 +579,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_ENTITLEMENTS = ClipFlow/Resources/ClipFlow.entitlements;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 7;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -523,7 +599,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = ClipFlow/Resources/Info.plist;
-				MARKETING_VERSION = 1.2.0;
+				MARKETING_VERSION = 2.1.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -629,7 +705,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_ENTITLEMENTS = ClipFlow/Resources/ClipFlow.entitlements;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 7;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -643,7 +719,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = ClipFlow/Resources/Info.plist;
-				MARKETING_VERSION = 1.2.0;
+				MARKETING_VERSION = 2.1.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.richadfarias.clipflow;
