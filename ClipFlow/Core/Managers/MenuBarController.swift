@@ -12,12 +12,14 @@ final class MenuBarController: NSObject {
         case toggleVoice = 1004
         case checkUpdates = 1005
         case systemMetrics = 1006
+        case openCleanCenter = 1007
     }
 
     private let statusItem: NSStatusItem
     private let menu = NSMenu()
 
     private let onOpenDashboard: () -> Void
+    private let onOpenCleanCenter: () -> Void
     private let onOpenPanel: () -> Void
     private let onOpenSettings: () -> Void
     private let onCheckForUpdates: () -> Void
@@ -33,6 +35,7 @@ final class MenuBarController: NSObject {
 
     init(
         onOpenDashboard: @escaping () -> Void,
+        onOpenCleanCenter: @escaping () -> Void,
         onOpenPanel: @escaping () -> Void,
         onOpenSettings: @escaping () -> Void,
         onCheckForUpdates: @escaping () -> Void,
@@ -46,6 +49,7 @@ final class MenuBarController: NSObject {
     ) {
         self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         self.onOpenDashboard = onOpenDashboard
+        self.onOpenCleanCenter = onOpenCleanCenter
         self.onOpenPanel = onOpenPanel
         self.onOpenSettings = onOpenSettings
         self.onCheckForUpdates = onCheckForUpdates
@@ -103,6 +107,7 @@ final class MenuBarController: NSObject {
         }
 
         openDashboard.title = t("Abrir Central do Mac", "Open Mac Command Center")
+        menu.item(withTag: ItemTag.openCleanCenter.rawValue)?.title = t("Abrir CleanFlow", "Open CleanFlow")
         openPanel.title = t("Abrir Clipboard", "Open Clipboard")
         pause.title = t("Pausar Monitoramento", "Pause Monitoring")
         voice.title = t("Comandos de Voz", "Voice Commands")
@@ -156,6 +161,15 @@ final class MenuBarController: NSObject {
         dashboardItem.target = self
         dashboardItem.tag = ItemTag.openDashboard.rawValue
         menu.addItem(dashboardItem)
+
+        let cleanCenterItem = NSMenuItem(
+            title: t("Abrir CleanFlow", "Open CleanFlow"),
+            action: #selector(openCleanCenter),
+            keyEquivalent: ""
+        )
+        cleanCenterItem.target = self
+        cleanCenterItem.tag = ItemTag.openCleanCenter.rawValue
+        menu.addItem(cleanCenterItem)
 
         let metricsItem = NSMenuItem(title: "CPU —  ·  RAM —  ·  GPU —  ·  —", action: nil, keyEquivalent: "")
         metricsItem.tag = ItemTag.systemMetrics.rawValue
@@ -213,6 +227,10 @@ final class MenuBarController: NSObject {
 
     @objc private func openDashboard() {
         onOpenDashboard()
+    }
+
+    @objc private func openCleanCenter() {
+        onOpenCleanCenter()
     }
 
     @objc private func openSettings() {
