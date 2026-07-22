@@ -445,6 +445,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         menuBarMetricsController = MenuBarMetricsController(
             settings: settings,
+            menuBarAppearanceProvider: { [weak self] in
+                self?.menuBarController?.statusBarButton?.window?.effectiveAppearance
+                    ?? self?.menuBarController?.statusBarButton?.effectiveAppearance
+            },
             onPresentPopover: { [weak self] button, metric in
                 self?.metricsPopoverController?.toggle(relativeTo: button, preferredMetric: metric)
             }
