@@ -300,7 +300,9 @@ final class MenuBarMetricsController: NSObject {
                 item.button?.target = self
                 item.button?.action = #selector(openPopover(_:))
                 item.button?.sendAction(on: [.leftMouseUp])
-                item.button?.font = .monospacedDigitSystemFont(ofSize: 11, weight: .semibold)
+                if let button = item.button {
+                    MenuBarMetricChrome.configure(button)
+                }
                 statusItems[metric] = item
             }
         }
@@ -368,12 +370,17 @@ final class MenuBarMetricsController: NSObject {
         )
         presentations[metric] = presentation
 
-        guard let button = statusItems[metric]?.button else { return }
+        guard let item = statusItems[metric], let button = item.button else { return }
         button.title = presentation.title
         button.image = presentation.image
         button.imagePosition = presentation.imagePosition
         button.toolTip = presentation.toolTip
         button.setAccessibilityLabel(presentation.toolTip)
+        item.length = MenuBarMetricLayout.compactStatusItemLength(
+            titleWidth: presentation.titleWidth(using: button.font),
+            imageWidth: presentation.image?.size.width ?? 0,
+            showsTitleAndImage: presentation.imagePosition == .imageLeading
+        )
     }
 
     private func tooltip(for metric: MenuBarMetric, value: String) -> String {
@@ -494,6 +501,70 @@ struct MenuBarItemGeometry: Equatable {
     let isWindowVisible: Bool
 }
 
+enum MenuBarMetricLayout {
+    static let cornerRadius: CGFloat = 7
+    static let itemSpacing: CGFloat = 4
+    static let horizontalContentPadding: CGFloat = 6
+    static let minimumHeight: CGFloat = 22
+
+    private static let titleImageSpacing: CGFloat = 4
+    private static let minimumStatusItemWidth: CGFloat = 34
+
+    static func compactStatusItemLength(
+        titleWidth: CGFloat,
+        imageWidth: CGFloat,
+        showsTitleAndImage: Bool
+    ) -> CGFloat {
+        let contentSpacing = showsTitleAndImage && titleWidth > 0 && imageWidth > 0
+            ? titleImageSpacing
+            : 0
+        let contentWidth = titleWidth + imageWidth + contentSpacing
+        return max(
+            minimumStatusItemWidth,
+            ceil(contentWidth + (horizontalContentPadding * 2))
+        )
+    }
+}
+
+private enum MenuBarMetricChrome {
+    static func configure(_ button: NSStatusBarButton) {
+        button.font = .monospacedDigitSystemFont(ofSize: 11, weight: .semibold)
+        button.contentTintColor = .labelColor
+
+        guard let container = button.superview else { return }
+        let background = MenuBarMetricBackgroundView()
+        background.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(background, positioned: .below, relativeTo: button)
+        NSLayoutConstraint.activate([
+            background.leadingAnchor.constraint(equalTo: button.leadingAnchor),
+            background.trailingAnchor.constraint(equalTo: button.trailingAnchor),
+            background.topAnchor.constraint(equalTo: button.topAnchor, constant: 1),
+            background.bottomAnchor.constraint(equalTo: button.bottomAnchor, constant: -1)
+        ])
+    }
+}
+
+private final class MenuBarMetricBackgroundView: NSVisualEffectView {
+    init() {
+        super.init(frame: .zero)
+        material = .menu
+        blendingMode = .behindWindow
+        state = .active
+        wantsLayer = true
+        layer?.cornerRadius = MenuBarMetricLayout.cornerRadius
+        layer?.masksToBounds = true
+    }
+
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        nil
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        nil
+    }
+}
+
 enum MenuBarOverflowLayout {
     static func metricsToMoveLeft(
         items: [MenuBarMetric: MenuBarItemGeometry],
@@ -529,6 +600,13 @@ private struct MenuBarMetricPresentation {
     let image: NSImage?
     let imagePosition: NSControl.ImagePosition
     let toolTip: String
+
+    func titleWidth(using font: NSFont?) -> CGFloat {
+        guard !title.isEmpty else { return 0 }
+        return (title as NSString).size(withAttributes: [
+            .font: font ?? NSFont.monospacedDigitSystemFont(ofSize: 11, weight: .semibold)
+        ]).width
+    }
 }
 
 @MainActor
@@ -561,7 +639,7 @@ private final class MenuBarOverflowPanelController: NSObject {
 
         stackView.orientation = .horizontal
         stackView.alignment = .centerY
-        stackView.spacing = 4
+        stackView.spacing = MenuBarMetricLayout.itemSpacing
         stackView.translatesAutoresizingMaskIntoConstraints = false
 
         contentView.addSubview(stackView)
@@ -650,16 +728,22 @@ private final class MenuBarOverflowItemView: NSVisualEffectView {
         blendingMode = .behindWindow
         state = .active
         wantsLayer = true
-        layer?.cornerRadius = 7
+        layer?.cornerRadius = MenuBarMetricLayout.cornerRadius
         layer?.masksToBounds = true
 
         button.translatesAutoresizingMaskIntoConstraints = false
         addSubview(button)
         NSLayoutConstraint.activate([
-            button.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 6),
-            button.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -6),
+            button.leadingAnchor.constraint(
+                equalTo: leadingAnchor,
+                constant: MenuBarMetricLayout.horizontalContentPadding
+            ),
+            button.trailingAnchor.constraint(
+                equalTo: trailingAnchor,
+                constant: -MenuBarMetricLayout.horizontalContentPadding
+            ),
             button.centerYAnchor.constraint(equalTo: centerYAnchor),
-            heightAnchor.constraint(greaterThanOrEqualToConstant: 22)
+            heightAnchor.constraint(greaterThanOrEqualToConstant: MenuBarMetricLayout.minimumHeight)
         ])
     }
 
