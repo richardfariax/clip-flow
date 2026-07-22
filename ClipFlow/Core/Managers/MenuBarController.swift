@@ -132,19 +132,17 @@ final class MenuBarController: NSObject {
 
     private func applyStatusItemIcon() {
         if let button = statusItem.button {
-            if let menuBarLogo = NSImage(named: menuBarLogoAssetName(for: button.effectiveAppearance)) {
+            if let menuBarLogo = NSImage(named: "ClipFlowMenuBarIcon") {
                 menuBarLogo.size = NSSize(width: 18, height: 18)
-                menuBarLogo.isTemplate = false
+                menuBarLogo.isTemplate = true
                 button.image = menuBarLogo
             } else {
-                button.image = NSImage(systemSymbolName: "clipboard", accessibilityDescription: "ClipFlow")
+                button.image = NSImage(
+                    systemSymbolName: "doc.on.clipboard",
+                    accessibilityDescription: "ClipFlow"
+                )
             }
         }
-    }
-
-    private func menuBarLogoAssetName(for appearance: NSAppearance) -> String {
-        let best = appearance.bestMatch(from: [.darkAqua, .aqua])
-        return best == .darkAqua ? "ClipFlowLogoDark" : "ClipFlowLogoLight"
     }
 
     private func configureMenu() {
@@ -516,13 +514,12 @@ struct MenuBarItemGeometry: Equatable {
 }
 
 enum MenuBarMetricLayout {
-    static let cornerRadius: CGFloat = 7
-    static let itemSpacing: CGFloat = 4
-    static let horizontalContentPadding: CGFloat = 6
+    static let itemSpacing: CGFloat = 1
+    static let horizontalContentPadding: CGFloat = 3
     static let minimumHeight: CGFloat = 22
 
-    private static let titleImageSpacing: CGFloat = 4
-    private static let minimumStatusItemWidth: CGFloat = 34
+    private static let titleImageSpacing: CGFloat = 3
+    private static let minimumStatusItemWidth: CGFloat = 22
 
     static func compactStatusItemLength(
         titleWidth: CGFloat,
@@ -542,40 +539,8 @@ enum MenuBarMetricLayout {
 
 private enum MenuBarMetricChrome {
     static func configure(_ button: NSStatusBarButton) {
-        button.font = .monospacedDigitSystemFont(ofSize: 11, weight: .semibold)
+        button.font = .monospacedDigitSystemFont(ofSize: 11, weight: .medium)
         button.contentTintColor = .labelColor
-
-        guard let container = button.superview else { return }
-        let background = MenuBarMetricBackgroundView()
-        background.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(background, positioned: .below, relativeTo: button)
-        NSLayoutConstraint.activate([
-            background.leadingAnchor.constraint(equalTo: button.leadingAnchor),
-            background.trailingAnchor.constraint(equalTo: button.trailingAnchor),
-            background.centerYAnchor.constraint(equalTo: button.centerYAnchor),
-            background.heightAnchor.constraint(equalToConstant: MenuBarMetricLayout.minimumHeight)
-        ])
-    }
-}
-
-private final class MenuBarMetricBackgroundView: NSVisualEffectView {
-    init() {
-        super.init(frame: .zero)
-        material = .menu
-        blendingMode = .behindWindow
-        state = .active
-        wantsLayer = true
-        layer?.cornerRadius = MenuBarMetricLayout.cornerRadius
-        layer?.masksToBounds = true
-    }
-
-    override func hitTest(_ point: NSPoint) -> NSView? {
-        nil
-    }
-
-    @available(*, unavailable)
-    required init?(coder: NSCoder) {
-        nil
     }
 }
 
@@ -731,19 +696,12 @@ private final class MenuBarOverflowPanelController: NSObject {
     }
 }
 
-private final class MenuBarOverflowItemView: NSVisualEffectView {
+private final class MenuBarOverflowItemView: NSView {
     let button: MenuBarOverflowButton
 
     init(metric: MenuBarMetric) {
         button = MenuBarOverflowButton(metric: metric)
         super.init(frame: .zero)
-
-        material = .menu
-        blendingMode = .behindWindow
-        state = .active
-        wantsLayer = true
-        layer?.cornerRadius = MenuBarMetricLayout.cornerRadius
-        layer?.masksToBounds = true
 
         button.translatesAutoresizingMaskIntoConstraints = false
         addSubview(button)
@@ -775,7 +733,7 @@ private final class MenuBarOverflowButton: NSButton {
         super.init(frame: .zero)
         isBordered = false
         bezelStyle = .inline
-        font = .monospacedDigitSystemFont(ofSize: 11, weight: .semibold)
+        font = .monospacedDigitSystemFont(ofSize: 11, weight: .medium)
         contentTintColor = .labelColor
         focusRingType = .none
         setButtonType(.momentaryChange)
@@ -790,7 +748,7 @@ private final class MenuBarOverflowButton: NSButton {
 private enum MenuBarSparklineRenderer {
     static func image(values: [Double], range: ClosedRange<Double>) -> NSImage {
         let size = NSSize(width: 31, height: 16)
-        return NSImage(size: size, flipped: false) { bounds in
+        let image = NSImage(size: size, flipped: false) { bounds in
             guard values.count > 1 else { return true }
             let denominator = max(range.upperBound - range.lowerBound, 0.000_001)
             let path = NSBezierPath()
@@ -804,9 +762,11 @@ private enum MenuBarSparklineRenderer {
                 let y = bounds.minY + 1 + CGFloat(normalized) * (bounds.height - 2)
                 if index == 0 { path.move(to: NSPoint(x: x, y: y)) } else { path.line(to: NSPoint(x: x, y: y)) }
             }
-            NSColor.controlAccentColor.setStroke()
+            NSColor.labelColor.setStroke()
             path.stroke()
             return true
         }
+        image.isTemplate = true
+        return image
     }
 }

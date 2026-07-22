@@ -9,7 +9,7 @@ final class SystemMetricsSamplerTests: XCTestCase {
                 imageWidth: 0,
                 showsTitleAndImage: false
             ),
-            59
+            53
         )
         XCTAssertEqual(
             MenuBarMetricLayout.compactStatusItemLength(
@@ -17,7 +17,7 @@ final class SystemMetricsSamplerTests: XCTestCase {
                 imageWidth: 31,
                 showsTitleAndImage: true
             ),
-            93
+            86
         )
         XCTAssertEqual(
             MenuBarMetricLayout.compactStatusItemLength(
@@ -25,7 +25,7 @@ final class SystemMetricsSamplerTests: XCTestCase {
                 imageWidth: 16,
                 showsTitleAndImage: false
             ),
-            34
+            22
         )
     }
 
