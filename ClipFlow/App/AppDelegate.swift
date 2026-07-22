@@ -44,6 +44,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var panelTargetApplication: NSRunningApplication?
 
     private var settingsWindowController: NSWindowController?
+    private lazy var cleanCenterController = CleanCenterWindowController(settings: settings)
 
     private var cancellables: Set<AnyCancellable> = []
 
@@ -404,6 +405,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         menuBarController = MenuBarController(
             onOpenDashboard: openDashboard,
+            onOpenCleanCenter: { [weak self] in
+                self?.cleanCenterController.show()
+            },
             onOpenPanel: { [weak self] in
                 self?.captureFrontmostExternalApplication()
                 self?.panelTargetApplication = self?.lastExternalApplication
