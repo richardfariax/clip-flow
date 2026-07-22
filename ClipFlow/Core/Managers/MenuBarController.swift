@@ -380,11 +380,7 @@ final class MenuBarMetricsController: NSObject {
         presentations[metric] = presentation
 
         guard let item = statusItems[metric], let button = item.button else { return }
-        MenuBarMetricChrome.apply(
-            presentation,
-            to: button,
-            appearance: menuBarAppearanceProvider()
-        )
+        MenuBarMetricChrome.applyNative(presentation, to: button)
         button.toolTip = presentation.toolTip
         button.setAccessibilityLabel(presentation.toolTip)
         item.length = MenuBarMetricLayout.compactStatusItemLength(
@@ -567,7 +563,21 @@ private enum MenuBarMetricChrome {
         button.font = .monospacedDigitSystemFont(ofSize: 11, weight: .medium)
     }
 
-    static func apply(
+    static func applyNative(
+        _ presentation: MenuBarMetricPresentation,
+        to button: NSStatusBarButton
+    ) {
+        // NSStatusBarButton has private, screen-specific drawing behavior. In
+        // particular, AppKit can use different foreground colors on different
+        // displays. Assigning attributedTitle or contentTintColor disables that
+        // behavior, so native items must keep their system-managed title style.
+        button.title = presentation.title
+        button.image = presentation.image
+        button.imagePosition = presentation.imagePosition
+        button.contentTintColor = nil
+    }
+
+    static func applyOverflow(
         _ presentation: MenuBarMetricPresentation,
         to button: NSButton,
         appearance: NSAppearance? = nil
@@ -697,7 +707,11 @@ private final class MenuBarOverflowPanelController: NSObject {
         rebuildButtonsIfNeeded(for: presentations)
         for presentation in presentations {
             guard let button = buttons[presentation.metric] else { continue }
-            MenuBarMetricChrome.apply(presentation, to: button, appearance: appearance)
+            MenuBarMetricChrome.applyOverflow(
+                presentation,
+                to: button,
+                appearance: appearance
+            )
             button.toolTip = presentation.toolTip
             button.setAccessibilityLabel(presentation.toolTip)
         }
