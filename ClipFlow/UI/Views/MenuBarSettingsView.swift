@@ -4,65 +4,66 @@ struct MenuBarSettingsView: View {
     @ObservedObject var settings: AppSettings
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(spacing: 12) {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(t("Painel flutuante", "Floating dashboard"))
-                        .font(.headline)
-                    Text(t(
-                        "Clique em qualquer métrica para abrir. Use o modo rápido ou detalhado.",
-                        "Click any metric to open it. Choose quick or detailed mode."
-                    ))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                }
-                Spacer()
-                Button(t("Visualizar painel", "Preview dashboard")) {
-                    NotificationCenter.default.post(name: .showMetricsPopover, object: nil)
-                }
-                .buttonStyle(.borderedProminent)
-            }
-            .padding(14)
-            .background(Color.accentColor.opacity(0.09), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-
-            ForEach(MenuBarMetric.allCases) { metric in
+        Form {
+            Section {
                 HStack(spacing: 12) {
-                    Image(systemName: symbol(for: metric))
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(color(for: metric))
-                        .frame(width: 26)
-
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(title(for: metric)).font(.headline)
-                        Text(example(for: metric))
-                            .font(.caption.monospacedDigit())
-                            .foregroundStyle(.secondary)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(t("Painel flutuante", "Floating dashboard"))
+                            .font(.headline)
+                        Text(t(
+                            "Clique em qualquer métrica para abrir. Use o modo rápido ou detalhado.",
+                            "Click any metric to open it. Choose quick or detailed mode."
+                        ))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                     }
 
                     Spacer()
 
-                    Picker("", selection: binding(for: metric)) {
-                        ForEach(MenuBarMetricStyle.allCases) { style in
-                            Text(styleTitle(style)).tag(style)
-                        }
+                    Button(t("Visualizar painel", "Preview dashboard")) {
+                        NotificationCenter.default.post(name: .showMetricsPopover, object: nil)
                     }
-                    .labelsHidden()
-                    .frame(width: 160)
+                    .buttonStyle(.borderedProminent)
                 }
-                .padding(12)
-                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
 
-            Label(
-                t(
-                    "O ClipFlow preenche automaticamente o lado direito e usa a área livre à esquerda do notch apenas para as métricas que não couberem.",
-                    "ClipFlow automatically fills the right side and uses the free area left of the notch only for metrics that do not fit."
-                ),
-                systemImage: "info.circle"
-            )
-            .font(.caption)
-            .foregroundStyle(.secondary)
+            Section {
+                ForEach(MenuBarMetric.allCases) { metric in
+                    HStack(spacing: 12) {
+                        Image(systemName: symbol(for: metric))
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(color(for: metric))
+                            .frame(width: 26)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(title(for: metric)).font(.headline)
+                            Text(example(for: metric))
+                                .font(.caption.monospacedDigit())
+                                .foregroundStyle(.secondary)
+                        }
+
+                        Spacer()
+
+                        Picker("", selection: binding(for: metric)) {
+                            ForEach(MenuBarMetricStyle.allCases) { style in
+                                Text(styleTitle(style)).tag(style)
+                            }
+                        }
+                        .labelsHidden()
+                        .frame(width: 150)
+                    }
+                }
+            } footer: {
+                Label(
+                    t(
+                        "O ClipFlow preenche automaticamente o lado direito e usa a área livre à esquerda do notch apenas para as métricas que não couberem.",
+                        "ClipFlow automatically fills the right side and uses the free area left of the notch only for metrics that do not fit."
+                    ),
+                    systemImage: "info.circle"
+                )
+            }
         }
+        .clipFlowSettingsFormStyle()
     }
 
     private func binding(for metric: MenuBarMetric) -> Binding<MenuBarMetricStyle> {

@@ -152,9 +152,8 @@ struct SettingsView: View {
     }
 
     private var detailBackground: some View {
-        VisualEffectBlur(material: .contentBackground, blendingMode: .withinWindow)
+        Color(nsColor: .windowBackgroundColor)
             .ignoresSafeArea()
-            .opacity(0.55)
     }
 
     private var sidebar: some View {
@@ -403,8 +402,7 @@ struct SettingsView: View {
                     ))
                 }
             }
-            .formStyle(.grouped)
-            .padding(.horizontal, -8)
+            .clipFlowSettingsFormStyle()
         }
     }
 
@@ -487,8 +485,7 @@ struct SettingsView: View {
                     }
                 }
             }
-            .formStyle(.grouped)
-            .padding(.horizontal, -8)
+            .clipFlowSettingsFormStyle()
         }
     }
 
@@ -584,8 +581,7 @@ struct SettingsView: View {
                     }
                 }
             }
-            .formStyle(.grouped)
-            .padding(.horizontal, -8)
+            .clipFlowSettingsFormStyle()
         }
     }
 
@@ -635,12 +631,11 @@ struct SettingsView: View {
         .padding(18)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(.ultraThinMaterial)
+                .fill(Color(nsColor: .controlBackgroundColor))
                 .overlay(
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
                         .strokeBorder(generativeStatusAccent.opacity(0.35), lineWidth: 1)
                 )
-                .shadow(color: generativeStatusAccent.opacity(0.18), radius: 18, y: 6)
         )
     }
 
@@ -702,8 +697,7 @@ struct SettingsView: View {
                     }
                 }
             }
-            .formStyle(.grouped)
-            .padding(.horizontal, -8)
+            .clipFlowSettingsFormStyle()
         }
     }
 
@@ -745,8 +739,7 @@ struct SettingsView: View {
                     ))
                 }
             }
-            .formStyle(.grouped)
-            .padding(.horizontal, -8)
+            .clipFlowSettingsFormStyle()
         }
     }
 
@@ -760,13 +753,7 @@ struct SettingsView: View {
                 )
             )
 
-            Form {
-                Section {
-                    PermissionsView(permissionsManager: permissionsManager, settings: settings)
-                }
-            }
-            .formStyle(.grouped)
-            .padding(.horizontal, -8)
+            PermissionsView(permissionsManager: permissionsManager, settings: settings)
         }
     }
 
@@ -809,10 +796,9 @@ struct SettingsView: View {
                     AppUpdatePanel(
                         service: appUpdateService,
                         settings: settings,
-                        showsAppIdentity: false
+                        showsAppIdentity: false,
+                        isEmbedded: true
                     )
-                        .listRowInsets(EdgeInsets(top: 8, leading: 4, bottom: 8, trailing: 4))
-                        .listRowBackground(Color.clear)
 
                     Toggle(
                         t("Verificar automaticamente ao abrir", "Check automatically on launch"),
@@ -849,8 +835,7 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
                 }
             }
-            .formStyle(.grouped)
-            .padding(.horizontal, -8)
+            .clipFlowSettingsFormStyle()
         }
         .onAppear {
             if case .idle = appUpdateService.phase {

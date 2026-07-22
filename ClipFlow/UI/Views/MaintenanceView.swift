@@ -8,18 +8,12 @@ struct MaintenanceView: View {
     @State private var confirmsCleanup = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            memoryGuidance
+        Form {
+            Section {
+                memoryGuidance
+            }
 
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Label(t("Limpeza recuperável", "Recoverable cleanup"), systemImage: "sparkles")
-                        .font(.headline)
-                    Spacer()
-                    Button(t("Analisar", "Scan")) { service.scan() }
-                        .disabled(service.isScanning || service.isCleaning)
-                }
-
+            Section {
                 ForEach(CacheCategory.allCases) { category in
                     Toggle(isOn: selectionBinding(category)) {
                         HStack {
@@ -36,7 +30,11 @@ struct MaintenanceView: View {
                 }
 
                 if service.isScanning || service.isCleaning {
-                    ProgressView(service.isScanning ? t("Analisando…", "Scanning…") : t("Movendo para a Lixeira…", "Moving to Trash…"))
+                    ProgressView(
+                        service.isScanning
+                            ? t("Analisando…", "Scanning…")
+                            : t("Movendo para a Lixeira…", "Moving to Trash…")
+                    )
                         .controlSize(.small)
                 }
 
@@ -57,17 +55,21 @@ struct MaintenanceView: View {
                 if let error = service.errorMessage {
                     Text(error).font(.caption).foregroundStyle(.orange).lineLimit(4)
                 }
-
+            } header: {
+                HStack {
+                    Label(t("Limpeza recuperável", "Recoverable cleanup"), systemImage: "sparkles")
+                    Spacer()
+                    Button(t("Analisar", "Scan")) { service.scan() }
+                        .disabled(service.isScanning || service.isCleaning)
+                }
+            } footer: {
                 Text(t(
                     "Nada é apagado permanentemente: os itens vão para a Lixeira. Apps podem recriar caches quando necessário.",
                     "Nothing is permanently deleted: items go to Trash. Apps may recreate caches when needed."
                 ))
-                .font(.caption)
-                .foregroundStyle(.secondary)
             }
-            .padding(16)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
+        .clipFlowSettingsFormStyle()
         .onAppear { if service.results.isEmpty { service.scan() } }
         .alert(t("Confirmar limpeza", "Confirm cleanup"), isPresented: $confirmsCleanup) {
             Button(t("Cancelar", "Cancel"), role: .cancel) {}
@@ -103,8 +105,6 @@ struct MaintenanceView: View {
             .font(.caption)
             .foregroundStyle(.secondary)
         }
-        .padding(16)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
     private func memoryRecommendation(_ memory: MemoryUsage) -> String {
