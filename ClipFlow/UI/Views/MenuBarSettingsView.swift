@@ -25,22 +25,6 @@ struct MenuBarSettingsView: View {
             .padding(14)
             .background(Color.accentColor.opacity(0.09), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
 
-            Toggle(isOn: $settings.useNotchLeftOverflow) {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(t("Overflow à esquerda do notch", "Overflow to the left of the notch"))
-                        .font(.headline)
-                    Text(t(
-                        "Se o macOS ocultar as métricas por falta de espaço, o ClipFlow move o grupo para a área livre à esquerda do notch.",
-                        "If macOS hides metrics because space is tight, ClipFlow moves the group into the free area left of the notch."
-                    ))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                }
-            }
-            .toggleStyle(.switch)
-            .padding(12)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-
             ForEach(MenuBarMetric.allCases) { metric in
                 HStack(spacing: 12) {
                     Image(systemName: symbol(for: metric))
@@ -71,8 +55,8 @@ struct MenuBarSettingsView: View {
 
             Label(
                 t(
-                    "Se faltar espaço à direita, o ClipFlow pode mover as métricas para a área livre à esquerda do notch.",
-                    "When space runs out on the right, ClipFlow can move metrics into the free area left of the notch."
+                    "O ClipFlow preenche automaticamente o lado direito e usa a área livre à esquerda do notch apenas para as métricas que não couberem.",
+                    "ClipFlow automatically fills the right side and uses the free area left of the notch only for metrics that do not fit."
                 ),
                 systemImage: "info.circle"
             )

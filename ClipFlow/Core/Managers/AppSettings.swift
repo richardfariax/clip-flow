@@ -100,7 +100,7 @@ final class AppSettings: ObservableObject {
         static let generativeUseWebContext = "generativeUseWebContext"
         static let userName = "userName"
         static let menuBarMetricStyles = "menuBarMetricStyles"
-        static let useNotchLeftOverflow = "useNotchLeftOverflow"
+        static let legacyUseNotchLeftOverflow = "useNotchLeftOverflow"
         static let metricsPopoverMode = "metricsPopoverMode"
     }
 
@@ -213,10 +213,6 @@ final class AppSettings: ObservableObject {
         didSet { saveMenuBarMetricStyles() }
     }
 
-    @Published var useNotchLeftOverflow: Bool {
-        didSet { userDefaults.set(useNotchLeftOverflow, forKey: Keys.useNotchLeftOverflow) }
-    }
-
     @Published var metricsPopoverMode: MetricsPopoverMode {
         didSet { userDefaults.set(metricsPopoverMode.rawValue, forKey: Keys.metricsPopoverMode) }
     }
@@ -282,7 +278,7 @@ final class AppSettings: ObservableObject {
         }
 
         menuBarMetricStyles = Self.loadMenuBarMetricStyles(from: userDefaults)
-        useNotchLeftOverflow = userDefaults.object(forKey: Keys.useNotchLeftOverflow) as? Bool ?? true
+        userDefaults.removeObject(forKey: Keys.legacyUseNotchLeftOverflow)
         metricsPopoverMode = userDefaults.string(forKey: Keys.metricsPopoverMode)
             .flatMap(MetricsPopoverMode.init(rawValue:)) ?? .summary
     }

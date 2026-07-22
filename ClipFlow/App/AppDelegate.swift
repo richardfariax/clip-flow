@@ -557,14 +557,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             .store(in: &cancellables)
 
-        settings.$useNotchLeftOverflow
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                self?.menuBarMetricsController?.refreshConfiguration()
-                self?.systemMetrics.refresh()
-            }
-            .store(in: &cancellables)
-
         settings.$pauseMonitoring
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in

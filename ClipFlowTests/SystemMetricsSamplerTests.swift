@@ -184,16 +184,16 @@ final class SystemMetricsSamplerTests: XCTestCase {
         let suiteName = "SystemMetricsSamplerTests.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
         defer { defaults.removePersistentDomain(forName: suiteName) }
+        defaults.set(false, forKey: "useNotchLeftOverflow")
 
         let settings = AppSettings(userDefaults: defaults)
         settings.setMenuBarStyle(.textAndGraph, for: .network)
         settings.metricsPopoverMode = .detailed
-        settings.useNotchLeftOverflow = false
 
         let restored = AppSettings(userDefaults: defaults)
         XCTAssertEqual(restored.menuBarStyle(for: .network), .textAndGraph)
         XCTAssertEqual(restored.menuBarStyle(for: .cpu), .text)
         XCTAssertEqual(restored.metricsPopoverMode, .detailed)
-        XCTAssertFalse(restored.useNotchLeftOverflow)
+        XCTAssertNil(defaults.object(forKey: "useNotchLeftOverflow"))
     }
 }
