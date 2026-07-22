@@ -61,6 +61,13 @@ ClipFlow gives you a `Windows + V` style clipboard history experience on macOS, 
 - Optional local AES-GCM encryption
 - Menu bar native app with light/dark support
 - Launch at Login support
+- Native Mac Command Center with live CPU, GPU, unified memory, thermal, storage/I/O, network, and power metrics
+- Configurable menu-bar items in number, graph, or combined styles
+- Native floating dashboard from any menu-bar metric, with Quick and Detailed modes
+- Individual Apple Silicon thermal sensors grouped by component, with live temperature, hardware ID, and per-sensor history
+- Battery level, charging state, power draw, health, and cycle count when exposed by the hardware
+- Recoverable cache and Xcode DerivedData cleanup, plus honest memory-pressure guidance without terminating processes
+- Capability-aware sensor collection: unavailable readings are reported explicitly
 
 ## Install (for end users)
 
