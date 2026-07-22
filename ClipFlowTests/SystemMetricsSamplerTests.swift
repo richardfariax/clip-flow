@@ -2,6 +2,18 @@ import XCTest
 @testable import ClipFlow
 
 final class SystemMetricsSamplerTests: XCTestCase {
+    func testMenuBarForegroundFollowsEffectiveAppearance() throws {
+        let darkAppearance = try XCTUnwrap(NSAppearance(named: .darkAqua))
+        let lightAppearance = try XCTUnwrap(NSAppearance(named: .aqua))
+
+        XCTAssertTrue(
+            MenuBarAppearance.foregroundColor(for: darkAppearance).isEqual(NSColor.white)
+        )
+        XCTAssertTrue(
+            MenuBarAppearance.foregroundColor(for: lightAppearance).isEqual(NSColor.black)
+        )
+    }
+
     func testMenuBarMetricLengthUsesMeasuredContentWithoutNativeExcessSpacing() {
         XCTAssertEqual(
             MenuBarMetricLayout.compactStatusItemLength(
