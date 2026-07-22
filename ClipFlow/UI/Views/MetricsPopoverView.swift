@@ -81,6 +81,7 @@ struct MetricsPopoverView: View {
                 summaryCard(.gpu, value: metrics.snapshot.gpu.map { percent($0.device) } ?? "—", subtitle: metrics.hardware.gpuName, history: metrics.gpuHistory, accent: .cyan, range: 0 ... 1)
                 summaryCard(.memory, value: percent(metrics.snapshot.memory.usedFraction), subtitle: "\(bytes(metrics.snapshot.memory.usedBytes)) / \(bytes(metrics.snapshot.memory.totalBytes))", history: metrics.memoryHistory, accent: .purple, range: 0 ... 1)
                 summaryCard(.temperature, value: temperature(metrics.snapshot.thermal.peakTemperature), subtitle: "\(metrics.snapshot.thermal.sensorCount) \(t("sensores", "sensors"))", history: metrics.temperatureHistory, accent: temperatureColor(metrics.snapshot.thermal.peakTemperature), range: 20 ... 110)
+                summaryCard(.fans, value: rpm(metrics.snapshot.fans.averageRPM), subtitle: "\(metrics.snapshot.fans.fans.count) \(t("ventoinhas", "fans"))", history: metrics.fanHistory, accent: .mint, range: 0 ... metrics.snapshot.fans.chartMaximum)
                 summaryCard(.storage, value: percent(metrics.snapshot.storage.usedFraction), subtitle: "\(bytes(metrics.snapshot.storage.availableBytes)) \(t("livres", "free"))", history: metrics.storageHistory, accent: .indigo, range: 0 ... 1)
                 summaryCard(.network, value: "↓ \(rate(metrics.snapshot.network.downloadBytesPerSecond))", subtitle: "↑ \(rate(metrics.snapshot.network.uploadBytesPerSecond))", history: metrics.networkHistory, accent: .teal, range: adaptiveRange(metrics.networkHistory))
                 summaryCard(.power, value: powerSummary, subtitle: powerSubtitle, history: metrics.powerHistory, accent: .green, range: adaptiveRange(metrics.powerHistory))
@@ -184,6 +185,7 @@ struct MetricsPopoverView: View {
         case .gpu: gpuDetails
         case .memory: memoryDetails
         case .temperature: temperatureDetails
+        case .fans: fanDetails
         case .storage: storageDetails
         case .network: networkDetails
         case .power: powerDetails
@@ -306,6 +308,56 @@ struct MetricsPopoverView: View {
             detailRow(t("Capacidade", "Capacity"), bytes(storage.totalBytes), color: .secondary)
             detailRow(t("Leitura", "Read"), rate(storage.readBytesPerSecond), color: .blue)
             detailRow(t("Gravação", "Write"), rate(storage.writeBytesPerSecond), color: .orange)
+        }
+    }
+
+    private var fanDetails: some View {
+        let fans = metrics.snapshot.fans
+        return VStack(alignment: .leading, spacing: 14) {
+            detailHeader(
+                metric: .fans,
+                value: rpm(fans.averageRPM),
+                subtitle: "\(fans.fans.count) \(t("ventoinhas detectadas", "detected fans"))",
+                accent: .mint
+            )
+
+            activityMonitorChart(
+                metric: .fans,
+                history: metrics.fanHistory,
+                accent: .mint,
+                range: 0 ... fans.chartMaximum
+            )
+            .frame(height: 120)
+            .padding(10)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+            HStack(spacing: 10) {
+                statistic(t("Média", "Average"), rpm(fans.averageRPM))
+                statistic(t("Pico atual", "Current peak"), rpm(fans.peakRPM))
+                statistic(t("Ventoinhas", "Fans"), "\(fans.fans.count)")
+            }
+
+            if fans.fans.isEmpty {
+                Label(
+                    t(
+                        "Este Mac não expôs sensores de ventoinha.",
+                        "This Mac did not expose fan sensors."
+                    ),
+                    systemImage: "info.circle"
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            } else {
+                ForEach(fans.fans) { fan in
+                    FanSensorRow(
+                        fan: fan,
+                        displayName: "\(t("Ventoinha", "Fan")) \(fan.id + 1)",
+                        history: metrics.fanHistories[fan.id] ?? [],
+                        chartMaximum: max(fan.maximumRPM ?? fans.chartMaximum, 1),
+                        activityMonitorHint: nativeActionHint(for: .fans)
+                    )
+                }
+            }
         }
     }
 
@@ -454,6 +506,7 @@ struct MetricsPopoverView: View {
         case .gpu: "GPU"
         case .memory: t("Memória", "Memory")
         case .temperature: t("Temperatura", "Temperature")
+        case .fans: t("Ventoinhas", "Fans")
         case .storage: t("Armazenamento", "Storage")
         case .network: t("Rede", "Network")
         case .power: t("Energia", "Power")
@@ -466,6 +519,7 @@ struct MetricsPopoverView: View {
         case .gpu: "square.3.layers.3d"
         case .memory: "memorychip"
         case .temperature: "thermometer.medium"
+        case .fans: "fan"
         case .storage: "internaldrive"
         case .network: "network"
         case .power: "bolt.fill"
@@ -491,6 +545,11 @@ struct MetricsPopoverView: View {
                 "O macOS não possui painel térmico nativo; abre CPU para investigar a carga relacionada",
                 "macOS has no native thermal pane; opens CPU to investigate related load"
             )
+        case .fans:
+            return t(
+                "O macOS não possui painel nativo de ventoinhas; abre CPU para investigar a carga relacionada",
+                "macOS has no native fan pane; opens CPU to investigate related load"
+            )
         default:
             return t(
                 "Abre o Monitor de Atividade diretamente na categoria correspondente",
@@ -515,6 +574,9 @@ struct MetricsPopoverView: View {
     private func percent(_ value: Double) -> String { value.formatted(.percent.precision(.fractionLength(0))) }
     private func bytes(_ value: UInt64) -> String { ByteCountFormatter.string(fromByteCount: Int64(clamping: value), countStyle: .memory) }
     private func temperature(_ value: Double?) -> String { value.map { String(format: "%.1f °C", $0) } ?? "—" }
+    private func rpm(_ value: Double?) -> String {
+        value.map { "\($0.formatted(.number.grouping(.automatic).precision(.fractionLength(0)))) RPM" } ?? "— RPM"
+    }
 
     private func rate(_ value: Double) -> String {
         let formatter = ByteCountFormatter()
@@ -609,5 +671,64 @@ private struct ThermalSensorRow: View {
         }
         .padding(10)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
+}
+
+private struct FanSensorRow: View {
+    let fan: FanReading
+    let displayName: String
+    let history: [MetricHistoryPoint]
+    let chartMaximum: Double
+    let activityMonitorHint: String
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "fan")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.mint)
+                .frame(width: 16)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(displayName).font(.subheadline.weight(.semibold))
+                Text(speedRange)
+                    .font(.caption2.monospacedDigit())
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer(minLength: 8)
+
+            Button {
+                ActivityMonitorLauncher.open(for: .fans)
+            } label: {
+                CompactMetricChart(history: history, accent: .mint, range: 0 ... chartMaximum)
+                    .frame(width: 74, height: 26)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(activityMonitorHint)
+            .help(activityMonitorHint)
+
+            Button {
+                ActivityMonitorLauncher.open(for: .fans)
+            } label: {
+                Text("\(fan.currentRPM.formatted(.number.grouping(.automatic).precision(.fractionLength(0)))) RPM")
+                    .font(.subheadline.monospacedDigit().weight(.bold))
+                    .foregroundStyle(.mint)
+                    .frame(width: 92, alignment: .trailing)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(activityMonitorHint)
+            .help(activityMonitorHint)
+        }
+        .padding(10)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
+
+    private var speedRange: String {
+        guard let minimum = fan.minimumRPM, let maximum = fan.maximumRPM else {
+            return "RPM"
+        }
+        return "\(Int(minimum))–\(Int(maximum)) RPM"
     }
 }

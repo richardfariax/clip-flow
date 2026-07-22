@@ -326,6 +326,7 @@ final class AppSettings: ObservableObject {
             .gpu: .hidden,
             .memory: .text,
             .temperature: .text,
+            .fans: .graph,
             .storage: .hidden,
             .network: .hidden,
             .power: .hidden

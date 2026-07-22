@@ -12,7 +12,7 @@ enum ActivityMonitorDestination: Equatable {
 
     static func destination(for metric: MenuBarMetric) -> ActivityMonitorDestination {
         switch metric {
-        case .cpu, .temperature:
+        case .cpu, .temperature, .fans:
             return .cpu
         case .gpu:
             return .gpuHistory

@@ -34,6 +34,7 @@ final class SystemMetricsSamplerTests: XCTestCase {
         XCTAssertEqual(ActivityMonitorDestination.destination(for: .gpu), .gpuHistory)
         XCTAssertEqual(ActivityMonitorDestination.destination(for: .memory), .memory)
         XCTAssertEqual(ActivityMonitorDestination.destination(for: .temperature), .cpu)
+        XCTAssertEqual(ActivityMonitorDestination.destination(for: .fans), .cpu)
         XCTAssertEqual(ActivityMonitorDestination.destination(for: .storage), .disk)
         XCTAssertEqual(ActivityMonitorDestination.destination(for: .network), .network)
         XCTAssertEqual(ActivityMonitorDestination.destination(for: .power), .energy)
@@ -171,6 +172,23 @@ final class SystemMetricsSamplerTests: XCTestCase {
                 XCTAssertEqual(ordinals, Array(1 ... ordinals.count))
             }
         }
+    }
+
+    func testFanMetricsAggregateAndSamplerStayWithinPlausibleRanges() {
+        let aggregate = FanMetrics(fans: [
+            FanReading(id: 0, currentRPM: 2_000, minimumRPM: 1_200, maximumRPM: 6_000),
+            FanReading(id: 1, currentRPM: 2_400, minimumRPM: 1_200, maximumRPM: 5_800)
+        ])
+        XCTAssertEqual(aggregate.averageRPM, 2_200)
+        XCTAssertEqual(aggregate.peakRPM, 2_400)
+        XCTAssertEqual(aggregate.chartMaximum, 6_000)
+
+        let sample = FanMetricsSampler().sample()
+        XCTAssertLessThanOrEqual(sample.fans.count, 8)
+        XCTAssertEqual(sample.fans.count, Set(sample.fans.map(\.id)).count)
+        XCTAssertTrue(sample.fans.allSatisfy { (0 ... 20_000).contains($0.currentRPM) })
+        XCTAssertTrue(sample.fans.compactMap(\.minimumRPM).allSatisfy { (0 ... 20_000).contains($0) })
+        XCTAssertTrue(sample.fans.compactMap(\.maximumRPM).allSatisfy { (0 ... 20_000).contains($0) })
     }
 
     func testStorageSampleReportsCapacityAndNormalizedUsage() {

@@ -476,6 +476,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                         memoryHistory: self.systemMetrics.memoryHistory,
                         gpuHistory: self.systemMetrics.gpuHistory,
                         temperatureHistory: self.systemMetrics.temperatureHistory,
+                        fanHistory: self.systemMetrics.fanHistory,
                         storageHistory: self.systemMetrics.storageHistory,
                         networkHistory: self.systemMetrics.networkHistory,
                         powerHistory: self.systemMetrics.powerHistory

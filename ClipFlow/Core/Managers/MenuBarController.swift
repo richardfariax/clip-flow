@@ -87,7 +87,8 @@ final class MenuBarController: NSObject {
         let memory = snapshot.memory.usedFraction.formatted(.percent.precision(.fractionLength(0)))
         let gpu = snapshot.gpu?.device.formatted(.percent.precision(.fractionLength(0))) ?? "—"
         let temperature = snapshot.thermal.peakTemperature.map { String(format: "%.0f°C", $0) } ?? "—"
-        item.title = "CPU \(cpu)  ·  RAM \(memory)  ·  GPU \(gpu)  ·  \(temperature)"
+        let fans = snapshot.fans.averageRPM.map { String(format: "%.0f RPM", $0) } ?? "— RPM"
+        item.title = "CPU \(cpu)  ·  RAM \(memory)  ·  GPU \(gpu)  ·  \(temperature)  ·  \(fans)"
     }
 
     func refreshLocalizedContent() {
@@ -316,6 +317,7 @@ final class MenuBarMetricsController: NSObject {
         memoryHistory: [MetricHistoryPoint],
         gpuHistory: [MetricHistoryPoint],
         temperatureHistory: [MetricHistoryPoint],
+        fanHistory: [MetricHistoryPoint],
         storageHistory: [MetricHistoryPoint],
         networkHistory: [MetricHistoryPoint],
         powerHistory: [MetricHistoryPoint]
@@ -329,6 +331,12 @@ final class MenuBarMetricsController: NSObject {
             text: snapshot.thermal.peakTemperature.map { String(format: "%.0f°C", $0) } ?? "—°C",
             history: temperatureHistory,
             range: 20 ... 110
+        )
+        render(
+            .fans,
+            text: fanText(snapshot.fans),
+            history: fanHistory,
+            range: 0 ... snapshot.fans.chartMaximum
         )
         render(.storage, text: "SSD \(percent(snapshot.storage.usedFraction))", history: storageHistory, range: 0 ... 1)
         render(
@@ -389,6 +397,7 @@ final class MenuBarMetricsController: NSObject {
         case .gpu: "GPU"
         case .memory: settings.text(ptBR: "Memória", en: "Memory")
         case .temperature: settings.text(ptBR: "Temperatura", en: "Temperature")
+        case .fans: settings.text(ptBR: "Ventoinhas", en: "Fans")
         case .storage: settings.text(ptBR: "Armazenamento", en: "Storage")
         case .network: settings.text(ptBR: "Rede", en: "Network")
         case .power: settings.text(ptBR: "Energia", en: "Power")
@@ -403,6 +412,11 @@ final class MenuBarMetricsController: NSObject {
         if let level { return "⚡︎\(level)" }
         if let watts { return "⚡︎\(watts)" }
         return power.source == .external ? "⚡︎AC" : "⚡︎—"
+    }
+
+    private func fanText(_ fans: FanMetrics) -> String {
+        guard let rpm = fans.averageRPM else { return "FAN — RPM" }
+        return "FAN \(rpm.formatted(.number.grouping(.automatic).precision(.fractionLength(0)))) RPM"
     }
 
     private func percent(_ value: Double) -> String {
