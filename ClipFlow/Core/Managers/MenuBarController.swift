@@ -377,9 +377,7 @@ final class MenuBarMetricsController: NSObject {
         presentations[metric] = presentation
 
         guard let item = statusItems[metric], let button = item.button else { return }
-        button.title = presentation.title
-        button.image = presentation.image
-        button.imagePosition = presentation.imagePosition
+        MenuBarMetricChrome.apply(presentation, to: button)
         button.toolTip = presentation.toolTip
         button.setAccessibilityLabel(presentation.toolTip)
         item.length = MenuBarMetricLayout.compactStatusItemLength(
@@ -497,7 +495,14 @@ final class MenuBarMetricsController: NSObject {
         let targetScreen = screen
             ?? NSScreen.screens.first(where: { $0.auxiliaryTopLeftArea != nil })
             ?? NSScreen.main
-        overflowPanel.update(presentations: Array(content), on: targetScreen)
+        let menuBarAppearance = statusItems.values.compactMap { item in
+            item.button?.window?.effectiveAppearance ?? item.button?.effectiveAppearance
+        }.first
+        overflowPanel.update(
+            presentations: Array(content),
+            appearance: menuBarAppearance,
+            on: targetScreen
+        )
     }
 
     @objc private func screenParametersDidChange() {
@@ -537,11 +542,46 @@ enum MenuBarMetricLayout {
     }
 }
 
+enum MenuBarAppearance {
+    static func foregroundColor(for appearance: NSAppearance) -> NSColor {
+        let match = appearance.bestMatch(from: [
+            .darkAqua,
+            .vibrantDark,
+            .aqua,
+            .vibrantLight
+        ])
+        return match == .darkAqua || match == .vibrantDark ? .white : .black
+    }
+}
+
 private enum MenuBarMetricChrome {
     static func configure(_ button: NSStatusBarButton) {
         button.font = .monospacedDigitSystemFont(ofSize: 11, weight: .medium)
-        button.contentTintColor = .labelColor
     }
+
+    static func apply(
+        _ presentation: MenuBarMetricPresentation,
+        to button: NSButton,
+        appearance: NSAppearance? = nil
+    ) {
+        let effectiveAppearance = appearance
+            ?? button.window?.effectiveAppearance
+            ?? button.effectiveAppearance
+        let foregroundColor = MenuBarAppearance.foregroundColor(for: effectiveAppearance)
+        let font = button.font ?? NSFont.monospacedDigitSystemFont(ofSize: 11, weight: .medium)
+
+        button.attributedTitle = NSAttributedString(
+            string: presentation.title,
+            attributes: [
+                .font: font,
+                .foregroundColor: foregroundColor
+            ]
+        )
+        button.image = presentation.image
+        button.imagePosition = presentation.imagePosition
+        button.contentTintColor = foregroundColor
+    }
+
 }
 
 enum MenuBarOverflowLayout {
@@ -583,7 +623,7 @@ private struct MenuBarMetricPresentation {
     func titleWidth(using font: NSFont?) -> CGFloat {
         guard !title.isEmpty else { return 0 }
         return (title as NSString).size(withAttributes: [
-            .font: font ?? NSFont.monospacedDigitSystemFont(ofSize: 11, weight: .semibold)
+            .font: font ?? NSFont.monospacedDigitSystemFont(ofSize: 11, weight: .medium)
         ]).width
     }
 }
@@ -631,7 +671,11 @@ private final class MenuBarOverflowPanelController: NSObject {
         panel.contentView = contentView
     }
 
-    func update(presentations: [MenuBarMetricPresentation], on screen: NSScreen?) {
+    func update(
+        presentations: [MenuBarMetricPresentation],
+        appearance: NSAppearance?,
+        on screen: NSScreen?
+    ) {
         guard let screen,
               let leftArea = screen.auxiliaryTopLeftArea,
               !presentations.isEmpty else {
@@ -639,12 +683,13 @@ private final class MenuBarOverflowPanelController: NSObject {
             return
         }
 
+        if let appearance {
+            panel.appearance = appearance
+        }
         rebuildButtonsIfNeeded(for: presentations)
         for presentation in presentations {
             guard let button = buttons[presentation.metric] else { continue }
-            button.title = presentation.title
-            button.image = presentation.image
-            button.imagePosition = presentation.imagePosition
+            MenuBarMetricChrome.apply(presentation, to: button, appearance: appearance)
             button.toolTip = presentation.toolTip
             button.setAccessibilityLabel(presentation.toolTip)
         }
@@ -734,7 +779,6 @@ private final class MenuBarOverflowButton: NSButton {
         isBordered = false
         bezelStyle = .inline
         font = .monospacedDigitSystemFont(ofSize: 11, weight: .medium)
-        contentTintColor = .labelColor
         focusRingType = .none
         setButtonType(.momentaryChange)
     }
