@@ -1,12 +1,12 @@
 {
   "images" : [
     {
-      "filename" : "logo-light.png",
+      "filename" : "clipflow-menubar.png",
       "idiom" : "mac",
       "scale" : "1x"
     },
     {
-      "filename" : "logo-light.png",
+      "filename" : "clipflow-menubar@2x.png",
       "idiom" : "mac",
       "scale" : "2x"
     }
@@ -14,5 +14,8 @@
   "info" : {
     "author" : "xcode",
     "version" : 1
+  },
+  "properties" : {
+    "template-rendering-intent" : "template"
   }
 }
