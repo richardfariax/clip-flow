@@ -2,6 +2,33 @@ import XCTest
 @testable import ClipFlow
 
 final class SystemMetricsSamplerTests: XCTestCase {
+    func testMenuBarMetricLengthUsesMeasuredContentWithoutNativeExcessSpacing() {
+        XCTAssertEqual(
+            MenuBarMetricLayout.compactStatusItemLength(
+                titleWidth: 46.2,
+                imageWidth: 0,
+                showsTitleAndImage: false
+            ),
+            59
+        )
+        XCTAssertEqual(
+            MenuBarMetricLayout.compactStatusItemLength(
+                titleWidth: 46,
+                imageWidth: 31,
+                showsTitleAndImage: true
+            ),
+            93
+        )
+        XCTAssertEqual(
+            MenuBarMetricLayout.compactStatusItemLength(
+                titleWidth: 0,
+                imageWidth: 16,
+                showsTitleAndImage: false
+            ),
+            34
+        )
+    }
+
     func testActivityMonitorDestinationsMatchNativeMetricViews() {
         XCTAssertEqual(ActivityMonitorDestination.destination(for: .cpu), .cpu)
         XCTAssertEqual(ActivityMonitorDestination.destination(for: .gpu), .gpuHistory)
