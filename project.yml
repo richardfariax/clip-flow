@@ -3,8 +3,8 @@ options:
   createIntermediateGroups: true
 settings:
   base:
-    MARKETING_VERSION: 1.5.0
-    CURRENT_PROJECT_VERSION: 9
+    MARKETING_VERSION: 3.0.0
+    CURRENT_PROJECT_VERSION: 10
     SWIFT_VERSION: 5.0
     PRODUCT_BUNDLE_IDENTIFIER: com.richadfarias.clipflow
     CODE_SIGN_ENTITLEMENTS: ClipFlow/Resources/ClipFlow.entitlements
