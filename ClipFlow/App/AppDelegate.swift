@@ -15,6 +15,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var permissionsManager = PermissionsManager()
     private var launchAtLoginManager = LaunchAtLoginManager()
     private lazy var appUpdateService = AppUpdateService(settings: settings)
+    private var systemMetrics = SystemMetricsService()
 
     private var storageService: ClipboardStorageService?
     private var monitorService: ClipboardMonitorService?
@@ -37,6 +38,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var panelViewModel: ClipboardPanelViewModel?
     private var panelController: ClipboardPanelController?
     private var menuBarController: MenuBarController?
+    private var menuBarMetricsController: MenuBarMetricsController?
+    private var metricsPopoverController: MetricsPopoverController?
     private var lastExternalApplication: NSRunningApplication?
     private var panelTargetApplication: NSRunningApplication?
 
@@ -45,6 +48,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var cancellables: Set<AnyCancellable> = []
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Unit tests use ClipFlow as a host process. Starting status items, TCC
+        // validation and global monitors here can display modal system UI before
+        // XCTest has attached, preventing the test worker from materializing.
+        guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else {
+            return
+        }
+
         NSApp.setActivationPolicy(.accessory)
 
         guard configurePersistence() else {
@@ -56,6 +66,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         configurePanel()
         configureVoiceControl()
         configureMenuBar()
+        systemMetrics.start()
         configureHotkey()
         configureApplicationActivationTracking()
         bindSettings()
@@ -80,8 +91,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         hotkeyManager.unregister()
         monitorService?.stop()
         voiceCommandService?.stop()
+        systemMetrics.stop()
         NotificationCenter.default.removeObserver(self)
         NSWorkspace.shared.notificationCenter.removeObserver(self)
+    }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        openSettingsWindow()
+        return true
     }
 
     private func configurePersistence() -> Bool {
@@ -379,7 +396,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func configureMenuBar() {
+        let openDashboard: () -> Void = { [weak self] in
+            self?.openSettingsWindow()
+            DispatchQueue.main.async {
+                NotificationCenter.default.post(name: .openSettingsDashboard, object: nil)
+            }
+        }
         menuBarController = MenuBarController(
+            onOpenDashboard: openDashboard,
             onOpenPanel: { [weak self] in
                 self?.captureFrontmostExternalApplication()
                 self?.panelTargetApplication = self?.lastExternalApplication
@@ -414,11 +438,49 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.appUpdateService.hasUpdateAvailable ?? false
             }
         )
+        metricsPopoverController = MetricsPopoverController(
+            metrics: systemMetrics,
+            settings: settings,
+            onOpenDashboard: openDashboard
+        )
+        menuBarMetricsController = MenuBarMetricsController(
+            settings: settings,
+            onPresentPopover: { [weak self] button, metric in
+                self?.metricsPopoverController?.toggle(relativeTo: button, preferredMetric: metric)
+            }
+        )
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(showMetricsPopoverPreview),
+            name: .showMetricsPopover,
+            object: nil
+        )
 
         appUpdateService.$phase
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
                 self?.menuBarController?.refreshUpdateItem()
+            }
+            .store(in: &cancellables)
+
+        systemMetrics.$snapshot
+            .receive(on: RunLoop.main)
+            .sink { [weak self] snapshot in
+                self?.menuBarController?.refreshSystemMetrics(snapshot)
+                guard let self else { return }
+                DispatchQueue.main.async {
+                    self.menuBarMetricsController?.update(
+                        snapshot: snapshot,
+                        cpuHistory: self.systemMetrics.cpuHistory,
+                        memoryHistory: self.systemMetrics.memoryHistory,
+                        gpuHistory: self.systemMetrics.gpuHistory,
+                        temperatureHistory: self.systemMetrics.temperatureHistory,
+                        storageHistory: self.systemMetrics.storageHistory,
+                        networkHistory: self.systemMetrics.networkHistory,
+                        powerHistory: self.systemMetrics.powerHistory
+                    )
+                }
             }
             .store(in: &cancellables)
     }
@@ -427,6 +489,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) { [weak self] in
             self?.appUpdateService.checkForUpdatesIfNeededOnLaunch()
         }
+    }
+
+    @objc private func showMetricsPopoverPreview() {
+        guard let button = menuBarController?.statusBarButton else { return }
+        metricsPopoverController?.toggle(relativeTo: button, preferredMetric: .cpu)
     }
 
     private func handleCheckForUpdatesFromMenu() {
@@ -482,6 +549,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func bindSettings() {
+        settings.$menuBarMetricStyles
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.menuBarMetricsController?.refreshConfiguration()
+                self?.systemMetrics.refresh()
+            }
+            .store(in: &cancellables)
+
+        settings.$useNotchLeftOverflow
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.menuBarMetricsController?.refreshConfiguration()
+                self?.systemMetrics.refresh()
+            }
+            .store(in: &cancellables)
+
         settings.$pauseMonitoring
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
@@ -597,10 +680,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 DispatchQueue.main.async {
                     NotificationCenter.default.post(name: .openSettingsPermissions, object: nil)
                 }
-                self.permissionsManager.requestAccessibility()
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    self.permissionsManager.requestInputMonitoring()
-                }
             }
         }
     }
@@ -628,6 +707,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             settings: settings,
             permissionsManager: permissionsManager,
             appUpdateService: appUpdateService,
+            systemMetrics: systemMetrics,
             launchManager: launchAtLoginManager,
             onRebindHotkey: { [weak self] in
                 guard let self else { return }

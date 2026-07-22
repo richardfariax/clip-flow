@@ -16,10 +16,9 @@ private struct AppInstallIdentity: Codable, Equatable {
         let executableURL = Bundle.main.executableURL
         var fingerprint = "unknown"
         if let executableURL,
-           let values = try? executableURL.resourceValues(forKeys: [.fileSizeKey, .contentModificationDateKey]) {
+           let values = try? executableURL.resourceValues(forKeys: [.fileSizeKey]) {
             let size = values.fileSize ?? 0
-            let mtime = values.contentModificationDate?.timeIntervalSince1970 ?? 0
-            fingerprint = "\(size)-\(mtime)"
+            fingerprint = "\(size)"
         }
 
         return AppInstallIdentity(
@@ -47,11 +46,13 @@ final class PermissionsManager: ObservableObject {
 
     private let defaults = UserDefaults.standard
     private let identityKey = "clipflow.permissions.installIdentity"
-    private let promptedAccessibilityKey = "clipflow.permissions.prompted.accessibility"
-    private let promptedInputMonitoringKey = "clipflow.permissions.prompted.inputMonitoring"
 
     var hasRequiredPermissions: Bool {
         isAccessibilityGranted && isInputMonitoringGranted
+    }
+
+    var hasAllFeaturePermissions: Bool {
+        hasRequiredPermissions && isMicrophoneGranted && isSpeechRecognitionGranted && isScreenCaptureGranted
     }
 
     func refresh() {
@@ -85,7 +86,8 @@ final class PermissionsManager: ObservableObject {
         }
 
         saveIdentity(currentIdentity)
-        promptForMissingRequiredPermissions(force: identityChanged && previousIdentity != nil)
+        // A configuração é guiada dentro do app. Abrir vários prompts do macOS
+        // durante o launch gera uma experiência confusa e difícil de recuperar.
     }
 
     func requestScreenCapture() {
@@ -107,14 +109,60 @@ final class PermissionsManager: ObservableObject {
     }
 
     func requestVoicePermissions(completion: @escaping (Bool) -> Void) {
-        SFSpeechRecognizer.requestAuthorization { [weak self] speechStatus in
-            AVCaptureDevice.requestAccess(for: .audio) { micGranted in
-                DispatchQueue.main.async {
-                    self?.refresh()
-                    completion(speechStatus == .authorized && micGranted)
-                }
+        requestSpeechRecognition { [weak self] speechGranted in
+            self?.requestMicrophone { microphoneGranted in
+                completion(speechGranted && microphoneGranted)
             }
         }
+    }
+
+    func requestMicrophone(completion: @escaping (Bool) -> Void = { _ in }) {
+        AVCaptureDevice.requestAccess(for: .audio) { [weak self] granted in
+            DispatchQueue.main.async {
+                self?.refresh()
+                completion(granted)
+            }
+        }
+    }
+
+    func requestSpeechRecognition(completion: @escaping (Bool) -> Void = { _ in }) {
+        SFSpeechRecognizer.requestAuthorization { [weak self] status in
+            DispatchQueue.main.async {
+                self?.refresh()
+                completion(status == .authorized)
+            }
+        }
+    }
+
+    func requestNextMissingPermission() {
+        refresh()
+        if !isAccessibilityGranted {
+            requestAccessibility()
+        } else if !isInputMonitoringGranted {
+            requestInputMonitoring()
+        } else if !isScreenCaptureGranted {
+            requestScreenCapture()
+        } else if !isMicrophoneGranted {
+            requestMicrophone()
+        } else if !isSpeechRecognitionGranted {
+            requestSpeechRecognition()
+        }
+    }
+
+    func openMicrophoneSettings() {
+        openPrivacySettings(urls: [
+            "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_Microphone",
+            "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone"
+        ])
+        scheduleRefreshes()
+    }
+
+    func openSpeechRecognitionSettings() {
+        openPrivacySettings(urls: [
+            "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_SpeechRecognition",
+            "x-apple.systempreferences:com.apple.preference.security?Privacy_SpeechRecognition"
+        ])
+        scheduleRefreshes()
     }
 
     func requestAccessibility() {
@@ -162,30 +210,10 @@ final class PermissionsManager: ObservableObject {
 
     // MARK: - Private
 
-    private func promptForMissingRequiredPermissions(force: Bool) {
-        let shouldPromptAccessibility =
-            !isAccessibilityGranted && (force || !defaults.bool(forKey: promptedAccessibilityKey))
-        let shouldPromptInputMonitoring =
-            !isInputMonitoringGranted && (force || !defaults.bool(forKey: promptedInputMonitoringKey))
-
-        if shouldPromptAccessibility {
-            defaults.set(true, forKey: promptedAccessibilityKey)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
-                self?.requestAccessibility()
-            }
-        }
-
-        if shouldPromptInputMonitoring {
-            defaults.set(true, forKey: promptedInputMonitoringKey)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { [weak self] in
-                self?.requestInputMonitoring()
-            }
-        }
-    }
-
     private func clearPromptedFlags() {
-        defaults.removeObject(forKey: promptedAccessibilityKey)
-        defaults.removeObject(forKey: promptedInputMonitoringKey)
+        // Compatibilidade com versões anteriores, que persistiam prompts no launch.
+        defaults.removeObject(forKey: "clipflow.permissions.prompted.accessibility")
+        defaults.removeObject(forKey: "clipflow.permissions.prompted.inputMonitoring")
     }
 
     private func loadStoredIdentity() -> AppInstallIdentity? {

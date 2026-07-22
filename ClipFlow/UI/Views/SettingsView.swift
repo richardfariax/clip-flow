@@ -1,20 +1,28 @@
 import AppKit
 import SwiftUI
 
-private enum SettingsPane: String, CaseIterable, Identifiable, Hashable {
+private enum SettingsPane: String, Identifiable, Hashable {
     case general
-    case voice
-    case intelligence
+    case menuBar
     case hotkey
     case ignoredApps
+    case dashboard
+    case maintenance
+    case voice
+    case intelligence
     case permissions
-    case updates
     case about
 
     var id: String { rawValue }
 
     func title(for language: AppLanguage) -> String {
         switch self {
+        case .dashboard:
+            return language.text(ptBR: "Central", en: "Command Center")
+        case .menuBar:
+            return language.text(ptBR: "Barra Superior", en: "Menu Bar")
+        case .maintenance:
+            return language.text(ptBR: "Manutenção", en: "Maintenance")
         case .general:
             return language.text(ptBR: "Geral", en: "General")
         case .voice:
@@ -27,35 +35,37 @@ private enum SettingsPane: String, CaseIterable, Identifiable, Hashable {
             return language.text(ptBR: "Apps Ignorados", en: "Ignored Apps")
         case .permissions:
             return language.text(ptBR: "Permissões", en: "Permissions")
-        case .updates:
-            return language.text(ptBR: "Atualização", en: "Updates")
         case .about:
-            return language.text(ptBR: "Sobre", en: "About")
+            return language.text(ptBR: "Sobre e Atualizações", en: "About & Updates")
         }
     }
 
     var symbolName: String {
         switch self {
+        case .dashboard: return "gauge.with.dots.needle.67percent"
+        case .menuBar: return "menubar.rectangle"
+        case .maintenance: return "wrench.and.screwdriver.fill"
         case .general: return "gearshape.fill"
         case .voice: return "waveform"
         case .intelligence: return "sparkles"
         case .hotkey: return "keyboard"
-        case .ignoredApps: return "app.badge.checkmark"
+        case .ignoredApps: return "hand.raised.slash.fill"
         case .permissions: return "lock.shield.fill"
-        case .updates: return "arrow.down.app.fill"
         case .about: return "info.circle.fill"
         }
     }
 
     var tint: Color {
         switch self {
+        case .dashboard: return .blue
+        case .menuBar: return .cyan
+        case .maintenance: return .green
         case .general: return .gray
         case .voice: return .pink
         case .intelligence: return .purple
         case .hotkey: return .blue
         case .ignoredApps: return .orange
         case .permissions: return .green
-        case .updates: return .teal
         case .about: return .cyan
         }
     }
@@ -65,6 +75,7 @@ struct SettingsView: View {
     @ObservedObject var settings: AppSettings
     @ObservedObject var permissionsManager: PermissionsManager
     @ObservedObject var appUpdateService: AppUpdateService
+    @ObservedObject var systemMetrics: SystemMetricsService
 
     let launchManager: LaunchAtLoginManager
     let onRebindHotkey: () -> Void
@@ -110,8 +121,11 @@ struct SettingsView: View {
         .onReceive(NotificationCenter.default.publisher(for: .openSettingsPermissions)) { _ in
             selectedPane = .permissions
         }
+        .onReceive(NotificationCenter.default.publisher(for: .openSettingsDashboard)) { _ in
+            selectedPane = .dashboard
+        }
         .onReceive(NotificationCenter.default.publisher(for: .openSettingsUpdates)) { _ in
-            selectedPane = .updates
+            selectedPane = .about
         }
         .onChange(of: settings.hotkeyCode, initial: false) { _, _ in
             syncHotkeyPresetState()
@@ -145,24 +159,20 @@ struct SettingsView: View {
 
     private var sidebar: some View {
         List(selection: $selectedPane) {
-            Section {
-                ForEach(SettingsPane.allCases) { pane in
-                    HStack(spacing: 8) {
-                        Label {
-                            Text(pane.title(for: settings.language))
-                        } icon: {
-                            settingsIcon(symbol: pane.symbolName, tint: pane.tint)
-                        }
+            Section(t("Preferências", "Preferences")) {
+                sidebarRows([.general, .menuBar, .hotkey, .ignoredApps])
+            }
 
-                        if pane == .updates, appUpdateService.hasUpdateAvailable {
-                            Spacer(minLength: 0)
-                            Circle()
-                                .fill(Color.teal)
-                                .frame(width: 7, height: 7)
-                        }
-                    }
-                    .tag(pane)
-                }
+            Section(t("Recursos", "Features")) {
+                sidebarRows([.dashboard, .maintenance, .voice, .intelligence])
+            }
+
+            Section(t("Sistema", "System")) {
+                sidebarRows([.permissions])
+            }
+
+            Section {
+                sidebarRows([.about])
             }
         }
         .listStyle(.sidebar)
@@ -173,6 +183,28 @@ struct SettingsView: View {
         )
         .safeAreaInset(edge: .bottom, spacing: 0) {
             sidebarFooter
+        }
+    }
+
+    @ViewBuilder
+    private func sidebarRows(_ panes: [SettingsPane]) -> some View {
+        ForEach(panes) { pane in
+            HStack(spacing: 8) {
+                Label {
+                    Text(pane.title(for: settings.language))
+                } icon: {
+                    settingsIcon(symbol: pane.symbolName, tint: pane.tint)
+                }
+
+                if pane == .about, appUpdateService.hasUpdateAvailable {
+                    Spacer(minLength: 0)
+                    Circle()
+                        .fill(Color.teal)
+                        .frame(width: 7, height: 7)
+                        .accessibilityLabel(t("Atualização disponível", "Update available"))
+                }
+            }
+            .tag(pane)
         }
     }
 
@@ -216,6 +248,46 @@ struct SettingsView: View {
     @ViewBuilder
     private var detailPane: some View {
         switch selectedPane {
+        case .dashboard:
+            settingsScroll {
+                VStack(alignment: .leading, spacing: 18) {
+                    paneHeader(
+                        pane: .dashboard,
+                        subtitle: t(
+                            "Saúde e desempenho do seu Mac em tempo real.",
+                            "Real-time health and performance for your Mac."
+                        ),
+                        status: systemMetrics.isRunning ? t("Ao vivo", "Live") : t("Pausado", "Paused")
+                    )
+                    SystemDashboardView(metrics: systemMetrics, language: settings.language, showsHeader: false)
+                }
+            }
+        case .menuBar:
+            settingsScroll {
+                VStack(alignment: .leading, spacing: 18) {
+                    paneHeader(
+                        pane: .menuBar,
+                        subtitle: t(
+                            "Escolha quais métricas ficam sempre visíveis e como cada uma aparece.",
+                            "Choose which metrics stay visible and how each one appears."
+                        )
+                    )
+                    MenuBarSettingsView(settings: settings)
+                }
+            }
+        case .maintenance:
+            settingsScroll {
+                VStack(alignment: .leading, spacing: 18) {
+                    paneHeader(
+                        pane: .maintenance,
+                        subtitle: t(
+                            "Recupere espaço e entenda a memória sem interromper processos.",
+                            "Reclaim space and understand memory without interrupting processes."
+                        )
+                    )
+                    MaintenanceView(metrics: systemMetrics, settings: settings)
+                }
+            }
         case .general:
             settingsScroll { generalForm }
         case .voice:
@@ -228,8 +300,6 @@ struct SettingsView: View {
             settingsScroll { ignoredAppsForm }
         case .permissions:
             settingsScroll { permissionsForm }
-        case .updates:
-            settingsScroll { updatesForm }
         case .about:
             settingsScroll { aboutForm }
         }
@@ -247,17 +317,40 @@ struct SettingsView: View {
         .scrollDisabled(isHoveringIgnoredAppsGrid && selectedPane == .ignoredApps)
     }
 
-    private func paneHeader(title: String, subtitle: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title)
-                .font(.largeTitle.weight(.bold))
-            Text(subtitle)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+    private func paneHeader(pane: SettingsPane, subtitle: String, status: String? = nil) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: pane.symbolName)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 36, height: 36)
+                .background(pane.tint.gradient, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(pane.title(for: settings.language))
+                    .font(.title2.weight(.bold))
+                Text(subtitle)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: 12)
+
+            if let status {
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(systemMetrics.isRunning ? Color.green : Color.secondary)
+                        .frame(width: 7, height: 7)
+                    Text(status)
+                        .font(.caption.weight(.semibold))
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(.quaternary.opacity(0.7), in: Capsule())
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.bottom, 8)
+        .padding(.bottom, 6)
     }
 
     // MARK: - Forms
@@ -265,7 +358,7 @@ struct SettingsView: View {
     private var generalForm: some View {
         VStack(alignment: .leading, spacing: 18) {
             paneHeader(
-                title: t("Geral", "General"),
+                pane: .general,
                 subtitle: t("Preferências principais do ClipFlow.", "Main ClipFlow preferences.")
             )
 
@@ -318,7 +411,7 @@ struct SettingsView: View {
     private var voiceForm: some View {
         VStack(alignment: .leading, spacing: 18) {
             paneHeader(
-                title: t("Voz", "Voice"),
+                pane: .voice,
                 subtitle: t(
                     "Como o Clip escuta e responde por voz.",
                     "How Clip listens and answers by voice."
@@ -402,7 +495,7 @@ struct SettingsView: View {
     private var intelligenceForm: some View {
         VStack(alignment: .leading, spacing: 18) {
             paneHeader(
-                title: t("Inteligência", "Intelligence"),
+                pane: .intelligence,
                 subtitle: t(
                     "Modelo on-device, privado e generativo — com acessibilidade em primeiro plano.",
                     "On-device, private, generative model — accessibility first."
@@ -554,7 +647,7 @@ struct SettingsView: View {
     private var hotkeyForm: some View {
         VStack(alignment: .leading, spacing: 18) {
             paneHeader(
-                title: t("Atalhos", "Shortcuts"),
+                pane: .hotkey,
                 subtitle: t("Abertura rápida do painel do ClipFlow.", "Quick access to the ClipFlow panel.")
             )
 
@@ -617,7 +710,7 @@ struct SettingsView: View {
     private var ignoredAppsForm: some View {
         VStack(alignment: .leading, spacing: 18) {
             paneHeader(
-                title: t("Apps Ignorados", "Ignored Apps"),
+                pane: .ignoredApps,
                 subtitle: t(
                     "Apps sensíveis que o ClipFlow não deve monitorar.",
                     "Sensitive apps ClipFlow should not monitor."
@@ -660,7 +753,7 @@ struct SettingsView: View {
     private var permissionsForm: some View {
         VStack(alignment: .leading, spacing: 18) {
             paneHeader(
-                title: t("Permissões", "Permissions"),
+                pane: .permissions,
                 subtitle: t(
                     "Necessárias para hotkeys, colagem e análise de tela.",
                     "Required for hotkeys, pasting, and screen analysis."
@@ -677,48 +770,14 @@ struct SettingsView: View {
         }
     }
 
-    private var updatesForm: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            paneHeader(
-                title: t("Atualização", "Updates"),
-                subtitle: t(
-                    "Atualização interna com progresso, verificação e instalação no mesmo local.",
-                    "In-app update with progress, verification, and same-path installation."
-                )
-            )
-
-            Form {
-                Section {
-                    AppUpdatePanel(service: appUpdateService, settings: settings)
-                        .listRowInsets(EdgeInsets(top: 8, leading: 4, bottom: 8, trailing: 4))
-                        .listRowBackground(Color.clear)
-                }
-
-                Section {
-                    Toggle(
-                        t("Verificar automaticamente ao abrir", "Check automatically on launch"),
-                        isOn: Binding(
-                            get: { appUpdateService.automaticChecksEnabled },
-                            set: { appUpdateService.setAutomaticChecksEnabled($0) }
-                        )
-                    )
-                }
-            }
-            .formStyle(.grouped)
-            .padding(.horizontal, -8)
-        }
-        .onAppear {
-            if case .idle = appUpdateService.phase {
-                Task { await appUpdateService.checkForUpdates(userInitiated: false) }
-            }
-        }
-    }
-
     private var aboutForm: some View {
         VStack(alignment: .leading, spacing: 18) {
             paneHeader(
-                title: t("Sobre", "About"),
-                subtitle: t("ClipFlow e o assistente Clip.", "ClipFlow and the Clip assistant.")
+                pane: .about,
+                subtitle: t(
+                    "Versão, atualizações e informações do ClipFlow em um só lugar.",
+                    "Version, updates, and ClipFlow information in one place."
+                )
             )
 
             Form {
@@ -744,6 +803,24 @@ struct SettingsView: View {
                         Spacer(minLength: 0)
                     }
                     .padding(.vertical, 4)
+                }
+
+                Section(t("Atualizações", "Updates")) {
+                    AppUpdatePanel(
+                        service: appUpdateService,
+                        settings: settings,
+                        showsAppIdentity: false
+                    )
+                        .listRowInsets(EdgeInsets(top: 8, leading: 4, bottom: 8, trailing: 4))
+                        .listRowBackground(Color.clear)
+
+                    Toggle(
+                        t("Verificar automaticamente ao abrir", "Check automatically on launch"),
+                        isOn: Binding(
+                            get: { appUpdateService.automaticChecksEnabled },
+                            set: { appUpdateService.setAutomaticChecksEnabled($0) }
+                        )
+                    )
                 }
 
                 Section(t("Desenvolvedor", "Developer")) {
@@ -774,6 +851,11 @@ struct SettingsView: View {
             }
             .formStyle(.grouped)
             .padding(.horizontal, -8)
+        }
+        .onAppear {
+            if case .idle = appUpdateService.phase {
+                Task { await appUpdateService.checkForUpdates(userInitiated: false) }
+            }
         }
     }
 

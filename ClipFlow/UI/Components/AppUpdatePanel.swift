@@ -4,12 +4,14 @@ import SwiftUI
 struct AppUpdatePanel: View {
     @ObservedObject var service: AppUpdateService
     @ObservedObject var settings: AppSettings
+    var showsAppIdentity = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            header
-
-            Divider()
+            if showsAppIdentity {
+                header
+                Divider()
+            }
 
             statusContent
 
