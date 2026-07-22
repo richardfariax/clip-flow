@@ -251,7 +251,6 @@ final class MenuBarMetricsController: NSObject {
     private let onPresentPopover: (NSView, MenuBarMetric) -> Void
     private var statusItems: [MenuBarMetric: NSStatusItem] = [:]
     private var configuredStyles: [MenuBarMetric: MenuBarMetricStyle] = [:]
-    private var configuredOverflowEnabled = false
     private var presentations: [MenuBarMetric: MenuBarMetricPresentation] = [:]
     private var overflowMetrics: Set<MenuBarMetric> = []
     private var overflowEvaluationScheduled = false
@@ -281,13 +280,11 @@ final class MenuBarMetricsController: NSObject {
         let updatedStyles = Dictionary(uniqueKeysWithValues: MenuBarMetric.allCases.map {
             ($0, settings.menuBarStyle(for: $0))
         })
-        guard updatedStyles != configuredStyles
-                || settings.useNotchLeftOverflow != configuredOverflowEnabled else {
+        guard updatedStyles != configuredStyles else {
             return
         }
 
         configuredStyles = updatedStyles
-        configuredOverflowEnabled = settings.useNotchLeftOverflow
         overflowMetrics.removeAll()
         overflowPanel.hide()
 
@@ -424,7 +421,7 @@ final class MenuBarMetricsController: NSObject {
     }
 
     private func scheduleOverflowEvaluation() {
-        guard configuredOverflowEnabled, !statusItems.isEmpty, !overflowEvaluationScheduled else { return }
+        guard !statusItems.isEmpty, !overflowEvaluationScheduled else { return }
         overflowEvaluationScheduled = true
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
             guard let self else { return }
@@ -434,8 +431,7 @@ final class MenuBarMetricsController: NSObject {
     }
 
     private func evaluateOverflow() {
-        guard configuredOverflowEnabled,
-              !statusItems.isEmpty,
+        guard !statusItems.isEmpty,
               let screen = statusItems.values.compactMap({ $0.button?.window?.screen }).first ?? NSScreen.main,
               let rightArea = screen.auxiliaryTopRightArea,
               screen.auxiliaryTopLeftArea != nil else {
