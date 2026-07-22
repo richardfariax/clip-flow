@@ -61,6 +61,45 @@ final class SystemMetricsSamplerTests: XCTestCase {
         )
     }
 
+    func testMenuBarOverflowMovesOnlyOneLowPriorityItemPerMeasurement() {
+        let rightArea = NSRect(x: 900, y: 950, width: 500, height: 38)
+        let outsideFrame = NSRect(x: 820, y: 952, width: 70, height: 30)
+        let items: [MenuBarMetric: MenuBarItemGeometry] = [
+            .cpu: MenuBarItemGeometry(frame: outsideFrame, isWindowVisible: false),
+            .gpu: MenuBarItemGeometry(frame: outsideFrame, isWindowVisible: false),
+            .memory: MenuBarItemGeometry(frame: outsideFrame, isWindowVisible: false),
+            .temperature: MenuBarItemGeometry(frame: outsideFrame, isWindowVisible: false)
+        ]
+
+        XCTAssertEqual(
+            MenuBarOverflowLayout.metricsToMoveLeft(items: items, rightArea: rightArea),
+            [.temperature]
+        )
+        XCTAssertEqual(
+            MenuBarOverflowLayout.metricsToMoveLeft(
+                items: items.filter { $0.key != .temperature },
+                rightArea: rightArea
+            ),
+            [.memory]
+        )
+    }
+
+    func testMenuBarOverflowAlwaysKeepsOneMetricOnTheRight() {
+        let rightArea = NSRect(x: 900, y: 950, width: 500, height: 38)
+        let outsideItem = MenuBarItemGeometry(
+            frame: NSRect(x: 820, y: 952, width: 70, height: 30),
+            isWindowVisible: false
+        )
+
+        XCTAssertEqual(
+            MenuBarOverflowLayout.metricsToMoveLeft(
+                items: [.cpu: outsideItem],
+                rightArea: rightArea
+            ),
+            []
+        )
+    }
+
     func testCPUSampleProducesNormalizedFractions() throws {
         let sampler = CPUMetricsSampler()
         _ = try XCTUnwrap(sampler.sample())

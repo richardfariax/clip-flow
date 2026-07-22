@@ -503,14 +503,27 @@ enum MenuBarOverflowLayout {
         items: [MenuBarMetric: MenuBarItemGeometry],
         rightArea: NSRect
     ) -> Set<MenuBarMetric> {
-        guard !items.isEmpty else { return [] }
+        // Keep at least the highest-priority metric native on the right. Removing
+        // every item from one stale geometry snapshot makes the whole group jump
+        // to the left before AppKit can reflow the remaining status items.
+        guard items.count > 1 else { return [] }
+
         let tolerance = rightArea.insetBy(dx: -2, dy: -2)
         let hasVisibleItem = items.values.contains(where: \.isWindowVisible)
-        return Set(items.compactMap { metric, item in
+        let needsMoreSpace = items.values.contains { item in
             let isOutsideRightArea = !tolerance.contains(item.frame)
             let isIndividuallyHidden = hasVisibleItem && !item.isWindowVisible
-            return isOutsideRightArea || isIndividuallyHidden ? metric : nil
-        })
+            return isOutsideRightArea || isIndividuallyHidden
+        }
+        guard needsMoreSpace else { return [] }
+
+        // AppKit places the first-created metric nearest the existing menu extras.
+        // Overflow one low-priority item at a time, then measure the native side
+        // again. This fills the area beside the microphone before using the left.
+        guard let metric = MenuBarMetric.allCases.reversed().first(where: { items[$0] != nil }) else {
+            return []
+        }
+        return [metric]
     }
 }
 
