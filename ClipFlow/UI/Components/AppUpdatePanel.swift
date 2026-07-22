@@ -5,8 +5,19 @@ struct AppUpdatePanel: View {
     @ObservedObject var service: AppUpdateService
     @ObservedObject var settings: AppSettings
     var showsAppIdentity = true
+    var isEmbedded = false
 
     var body: some View {
+        if isEmbedded {
+            content
+        } else {
+            content
+                .padding(16)
+                .clipFlowSettingsSurface(cornerRadius: 14)
+        }
+    }
+
+    private var content: some View {
         VStack(alignment: .leading, spacing: 16) {
             if showsAppIdentity {
                 header
@@ -27,15 +38,6 @@ struct AppUpdatePanel: View {
 
             footerNote
         }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color(nsColor: .controlBackgroundColor))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .strokeBorder(Color(nsColor: .separatorColor).opacity(0.8), lineWidth: 1)
-                )
-        )
     }
 
     private var header: some View {

@@ -6,82 +6,86 @@ struct PermissionsView: View {
     @State private var refreshTimer = Timer.publish(every: 2.0, on: .main, in: .common).autoconnect()
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            permissionProgress
-
-            Text(t(
-                "ClipFlow precisa de Accessibility para colar automaticamente e Input Monitoring para capturar atalhos globais com máxima confiabilidade.",
-                "ClipFlow needs Accessibility to paste automatically and Input Monitoring for more reliable global hotkeys."
-            ))
-            .font(.subheadline)
-            .foregroundStyle(.secondary)
-
-            if permissionsManager.requiresRegrantAfterUpdate {
-                updateRegrantBanner
-            } else if permissionsManager.missingRequiredPermissions {
-                Label(
-                    t(
-                        "Permissões críticas ausentes — hotkeys ou colagem podem falhar.",
-                        "Critical permissions missing — hotkeys or paste may fail."
-                    ),
-                    systemImage: "lock.trianglebadge.exclamationmark.fill"
-                )
-                .font(.caption)
-                .foregroundStyle(.orange)
+        Form {
+            Section {
+                permissionProgress
             }
 
-            if isRunningFromDerivedData {
+            Section {
                 Text(t(
-                    "Rodando via Xcode/DerivedData — permissões valem só para este build. Use o .app em Applications para TCC estável.",
-                    "Running from Xcode/DerivedData — permissions apply only to this build. Use the .app in Applications for stable TCC."
+                    "ClipFlow precisa de Accessibility para colar automaticamente e Input Monitoring para capturar atalhos globais com máxima confiabilidade.",
+                    "ClipFlow needs Accessibility to paste automatically and Input Monitoring for more reliable global hotkeys."
                 ))
-                .font(.caption)
-                .foregroundStyle(.orange)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
+                if permissionsManager.requiresRegrantAfterUpdate {
+                    updateRegrantBanner
+                } else if permissionsManager.missingRequiredPermissions {
+                    Label(
+                        t(
+                            "Permissões críticas ausentes — hotkeys ou colagem podem falhar.",
+                            "Critical permissions missing — hotkeys or paste may fail."
+                        ),
+                        systemImage: "lock.trianglebadge.exclamationmark.fill"
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                }
+
+                if isRunningFromDerivedData {
+                    Text(t(
+                        "Rodando via Xcode/DerivedData — permissões valem só para este build. Use o .app em Applications para TCC estável.",
+                        "Running from Xcode/DerivedData — permissions apply only to this build. Use the .app in Applications for stable TCC."
+                    ))
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                }
             }
 
-            permissionRow(
-                title: "Accessibility",
-                granted: permissionsManager.isAccessibilityGranted,
-                requestAction: permissionsManager.requestAccessibility,
-                openAction: permissionsManager.openAccessibilitySettings
-            )
+            Section {
+                permissionRow(
+                    title: "Accessibility",
+                    granted: permissionsManager.isAccessibilityGranted,
+                    requestAction: permissionsManager.requestAccessibility,
+                    openAction: permissionsManager.openAccessibilitySettings
+                )
 
-            permissionRow(
-                title: t("Microfone", "Microphone"),
-                granted: permissionsManager.isMicrophoneGranted,
-                requestAction: { permissionsManager.requestMicrophone() },
-                openAction: permissionsManager.openMicrophoneSettings
-            )
+                permissionRow(
+                    title: t("Microfone", "Microphone"),
+                    granted: permissionsManager.isMicrophoneGranted,
+                    requestAction: { permissionsManager.requestMicrophone() },
+                    openAction: permissionsManager.openMicrophoneSettings
+                )
 
-            permissionRow(
-                title: t("Reconhecimento de Fala", "Speech Recognition"),
-                granted: permissionsManager.isSpeechRecognitionGranted,
-                requestAction: { permissionsManager.requestSpeechRecognition() },
-                openAction: permissionsManager.openSpeechRecognitionSettings
-            )
+                permissionRow(
+                    title: t("Reconhecimento de Fala", "Speech Recognition"),
+                    granted: permissionsManager.isSpeechRecognitionGranted,
+                    requestAction: { permissionsManager.requestSpeechRecognition() },
+                    openAction: permissionsManager.openSpeechRecognitionSettings
+                )
 
-            permissionRow(
-                title: "Input Monitoring",
-                granted: permissionsManager.isInputMonitoringGranted,
-                requestAction: permissionsManager.requestInputMonitoring,
-                openAction: permissionsManager.openInputMonitoringSettings
-            )
+                permissionRow(
+                    title: "Input Monitoring",
+                    granted: permissionsManager.isInputMonitoringGranted,
+                    requestAction: permissionsManager.requestInputMonitoring,
+                    openAction: permissionsManager.openInputMonitoringSettings
+                )
 
-            permissionRow(
-                title: t("Gravação de Tela", "Screen Recording"),
-                granted: permissionsManager.isScreenCaptureGranted,
-                requestAction: permissionsManager.requestScreenCapture,
-                openAction: permissionsManager.openScreenCaptureSettings
-            )
-
-            Text(t(
-                "Depois de conceder, volte ao app. Gravação de Tela pode exigir reiniciar o ClipFlow.",
-                "After granting, return to the app. Screen Recording may require restarting ClipFlow."
-            ))
-            .font(.caption)
-            .foregroundStyle(.tertiary)
+                permissionRow(
+                    title: t("Gravação de Tela", "Screen Recording"),
+                    granted: permissionsManager.isScreenCaptureGranted,
+                    requestAction: permissionsManager.requestScreenCapture,
+                    openAction: permissionsManager.openScreenCaptureSettings
+                )
+            } footer: {
+                Text(t(
+                    "Depois de conceder, volte ao app. Gravação de Tela pode exigir reiniciar o ClipFlow.",
+                    "After granting, return to the app. Screen Recording may require restarting ClipFlow."
+                ))
+            }
         }
-        .padding(.top, 2)
+        .clipFlowSettingsFormStyle()
         .onAppear {
             permissionsManager.refresh()
         }
@@ -126,8 +130,6 @@ struct PermissionsView: View {
             .font(.caption)
             .foregroundStyle(.secondary)
         }
-        .padding(12)
-        .background(Color.blue.opacity(0.08), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     private var grantedPermissionCount: Int {
@@ -227,16 +229,6 @@ struct PermissionsView: View {
             .buttonStyle(.bordered)
             .controlSize(.small)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(Color(nsColor: .controlBackgroundColor))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .strokeBorder(Color(nsColor: .separatorColor), lineWidth: 1.0)
-                )
-        )
     }
 
     private var isRunningFromDerivedData: Bool {

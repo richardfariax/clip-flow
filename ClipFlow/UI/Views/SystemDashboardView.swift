@@ -254,11 +254,7 @@ struct SystemDashboardView: View {
             }
         }
         .padding(16)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(.quaternary, lineWidth: 1)
-        }
+        .clipFlowSettingsSurface(cornerRadius: 18)
     }
 
     private var unavailableRow: some View {
@@ -405,7 +401,7 @@ private struct MetricCard<Details: View>: View {
         }
         .padding(15)
         .frame(maxWidth: .infinity, minHeight: 224, alignment: .topLeading)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .clipFlowSettingsSurface(cornerRadius: 18)
         .overlay {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .stroke(accent.opacity(0.18), lineWidth: 1)
