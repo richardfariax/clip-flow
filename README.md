@@ -1,9 +1,5 @@
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="ClipFlow/Resources/Assets.xcassets/ClipFlowLogoDark.imageset/logo-dark.png">
-    <source media="(prefers-color-scheme: light)" srcset="ClipFlow/Resources/Assets.xcassets/ClipFlowLogoLight.imageset/logo-light.png">
-    <img src="ClipFlow/Resources/Assets.xcassets/ClipFlowLogoLight.imageset/logo-light.png" alt="ClipFlow logo" width="110">
-  </picture>
+  <img src="ClipFlow/Resources/Assets.xcassets/AppIcon.appiconset/icon_256x256.png" alt="ClipFlow logo" width="110">
 </p>
 
 <h1 align="center">ClipFlow</h1>
