@@ -7,6 +7,8 @@ struct PermissionsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
+            permissionProgress
+
             Text(t(
                 "ClipFlow precisa de Accessibility para colar automaticamente e Input Monitoring para capturar atalhos globais com máxima confiabilidade.",
                 "ClipFlow needs Accessibility to paste automatically and Input Monitoring for more reliable global hotkeys."
@@ -45,6 +47,20 @@ struct PermissionsView: View {
             )
 
             permissionRow(
+                title: t("Microfone", "Microphone"),
+                granted: permissionsManager.isMicrophoneGranted,
+                requestAction: { permissionsManager.requestMicrophone() },
+                openAction: permissionsManager.openMicrophoneSettings
+            )
+
+            permissionRow(
+                title: t("Reconhecimento de Fala", "Speech Recognition"),
+                granted: permissionsManager.isSpeechRecognitionGranted,
+                requestAction: { permissionsManager.requestSpeechRecognition() },
+                openAction: permissionsManager.openSpeechRecognitionSettings
+            )
+
+            permissionRow(
                 title: "Input Monitoring",
                 granted: permissionsManager.isInputMonitoringGranted,
                 requestAction: permissionsManager.requestInputMonitoring,
@@ -77,6 +93,53 @@ struct PermissionsView: View {
         }
     }
 
+    private var permissionProgress: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Label(
+                    permissionsManager.hasAllFeaturePermissions
+                        ? t("Tudo pronto", "All set")
+                        : t("Configuração guiada", "Guided setup"),
+                    systemImage: permissionsManager.hasAllFeaturePermissions ? "checkmark.shield.fill" : "wand.and.stars"
+                )
+                .font(.headline)
+                .foregroundStyle(permissionsManager.hasAllFeaturePermissions ? .green : .blue)
+                Spacer()
+                Text("\(grantedPermissionCount)/5")
+                    .font(.caption.monospacedDigit().weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+
+            ProgressView(value: Double(grantedPermissionCount), total: 5)
+
+            if !permissionsManager.hasAllFeaturePermissions {
+                Button(t("Configurar próxima permissão", "Configure next permission")) {
+                    permissionsManager.requestNextMissingPermission()
+                }
+                .buttonStyle(.borderedProminent)
+            }
+
+            Text(t(
+                "O app conduz uma permissão por vez. Por segurança, o macOS sempre exige sua confirmação nos Ajustes.",
+                "The app guides you through one permission at a time. For security, macOS always requires your confirmation in Settings."
+            ))
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+        .padding(12)
+        .background(Color.blue.opacity(0.08), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    private var grantedPermissionCount: Int {
+        [
+            permissionsManager.isAccessibilityGranted,
+            permissionsManager.isInputMonitoringGranted,
+            permissionsManager.isScreenCaptureGranted,
+            permissionsManager.isMicrophoneGranted,
+            permissionsManager.isSpeechRecognitionGranted
+        ].filter { $0 }.count
+    }
+
     private var updateRegrantBanner: some View {
         VStack(alignment: .leading, spacing: 6) {
             Label(
@@ -99,10 +162,7 @@ struct PermissionsView: View {
 
             HStack(spacing: 8) {
                 Button(t("Solicitar de novo", "Request again")) {
-                    permissionsManager.requestAccessibility()
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        permissionsManager.requestInputMonitoring()
-                    }
+                    permissionsManager.requestNextMissingPermission()
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.small)
