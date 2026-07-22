@@ -99,6 +99,9 @@ final class AppSettings: ObservableObject {
         static let generativeAnswersEnabled = "generativeAnswersEnabled"
         static let generativeUseWebContext = "generativeUseWebContext"
         static let userName = "userName"
+        static let menuBarMetricStyles = "menuBarMetricStyles"
+        static let useNotchLeftOverflow = "useNotchLeftOverflow"
+        static let metricsPopoverMode = "metricsPopoverMode"
     }
 
     @Published var historyLimit: Int {
@@ -206,6 +209,18 @@ final class AppSettings: ObservableObject {
         }
     }
 
+    @Published var menuBarMetricStyles: [MenuBarMetric: MenuBarMetricStyle] {
+        didSet { saveMenuBarMetricStyles() }
+    }
+
+    @Published var useNotchLeftOverflow: Bool {
+        didSet { userDefaults.set(useNotchLeftOverflow, forKey: Keys.useNotchLeftOverflow) }
+    }
+
+    @Published var metricsPopoverMode: MetricsPopoverMode {
+        didSet { userDefaults.set(metricsPopoverMode.rawValue, forKey: Keys.metricsPopoverMode) }
+    }
+
     private let userDefaults: UserDefaults
 
     var hotkeyDisplay: String {
@@ -265,6 +280,11 @@ final class AppSettings: ObservableObject {
             // Padrão discreto: microfone abre apenas quando o atalho é pressionado.
             voiceActivationMode = .hotkey
         }
+
+        menuBarMetricStyles = Self.loadMenuBarMetricStyles(from: userDefaults)
+        useNotchLeftOverflow = userDefaults.object(forKey: Keys.useNotchLeftOverflow) as? Bool ?? true
+        metricsPopoverMode = userDefaults.string(forKey: Keys.metricsPopoverMode)
+            .flatMap(MetricsPopoverMode.init(rawValue:)) ?? .summary
     }
 
     private static func normalizedHistoryLimit(_ value: Int) -> Int {
@@ -302,6 +322,38 @@ final class AppSettings: ObservableObject {
             return UInt32(optionKey)
         }
         return value
+    }
+
+    private static func loadMenuBarMetricStyles(from defaults: UserDefaults) -> [MenuBarMetric: MenuBarMetricStyle] {
+        let defaultStyles: [MenuBarMetric: MenuBarMetricStyle] = [
+            .cpu: .text,
+            .gpu: .hidden,
+            .memory: .text,
+            .temperature: .text,
+            .storage: .hidden,
+            .network: .hidden,
+            .power: .hidden
+        ]
+        guard let stored = defaults.dictionary(forKey: Keys.menuBarMetricStyles) as? [String: String] else {
+            return defaultStyles
+        }
+        return MenuBarMetric.allCases.reduce(into: defaultStyles) { result, metric in
+            guard let rawValue = stored[metric.rawValue], let style = MenuBarMetricStyle(rawValue: rawValue) else { return }
+            result[metric] = style
+        }
+    }
+
+    private func saveMenuBarMetricStyles() {
+        let values = Dictionary(uniqueKeysWithValues: menuBarMetricStyles.map { ($0.key.rawValue, $0.value.rawValue) })
+        userDefaults.set(values, forKey: Keys.menuBarMetricStyles)
+    }
+
+    func menuBarStyle(for metric: MenuBarMetric) -> MenuBarMetricStyle {
+        menuBarMetricStyles[metric] ?? .hidden
+    }
+
+    func setMenuBarStyle(_ style: MenuBarMetricStyle, for metric: MenuBarMetric) {
+        menuBarMetricStyles[metric] = style
     }
 
     func text(ptBR: String, en: String) -> String {
