@@ -30,7 +30,7 @@ final class VoiceCommandService: ObservableObject {
 
     private let settings: AppSettings
 
-    private let audioEngine = AVAudioEngine()
+    private var audioEngine: AVAudioEngine?
     private var speechRecognizer: SFSpeechRecognizer?
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     private var recognitionTask: SFSpeechRecognitionTask?
@@ -502,6 +502,8 @@ final class VoiceCommandService: ObservableObject {
     // MARK: - Audio engine
 
     private func startAudioEngineIfNeeded(feeding request: SFSpeechAudioBufferRecognitionRequest) -> Bool {
+        let audioEngine = audioEngine ?? AVAudioEngine()
+        self.audioEngine = audioEngine
         let inputNode = audioEngine.inputNode
         let format = inputNode.outputFormat(forBus: 0)
         guard format.sampleRate > 0 else { return false }
@@ -561,6 +563,10 @@ final class VoiceCommandService: ObservableObject {
     }
 
     private func stopAudioEngine() {
+        guard let audioEngine else {
+            publishInputLevel(0)
+            return
+        }
         audioEngine.inputNode.removeTap(onBus: 0)
         if isEngineRunning {
             audioEngine.stop()
