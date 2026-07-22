@@ -552,8 +552,8 @@ private enum MenuBarMetricChrome {
         NSLayoutConstraint.activate([
             background.leadingAnchor.constraint(equalTo: button.leadingAnchor),
             background.trailingAnchor.constraint(equalTo: button.trailingAnchor),
-            background.topAnchor.constraint(equalTo: button.topAnchor, constant: 1),
-            background.bottomAnchor.constraint(equalTo: button.bottomAnchor, constant: -1)
+            background.centerYAnchor.constraint(equalTo: button.centerYAnchor),
+            background.heightAnchor.constraint(equalToConstant: MenuBarMetricLayout.minimumHeight)
         ])
     }
 }
@@ -757,7 +757,7 @@ private final class MenuBarOverflowItemView: NSVisualEffectView {
                 constant: -MenuBarMetricLayout.horizontalContentPadding
             ),
             button.centerYAnchor.constraint(equalTo: centerYAnchor),
-            heightAnchor.constraint(greaterThanOrEqualToConstant: MenuBarMetricLayout.minimumHeight)
+            heightAnchor.constraint(equalToConstant: MenuBarMetricLayout.minimumHeight)
         ])
     }
 
